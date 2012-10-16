@@ -4,13 +4,13 @@
           protected $hasActiveTransaction = false;
           
           static function exception_handler($exception){
-               die("Uncaught exception: ",$exception->getMessage());
+               die("Uncaught exception: ".$exception->getMessage());
           }
           
           function __construct($config){
                
                set_exception_handler(array(__CLASS__, "exception_handler"));
-               parent::__construct($config->dns, $config->username, $config->password, $config->driver_options);
+               parent::__construct($config['dns'], $config['username'], $config['password'], $config['driver_options']);
                restore_exception_handler();
           }
           
@@ -52,7 +52,7 @@
                               $this->sql .="$col, ";
                          }
                          else {
-                              $this->sql .= $col;
+                              $this->sql .= $col . ' ';
                          }
                     }
                }
@@ -60,14 +60,14 @@
                     $this->sql .= " * ";
                }
                
-               $this->sql ,= " FROM $args['table']";
+               $this->sql .= "FROM ".$args['table'];
                
                return($this);
           }
           
           function INSERT($args){
                $this->method = 'select';
-               $this->sql = "INSERT INTO $args['table']";
+               $this->sql = "INSERT INTO ".$args['table'];
                
                $columnCount = count($args['columns']);
                
@@ -93,13 +93,21 @@
                
           }
 
-          function WHERE($columns = []){
+          function WHERE($columns = [], $qualifier = false){
                
                if(!empty($columns)){
                     $this->sql .=" WHERE ";
                     $colCount = count($columns);
                     for($i = 0; $i<$colCount;$i++){
-                         $this->sql .= "$columns[$i] = :$columns[$i]";
+                         if(!$qualifier){
+                              $this->sql .= "$columns[$i] = :$columns[$i]";
+                         }
+                         else if($qualifier === 'like'){
+                              $this->sql .= "$columns[$i] LIKE :$columns[$i]";
+                         }
+                         else if($qualifier === 'notlike'){
+                              $this->sql .= "$columns[$i] NOT LIKE :$columns[$i]";
+                         }
                          if($i !== $colCount - 1){
                               if($this->method === "select"){
                                    $this->sql .= " AND ";
@@ -108,14 +116,6 @@
                     }
                }
                return($this);
-          }
-          
-          function WHERELIKE($columns = []){
-               
-          }
-          
-          function WHERENOTLIKE($columns = []){
-               
           }
           
           function ORDERBY($sort = []){
@@ -133,7 +133,7 @@
                          $orderCount = count($sort);
                          foreach($sort as $column=>$method){
                               $method = strtoupper($method);
-                              $this->sql .= "$column $method"
+                              $this->sql .= $column." ".$method;
                               $i++;
                               if($i < $orderCount){
                                    $this->sql .=", ";
@@ -160,54 +160,32 @@
           }
           
           function SELECT($args){
-               //$args = ['table'=>'', 'columns'=>['',''], 'where' = ['x'=>'1'], 'sort' = ['key'=>'method']
+               //$args = ['table'=>'', 'columns'=>['',''], ('where' = 'x'=>'1'], 'like'=false, 'notlike'=false, 'sort' = ['key'=>'method'])]
                
                $where = [];
                $whereValues = [];
                if(count($args['where'])>0){
                     foreach($args['where'] as $column=>$value){
-                         $whereValues[":$column"=>$value];
+                         $c = ":".$column;
+                         $whereValues[$c]=$value;
                          array_push($where, $column);
                     }
                }
                
-               $sql = new sqlSpinner()->SELECT($args)->WHERE($where)->ORDERBY($args['sort'])->getSQL();
+               if(isset($args['like'])){
+                    $qualifier = "like";
+               }
+               else if(isset($args['notlike'])){
+                    $qualifier = 'notlike';
+               }
+               else {
+                    $qualifier = false;
+               }
+               
+               $sql = new sqlSpinner();
+               $sql->SELECT($args)->WHERE($where, $qualifier)->ORDERBY($args['sort'])->getSQL();
                $stmt = $this->pdo->prepare($sql);
                $stmt->execute($whereValues);
-               $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
-               
-               if(count($chunk) > 0){ return($chunk); }
-               else { return(false);}
-          }
-          
-          
-          function SELECTLIKE($args){
-               /*     
-                *   pattern = %bar || foo% || %ooba%
-                */
-                             
-               $where = [];
-               $whereValues = [];
-               if(count($args['where'])>0){
-                    foreach($args['where'] as $column=>$value){
-                         $whereValues[":$column"=>$value];
-                         array_push($where, $column);
-                    }
-               }
-               $like = [];
-               if(isset($args['like'])){
-                    $column = ":".$args['like']['column'];
-                    $like[$column] = $args['like']['pattern'];
-                    $sql = new sqlSpinner()->SELECT($args)->WHERE($where)->LIKE($args)->ORDERBY($args['sort']);
-               }
-               elseif(isset($args['notlike'])){
-                    $column = ":".$args['notlike']['column'];
-                    $like[$column] = $args['notlike']['pattern'];
-               }
-               
-               
-               $stmt = $this->pdo->prepare($sql);
-               $stmt->execute(array_merge$whereValues);
                $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
                
                if(count($chunk) > 0){ return($chunk); }
@@ -218,7 +196,8 @@
                /*
                 * $args = [table=>'',columns=>[], values = ["column"=>"value"] || [["column"=>"value","column"=>"value"]]]
                 */
-               $sql = new sqlSpinner()->INSERT($args)->getSQL();
+               $sql = new sqlSpinner();
+               $sql->INSERT($args)->getSQL();
                
                try {
                     
@@ -262,8 +241,7 @@
                     echo "Insert Failed: ".$e->getMessage();
                     return(false);
                }
-               
-               
+
           }
           
           function UPDATE($args){
