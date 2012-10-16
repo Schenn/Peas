@@ -1,4 +1,6 @@
 <?php
+     
+     require_once('sqlSpinner.php');
 
      function instantiate($instance){
           return($instance);
@@ -38,122 +40,7 @@
                $this->hasActiveTransaction = false;
           }
      }
-     
-     class sqlSpinner {
-          protected $method;
-          protected $sql;
 
-          
-          function SELECT($args){
-               $this->method = 'select';
-               $this->sql = "SELECT ";
-               $i=0;
-               $cols = count($args['columns']);
-               if($cols > 0){
-                    foreach($args['columns'] as $col){
-                         if($i !== $cols-1){
-                              $this->sql .="$col, ";
-                         }
-                         else {
-                              $this->sql .= $col . ' ';
-                         }
-                         $i++;
-                    }
-               }
-               else {
-                    $this->sql .= " * ";
-               }
-               
-               $this->sql .= "FROM ".$args['table'];
-               
-               return($this);
-          }
-          
-          function INSERT($args){
-               $this->method = 'select';
-               $this->sql = "INSERT INTO ".$args['table'];
-               
-               $columnCount = count($args['columns']);
-               
-               $this->sql .="(";
-               for($i = 0; $i<$columnCount; $i++){
-                    $this->sql .= $args['columns'][$i];
-                    if($i !== $columnCount-1)
-                    {
-                         $this->sql .= ", ";
-                    }
-               }
-               $this->sql .=") VALUES (";
-               for($i = 0; $i<$columnCount; $i++){
-                    $this->sql .= ":".$args['columns'][$i];
-                    if($i !== $columnCount-1)
-                    {
-                         $this->sql .= ", ";
-                    }
-               }
-               $this->sql .=")";
-               
-               return($this);
-               
-          }
-
-          function WHERE($columns = [], $qualifier = false){
-               
-               if(!empty($columns)){
-                    $this->sql .=" WHERE ";
-                    $colCount = count($columns);
-                    for($i = 0; $i<$colCount;$i++){
-                         if(!$qualifier){
-                              $this->sql .= "$columns[$i] = :$columns[$i]";
-                         }
-                         else if($qualifier === 'like'){
-                              $this->sql .= "$columns[$i] LIKE :$columns[$i]";
-                         }
-                         else if($qualifier === 'notlike'){
-                              $this->sql .= "$columns[$i] NOT LIKE :$columns[$i]";
-                         }
-                         if($i !== $colCount - 1){
-                              if($this->method === "select"){
-                                   $this->sql .= " AND ";
-                              }
-                         }
-                    }
-               }
-               return($this);
-          }
-          
-          function ORDERBY($sort = []){
-               //$sort = ['column'=>'method','column'=>'method'] || "column"
-               
-               if(!empty($sort)){
-                    $this->sql .= " ORDER BY ";
-                    
-                    $t = gettype($sort);
-                    if($t === "string"){
-                         $this->sql .= $column;
-                    }
-                    else if($t = "array"){
-                         $i = 0;
-                         $orderCount = count($sort);
-                         foreach($sort as $column=>$method){
-                              $method = strtoupper($method);
-                              $this->sql .= $column." ".$method;
-                              if($i < $orderCount){
-                                   $this->sql .=", ";
-                              }
-                              $i++;
-                         }
-                    }
-               }
-               return($this);
-               
-          }
-          
-          function getSQL(){
-               return($this->sql);
-          }
-          
-     }
 
      class PDOI
      {
@@ -167,33 +54,37 @@
           
           function SELECT($args){
                //$args = ['table'=>'', 'columns'=>['',''], ('where' = 'x'=>'1'], 'like'=false, 'notlike'=false, 'sort' = ['key'=>'method'])]
-               
-               $where = [];
                $whereValues = [];
                if(count($args['where'])>0){
                     foreach($args['where'] as $column=>$value){
                          $c = ":".$column;
-                         $whereValues[$c]=$value;
-                         array_push($where, $column);
+                         
+                         if(gettype($value)!=='array'){
+                              $whereValues[$c]=$value;
+                         }
+                         else {
+                              foreach($value as $method=>$secondValue){
+                                   if(gettype($secondValue) !== 'array'){
+                                        $whereValues[$c]=$secondValue;
+                                   }
+                                   else {
+                                        $vCount = count($secondValue);
+                                        for($v=0;$v<$vCount;$v++){
+                                             $newC = $c.$v;
+                                             $whereValues[$newC] = $secondValue[$v];
+                                        }
+                                   }
+                              }
+                         }
                     }
                }
                
-               if(isset($args['like'])){
-                    $qualifier = "like";
-               }
-               else if(isset($args['notlike'])){
-                    $qualifier = 'notlike';
-               }
-               else {
-                    $qualifier = false;
+               $orderby= [];
+               if(isset($args['orderby'])){
+                    $orderby = $args['orderby'];
                }
                
-               $sort= [];
-               if(isset($args['sort'])){
-                    $sort = $args['sort'];
-               }
-               
-               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where, $qualifier)->ORDERBY($sort)->getSQL();
+               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($args)->ORDERBY($orderby)->getSQL();
                if($this->debug){
                     print_r($sql);
                     print_r($whereValues);

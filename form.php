@@ -25,8 +25,7 @@
           $select = [
                'table'=>'pdoi_test',
                'columns'=>['name','species', 'planet'],
-               'where'=>['name'=>'%'.$_POST['getByName'].'%'],
-               'like'=>true
+               'where'=>['name'=>['like'=>'%'.$_POST['getByName'].'%']]
           ];
           $result = $i->SELECT($select);
           print_r($result);
