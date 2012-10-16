@@ -9,7 +9,7 @@
           ];
      
      if(isset($_POST['name'])){
-          $i = new PDOI($config);
+          $i = new PDOI($config, true);
           
           $insert = [
                'table'=>'pdoi_test',

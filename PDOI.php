@@ -51,13 +51,13 @@
                $cols = count($args['columns']);
                if($cols > 0){
                     foreach($args['columns'] as $col){
-                         $i++;
                          if($i !== $cols-1){
                               $this->sql .="$col, ";
                          }
                          else {
                               $this->sql .= $col . ' ';
                          }
+                         $i++;
                     }
                }
                else {
@@ -138,10 +138,10 @@
                          foreach($sort as $column=>$method){
                               $method = strtoupper($method);
                               $this->sql .= $column." ".$method;
-                              $i++;
                               if($i < $orderCount){
                                    $this->sql .=", ";
                               }
+                              $i++;
                          }
                     }
                }
@@ -158,9 +158,11 @@
      class PDOI
      {
           protected $pdo;
+          protected $debug;
      
-          function __construct($config){
+          function __construct($config, $debug = false){
                $this->pdo = new cleanPDO($config);
+               $this->debug = $debug;
           }
           
           function SELECT($args){
@@ -192,6 +194,10 @@
                }
                
                $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where, $qualifier)->ORDERBY($sort)->getSQL();
+               if($this->debug){
+                    print_r($sql);
+                    print_r($whereValues);
+               }
                $stmt = $this->pdo->prepare($sql);
                $stmt->execute($whereValues);
                $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -205,7 +211,6 @@
                 * $args = [table=>'',columns=>[], values = ["column"=>"value"] || [["column"=>"value","column"=>"value"]]]
                 */
                $sql = instantiate(new sqlSpinner())->INSERT($args)->getSQL();
-               
                try {
                     
                     $this->pdo->beginTransaction();
