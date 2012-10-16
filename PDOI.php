@@ -51,23 +51,26 @@
           function SELECT($args){
                //$args = ['table'=>'', ('columns'=>['',''], 'where' = 'x'=>'1'], 'orderby' = ['key'=>'method'])]
                $whereValues = [];
-               if(count($args['where'])>0){
-                    foreach($args['where'] as $column=>$value){
-                         $c = ":".$column;
-                         
-                         if(gettype($value)!=='array'){
-                              $whereValues[$c]=$value;
-                         }
-                         else {
-                              foreach($value as $method=>$secondValue){
-                                   if(gettype($secondValue) !== 'array'){
-                                        $whereValues[$c]=$secondValue;
-                                   }
-                                   else {
-                                        $vCount = count($secondValue);
-                                        for($v=0;$v<$vCount;$v++){
-                                             $newC = $c.$v;
-                                             $whereValues[$newC] = $secondValue[$v];
+               if(isset($args['where'])){
+                    if(count($args['where'])>0){
+                         $where = $args['where'];
+                         foreach($args['where'] as $column=>$value){
+                              $c = ":".$column;
+                              
+                              if(gettype($value)!=='array'){
+                                   $whereValues[$c]=$value;
+                              }
+                              else {
+                                   foreach($value as $method=>$secondValue){
+                                        if(gettype($secondValue) !== 'array'){
+                                             $whereValues[$c]=$secondValue;
+                                        }
+                                        else {
+                                             $vCount = count($secondValue);
+                                             for($v=0;$v<$vCount;$v++){
+                                                  $newC = $c.$v;
+                                                  $whereValues[$newC] = $secondValue[$v];
+                                             }
                                         }
                                    }
                               }
@@ -80,7 +83,9 @@
                     $orderby = $args['orderby'];
                }
                
-               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($args)->ORDERBY($orderby)->getSQL();
+               
+               
+               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->ORDERBY($orderby)->getSQL();
                if($this->debug){
                     print_r($sql);
                     print_r($whereValues);

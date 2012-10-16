@@ -33,11 +33,20 @@ Required Files: PDOI.php, sqlSpinner.php
 
 			SELECT
 				takes associative array of arguments
-					- columns: array of column names, if unset * is used
+				Required:
 					- table: table to select from
+				Optional:
+					- columns: array of column names, if unset * is used
+					- distinct: distinct or distinctrow
+					- result: big or small; Used with Distinct or groupby to specify large or small returns
+					- priority: Sets the select to high priority; HIGH_PRIORITY sql select option
+					- buffer: Enables SQL_BUFFER_RESULT sql select option
+					- cache: true or false; Sets SQL_CACHE and SQL_NO_CACHE sql select options
+
 				Description:
 					- Sets the method to 'select', this tells the Where method to use ' AND ' instead of ', ', 
 					- 'SELECT ['column1','column2','column3'] || * from table
+					- Returns sqlSpinner object
 
 			INSERT
 				Takes associative array of arguments
@@ -45,8 +54,7 @@ Required Files: PDOI.php, sqlSpinner.php
 					- columns: array of column names
 
 			WHERE
-				takes associate array of arguments
-					- where: associative array of arguments as below, 
+				takes associate array of arguments 
 					comparisonMethod is trimmed and converted to lowercase so you can type it how you prefer
 						column=>value
 							- "column = :column"

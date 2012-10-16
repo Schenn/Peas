@@ -13,6 +13,55 @@
                $this->method = 'select';
                $this->sql = "SELECT ";
                
+               if(isset($args['distinct'])){
+                    $distinct = strtoupper($args['distinct']);
+                    if($distinct !== 'ALL'){
+                         $this->sql .= $distinct." ";
+                         if(isset($args['result'])){
+                              $resultSize = strtoupper($args['result']);
+                              if($resultSize==='BIG'){
+                                   $this->sql.="SQL_BIG_RESULT ";
+                              }
+                              elseif($resultSize==='SMALL'){
+                                   $this->sql.="SQL_SMALL_RESULT ";
+                              }
+                         }
+                    }
+               }
+               
+               if(isset($args['groupby'])){
+                    if(isset($args['result'])){
+                         $resultSize = strtoupper($args['result']);
+                         if($resultSize==='BIG'){
+                              $this->sql.="SQL_BIG_RESULT ";
+                         }
+                         elseif($resultSize==='SMALL'){
+                              $this->sql.="SQL_SMALL_RESULT ";
+                         }
+                    }
+               }
+               
+               if(isset($args['priority'])){
+                    if(isset($args['union'])){
+                         unset($args['union']);
+                    }
+                    $this->sql .= "HIGH_PRIORITY ";
+               }
+               
+               if(isset($args['buffer'])){
+                    $this->sql .= "SQL_BUFFER_RESULT ";
+               }
+               
+               if(isset($args['cache'])){
+                    if($args['cache']===true){
+                         $this->sql .= "SQL_CACHE ";
+                    }
+                    elseif($args['cache'] === false){
+                         $this->sql .= "SQL_NO_CACHE";
+                    }
+               }
+               
+               
                if(isset($args['columns'])){
                     $i=0;
                     $cols = count($args['columns']);
@@ -63,9 +112,7 @@
                
           }
 
-          function WHERE($sqlArgs){
-               
-               $where = $sqlArgs['where'];
+          function WHERE($where){
                
                if(!empty($where)){
                     $this->sql .=" WHERE ";
