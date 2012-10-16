@@ -1,5 +1,9 @@
 <?php
 
+     function instantiate($instance){
+          return($instance);
+     }
+
      class cleanPDO extends PDO {
           protected $hasActiveTransaction = false;
           
@@ -182,8 +186,12 @@
                     $qualifier = false;
                }
                
-               $sql = new sqlSpinner();
-               $sql->SELECT($args)->WHERE($where, $qualifier)->ORDERBY($args['sort'])->getSQL();
+               $sort= [];
+               if(isset($args['sort'])){
+                    $sort = $args['sort'];
+               }
+               
+               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where, $qualifier)->ORDERBY($sort)->getSQL();
                $stmt = $this->pdo->prepare($sql);
                $stmt->execute($whereValues);
                $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -196,8 +204,7 @@
                /*
                 * $args = [table=>'',columns=>[], values = ["column"=>"value"] || [["column"=>"value","column"=>"value"]]]
                 */
-               $sql = new sqlSpinner();
-               $sql->INSERT($args)->getSQL();
+               $sql = instantiate(new sqlSpinner())->INSERT($args)->getSQL();
                
                try {
                     
