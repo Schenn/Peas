@@ -99,7 +99,7 @@
                                                   break;
                                              case "greaterequal":
                                                   $this->sql .= $column." >= :".$column;
-                                                  break;     
+                                                  break;
                                         }
                                    }
                                    else {
@@ -158,29 +158,6 @@
                     }
                }
                
-               $columns = $sqlArgs['where'];
-               
-               if(!empty($columns)){
-                    $this->sql .=" WHERE ";
-                    $colCount = count($columns);
-                    for($i = 0; $i<$colCount;$i++){     
-                         
-                         if(!$qualifier){
-                              $this->sql .= "$columns[$i] = :$columns[$i]";
-                         }
-                         else if($qualifier === 'like'){
-                              $this->sql .= "$columns[$i] LIKE :$columns[$i]";
-                         }
-                         else if($qualifier === 'notlike'){
-                              $this->sql .= "$columns[$i] NOT LIKE :$columns[$i]";
-                         }
-                         if($i !== $colCount - 1){
-                              if($this->method === "select"){
-                                   $this->sql .= " AND ";
-                              }
-                         }
-                    }
-               }
                return($this);
           }
           
