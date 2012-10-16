@@ -2,10 +2,6 @@
      
      require_once('sqlSpinner.php');
 
-     function instantiate($instance){
-          return($instance);
-     }
-
      class cleanPDO extends PDO {
           protected $hasActiveTransaction = false;
           
@@ -53,7 +49,7 @@
           }
           
           function SELECT($args){
-               //$args = ['table'=>'', 'columns'=>['',''], ('where' = 'x'=>'1'], 'like'=false, 'notlike'=false, 'sort' = ['key'=>'method'])]
+               //$args = ['table'=>'', ('columns'=>['',''], 'where' = 'x'=>'1'], 'orderby' = ['key'=>'method'])]
                $whereValues = [];
                if(count($args['where'])>0){
                     foreach($args['where'] as $column=>$value){
@@ -159,13 +155,15 @@
                try {
                     $this->pdo->beginTransaction();
                     foreach($instruction as $method->$args){
-                         $this->$method[$args];
+                         $M = strtoupper($method);
+                         $this->$M[$args];
                     }
-                    $this->pdo->commit();
+                    return($this->pdo->commit());
                }
                catch (Exception $e){
                     $this->pdo->rollBack();
                     echo "Failed: ".$e->getMessage();
+                    return(false);
                }
           }
      }

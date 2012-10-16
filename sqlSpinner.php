@@ -1,4 +1,9 @@
 <?php
+
+     function instantiate($instance){
+          return($instance);
+     }
+
      class sqlSpinner {
           protected $method;
           protected $sql;
@@ -7,8 +12,6 @@
           function SELECT($args){
                $this->method = 'select';
                $this->sql = "SELECT ";
-               
-               
                
                if(isset($args['columns'])){
                     $i=0;
@@ -182,36 +185,29 @@
           }
           
           function ORDERBY($sort = []){
-               //$sort = ['column'=>'method','column'=>'method'] || "column"
+               //$sort = ['column'=>'method','column'=>'method']
                
                if(!empty($sort)){
                     $this->sql .= " ORDER BY ";
-                    
-                    $t = gettype($sort);
-                    if($t === "string"){
-                         $this->sql .= $column;
-                    }
-                    else if($t = "array"){
-                         $i = 0;
-                         $orderCount = count($sort);
-                         foreach($sort as $column=>$method){
-                              $method = strtoupper($method);
-                              $this->sql .= $column." ".$method;
-                              if($i < $orderCount){
-                                   $this->sql .=", ";
-                              }
-                              $i++;
+                    $i = 0;
+                    $orderCount = count($sort);
+                    foreach($sort as $column=>$method){
+                         $method = strtoupper($method);
+                         $this->sql .= $column." ".strtoupper($method);
+                         if($i < $orderCount){
+                              $this->sql .=", ";
                          }
+                         $i++;
                     }
                }
                return($this);
                
           }
           
-          
-          
           function getSQL(){
-               return($this->sql);
+               $sql = $this->sql;
+               $this->sql = "";
+               return($sql);
           }
           
      }
