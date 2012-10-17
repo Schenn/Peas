@@ -8,6 +8,26 @@
           protected $method;
           protected $sql;
 
+          protected function aggregate($aggMethod, $aggValues){
+               //if columnNames is empty, * is used
+               $this->sql .= strtoupper($aggMethod)."(";
+               $cNameCount = count($aggValues);
+               if($cNameCount === 0){
+                    $this->sql .= "*";
+               }
+               else {
+                    for($vc=0;$vc<$cNameCount;$vc++){
+                         $this->sql .= $aggValues;
+                         if($vc !== $cNameCount-1){
+                              $this->sql .= ", ";
+                         }
+                         else {
+                              $this->sql .= " ";
+                         }
+                    }
+               }
+               $this->sql.=") ";
+          }
           
           function SELECT($args){
                $this->method = 'select';
@@ -66,13 +86,21 @@
                     $i=0;
                     $cols = count($args['columns']);
                     foreach($args['columns'] as $col){
-                         if($i !== $cols-1){
-                              $this->sql .="$col, ";
+                         if(!isset($col['agg']){
+                              if($i !== $cols-1){
+                                   $this->sql .="$col, ";
+                              }
+                              else {
+                                   $this->sql .= $col . ' ';
+                              }
                          }
                          else {
-                              $this->sql .= $col . ' ';
+                              foreach($col['agg'] as $method=>$columnNames){
+                                   aggregate($method, $columnValues)
+                              }
                          }
                          $i++;
+                              
                     }
                }
                else {
@@ -208,22 +236,66 @@
                return($this);
           }
           
+          function GROUPBY($groupby = []){
+               
+               if(!empty($groupby)){
+                    $this->sql.="GROUP BY ";
+                    $groupCount = count($groupby);
+                    for($i=0;$i<$groupCount;$i++){
+                         $this->sql .=$groupby[$i];
+                         if($i !== $groupCount-1){
+                              $this->sql .= ", ";
+                         }
+                    }
+               }
+               
+               return($this);
+          }
+          
+          function HAVING($having=[]){
+               
+               //having = [aggmethod=>[columnNames]]
+               //DO NOT USE HAVING TO REPLACE A WHERE
+               //Having should only use group by columns for accuracy
+               
+               if(!empty($having)){
+                    $this->sql .= "HAVING ";
+                    foreach($having['agg'] as $aggMethod=>$columnNames){
+                         $this->aggregate($aggMethod,$columnNames);
+                    }
+                    
+                    if(isset($having['comparison'])){
+                         $this->sql .= 
+                    }
+               }
+               
+               return($this);
+          }
+          
           function ORDERBY($sort = []){
                //$sort = ['column'=>'method','column'=>'method']
                
                if(!empty($sort)){
-                    $this->sql .= " ORDER BY ";
+                    $this->sql .= "ORDER BY ";
                     $i = 0;
-                    $orderCount = count($sort);
-                    foreach($sort as $column=>$method){
-                         $method = strtoupper($method);
-                         $this->sql .= $column." ".strtoupper($method);
-                         if($i < $orderCount){
-                              $this->sql .=", ";
+                    
+                    if($sort==='NULL'){
+                         $this->sql.= "NULL ";
+                    }
+                    else {
+                         $orderCount = count($sort);
+                         foreach($sort as $column=>$method){
+                              $method = strtoupper($method);
+                              $this->sql .= $column." ".strtoupper($method);
+                              if($i < $orderCount){
+                                   $this->sql .=", ";
+                              }
+                              $i++;
                          }
-                         $i++;
                     }
                }
+               
+               
                return($this);
                
           }

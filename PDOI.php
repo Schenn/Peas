@@ -78,14 +78,25 @@
                     }
                }
                
+               $groupby = [];
+               $having = [];
+               if(isset($args['groupby'])){
+                    $groupby = $args['groupby'];
+                    if(!isset($args['orderby']) || empty($args['orderby']){
+                         $args['orderby'] = 'NULL';
+                    }
+                    if(isset($args['groupby']['having'])){
+                         $having = $args['groupby']['having'];
+                         unset($args['groupby']['having']);
+                    }
+               }
+               
                $orderby= [];
                if(isset($args['orderby'])){
                     $orderby = $args['orderby'];
                }
                
-               
-               
-               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->ORDERBY($orderby)->getSQL();
+               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->getSQL();
                if($this->debug){
                     print_r($sql);
                     print_r($whereValues);
