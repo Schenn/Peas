@@ -48,34 +48,39 @@
                $this->debug = $debug;
           }
           
-          function SELECT($args){
-               //$args = ['table'=>'', ('columns'=>['',''], 'where' = 'x'=>'1'], 'orderby' = ['key'=>'method'])]
-               $whereValues = [];
-               if(isset($args['where'])){
-                    if(count($args['where'])>0){
-                         $where = $args['where'];
-                         foreach($args['where'] as $column=>$value){
-                              $c = ":".$column;
-                              
-                              if(gettype($value)!=='array'){
-                                   $whereValues[$c]=$value;
-                              }
-                              else {
-                                   foreach($value as $method=>$secondValue){
-                                        if(gettype($secondValue) !== 'array'){
-                                             $whereValues[$c]=$secondValue;
-                                        }
-                                        else {
-                                             $vCount = count($secondValue);
-                                             for($v=0;$v<$vCount;$v++){
-                                                  $newC = $c.$v;
-                                                  $whereValues[$newC] = $secondValue[$v];
-                                             }
+          protected function prepValues($values = []){
+               if(!empty($values)){
+                    $prepValues = [];
+                    foreach($values as $column=>$value){
+                         $c = ":".$column;
+                         
+                         if(gettype($value)!=='array'){
+                              $prepValues[$c]=$value;
+                         }
+                         else {
+                              foreach($value as $method=>$secondValue){
+                                   if(gettype($secondValue)!=="array"){
+                                        $prepValues[$c]=$secondValue;
+                                   }
+                                   else {
+                                        $vCount = count($secondValue);
+                                        for($vc=0;$vc<$vCount;$vc++){
+                                             $newC = $c.$vc
+                                             $prepValues[$newC] = $secondValue[$vc];
                                         }
                                    }
                               }
                          }
                     }
+                    return($prepValues);
+               }
+          }
+          
+          function SELECT($args){
+               //$args = ['table'=>'', ('columns'=>['',''], 'where' = 'x'=>'1'], 'orderby' = ['key'=>'method'])]
+               $whereValues = [];
+               if(isset($args['where'])){
+                    $whereValues = $this->prepValues($args['where']);
                }
                
                $groupby = [];
@@ -160,6 +165,7 @@
           }
           
           function UPDATE($args){
+               $whereValues = [];
                
           }
           
