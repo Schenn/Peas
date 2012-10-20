@@ -96,7 +96,7 @@
                          }
                          else {
                               foreach($col['agg'] as $method=>$columnNames){
-                                   aggregate($method, $columnValues)
+                                   $this->aggregate($method, $columnValues)
                               }
                          }
                          $i++;
@@ -113,7 +113,7 @@
           }
           
           function INSERT($args){
-               $this->method = 'select';
+               $this->method = 'insert';
                $this->sql = "INSERT INTO ".$args['table'];
                
                $columnCount = count($args['columns']);
@@ -140,6 +140,28 @@
                
           }
 
+          function UPDATE($args){
+               $this->method = "update";
+               $this->sql = "UPDATE ".$args['table']." SET (";
+               $i = 0;
+               $cCount = count($args['set']);
+               foreach($args['set'] as $colmumn=>$value){
+                    $this->sql .=":".$column;
+                    if($i !== $cCount-1){
+                         $this->sql.=", ";
+                    }
+               }
+               $this->sql .= ") ";
+               return($this);
+          }
+          
+          function DELETE($args){
+               $this->method = "delete";
+               $this->sql = "DELETE FROM ".$args['table'];
+               return($this);
+          }
+          
+          
           function WHERE($where){
                
                if(!empty($where)){
@@ -227,6 +249,9 @@
                               if($this->method === "select"){
                                    $this->sql .= " AND ";
                               }
+                              else if($this->method ==="update"){
+                                   $this->sql .= ", ";
+                              }
                          }
                          
                          $wI++;
@@ -298,6 +323,13 @@
                
                return($this);
                
+          }
+          
+          function LIMIT($limit = null){
+               if($limit !== null){
+                    $this->sql .= "LIMIT ".$limit;
+               }
+               return($this);
           }
           
           function getSQL(){
