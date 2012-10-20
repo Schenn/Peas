@@ -86,7 +86,7 @@
                     $i=0;
                     $cols = count($args['columns']);
                     foreach($args['columns'] as $col){
-                         if(!isset($col['agg']){
+                         if(!isset($col['agg'])){
                               if($i !== $cols-1){
                                    $this->sql .="$col, ";
                               }
@@ -96,7 +96,7 @@
                          }
                          else {
                               foreach($col['agg'] as $method=>$columnNames){
-                                   $this->aggregate($method, $columnValues)
+                                   $this->aggregate($method, $columnValues);
                               }
                          }
                          $i++;
@@ -287,10 +287,6 @@
                     $this->sql .= "HAVING ";
                     foreach($having['agg'] as $aggMethod=>$columnNames){
                          $this->aggregate($aggMethod,$columnNames);
-                    }
-                    
-                    if(isset($having['comparison'])){
-                         $this->sql .= 
                     }
                }
                

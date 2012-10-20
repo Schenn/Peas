@@ -65,7 +65,7 @@
                                    else {
                                         $vCount = count($secondValue);
                                         for($vc=0;$vc<$vCount;$vc++){
-                                             $newC = $c.$vc
+                                             $newC = $c.$vc;
                                              $prepValues[$newC] = $secondValue[$vc];
                                         }
                                    }
@@ -87,7 +87,7 @@
                $having = [];
                if(isset($args['groupby'])){
                     $groupby = $args['groupby'];
-                    if(!isset($args['orderby']) || empty($args['orderby']){
+                    if(!isset($args['orderby']) || empty($args['orderby'])){
                          $args['orderby'] = 'NULL';
                     }
                     if(isset($args['groupby']['having'])){
@@ -101,7 +101,7 @@
                     $orderby = $args['orderby'];
                }
                
-               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->getSQL();
+               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->getSQL();
                if($this->debug){
                     print_r($sql);
                     print_r($whereValues);
