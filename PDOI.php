@@ -65,7 +65,7 @@
                                    else {
                                         $vCount = count($secondValue);
                                         for($vc=0;$vc<$vCount;$vc++){
-                                             $newC = $c.$vc
+                                             $newC = $c.$vc;
                                              $prepValues[$newC] = $secondValue[$vc];
                                         }
                                    }
@@ -87,7 +87,7 @@
                $having = [];
                if(isset($args['groupby'])){
                     $groupby = $args['groupby'];
-                    if(!isset($args['orderby']) || empty($args['orderby']){
+                    if(!isset($args['orderby']) || empty($args['orderby'])){
                          $args['orderby'] = 'NULL';
                     }
                     if(isset($args['groupby']['having'])){
@@ -101,7 +101,7 @@
                     $orderby = $args['orderby'];
                }
                
-               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->getSQL();
+               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->getSQL();
                if($this->debug){
                     print_r($sql);
                     print_r($whereValues);
@@ -166,11 +166,63 @@
           
           function UPDATE($args){
                $whereValues = [];
+               $setValues = [];
+               //update table set(columns=values)  where (columns=values) order by ... limit ...
+               $setValues = $this->prepValues($args['set']);
+               $where = [];
+               if(isset($args['where'])){
+                    $whereValues = $this->prepValues($args['where']);
+                    $where = $args['where'];
+               }
+               $orderby = [];
+               if(isset($args['orderby'])){
+                    $orderby = $args['orderby'];
+               }
+               $limit = null;
+               if(isset($args['limit'])){
+                    $limit = $args['limit'];
+               }
+               $sql = instantiate(new sqlSpinner())->UPDATE($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit);
                
+               try {
+                    $this->pdo->beginTransaction();
+                    $stmt = $this->pdo->prepare($sql);
+                    $stmt->execute(array_merge($setValues, $whereValues));
+                    return($this->pdo->commit());
+               }
+               catch(Exception $e){
+                    $this->pdo->rollBack();
+                    echo "Update Failed: ".$e->getMessage();
+                    return(false);
+               }
           }
           
           function DELETE($args){
+               $whereValues = [];
+               if(isset($args['where'])){
+                    $whereValues = $this->prepValues($args['where']);
+               }
+               $order = [];
+               if(isset($args['orderby'])){
+                    $order = $args['orderby'];
+               }
+               $limit = null;
+               if(isset($args['limit'])){
+                    $limit = $args['limit'];
+               }
+               $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($whereValues)->ORDERBY($order)->LIMIT($limit);
                
+               try {
+                    $this->pdo->beginTransaction();
+                    $stmt = $this->pdo->prepare($sql);
+                    $stmt->execute($whereValues);
+                    return($this->pdo->commit());
+               }
+               catch(Exception $e){
+                    $this->pdo->rollBack();
+                    echo "Delete Failed: ".$e->getMessage();
+                    return(false);
+               }
           }
           
           function queue($instructions = []){

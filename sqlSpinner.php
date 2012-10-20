@@ -86,7 +86,7 @@
                     $i=0;
                     $cols = count($args['columns']);
                     foreach($args['columns'] as $col){
-                         if(!isset($col['agg']){
+                         if(!isset($col['agg'])){
                               if($i !== $cols-1){
                                    $this->sql .="$col, ";
                               }
@@ -96,7 +96,7 @@
                          }
                          else {
                               foreach($col['agg'] as $method=>$columnNames){
-                                   aggregate($method, $columnValues)
+                                   $this->aggregate($method, $columnValues);
                               }
                          }
                          $i++;
@@ -113,7 +113,7 @@
           }
           
           function INSERT($args){
-               $this->method = 'select';
+               $this->method = 'insert';
                $this->sql = "INSERT INTO ".$args['table'];
                
                $columnCount = count($args['columns']);
@@ -140,6 +140,28 @@
                
           }
 
+          function UPDATE($args){
+               $this->method = "update";
+               $this->sql = "UPDATE ".$args['table']." SET (";
+               $i = 0;
+               $cCount = count($args['set']);
+               foreach($args['set'] as $colmumn=>$value){
+                    $this->sql .=":".$column;
+                    if($i !== $cCount-1){
+                         $this->sql.=", ";
+                    }
+               }
+               $this->sql .= ") ";
+               return($this);
+          }
+          
+          function DELETE($args){
+               $this->method = "delete";
+               $this->sql = "DELETE FROM ".$args['table'];
+               return($this);
+          }
+          
+          
           function WHERE($where){
                
                if(!empty($where)){
@@ -227,6 +249,9 @@
                               if($this->method === "select"){
                                    $this->sql .= " AND ";
                               }
+                              else if($this->method ==="update"){
+                                   $this->sql .= ", ";
+                              }
                          }
                          
                          $wI++;
@@ -263,10 +288,6 @@
                     foreach($having['agg'] as $aggMethod=>$columnNames){
                          $this->aggregate($aggMethod,$columnNames);
                     }
-                    
-                    if(isset($having['comparison'])){
-                         $this->sql .= 
-                    }
                }
                
                return($this);
@@ -298,6 +319,13 @@
                
                return($this);
                
+          }
+          
+          function LIMIT($limit = null){
+               if($limit !== null){
+                    $this->sql .= "LIMIT ".$limit;
+               }
+               return($this);
           }
           
           function getSQL(){
