@@ -242,4 +242,14 @@
           }
      }
      
+     
+     class pdoITable extends PDOI {
+          protected $tableName;
+          protected $columns;
+          
+          function __construct($config, $table){
+               parent::__construct($config);
+               $this->tableName = $table;
+          }
+     }
 ?>
