@@ -36,16 +36,18 @@
                return(parent::INSERT($a));
           }
           
-          function update($set, $where){
+          function update($set, $where, $options=[]){
                $a = $this->args;
                $a['set']=$set;
                $a['where']=$where;
+               array_merge($a, $options);
                return(parent::UPDATE($a));
           }
           
-          function delete($where){
+          function delete($where, $options=[]){
                $a= $this->args;
                $a['where'] = $where;
+               array_merge($a,$options);
                return(parent::DELETE($a));
           }
           
