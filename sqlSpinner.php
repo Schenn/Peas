@@ -328,6 +328,14 @@
                return($this);
           }
           
+          function DESCRIBE($table, $column = ""){
+               $this->sql = "DESC ".$table;
+               if($column !== ""){
+                    $this->sql .= " " . $column;
+               }
+               return($this);
+          }
+          
           function getSQL(){
                $sql = $this->sql;
                $this->sql = "";

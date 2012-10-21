@@ -27,13 +27,13 @@
           }
           
           function commit() {
-               parent::commit();
                $this->hasActiveTransaction = false;
+               return(parent::commit());
           }
           
           function rollback() {
-               parent::rollBack();
                $this->hasActiveTransaction = false;
+               return(parent::rollBack());
           }
      }
 
@@ -119,6 +119,9 @@
                 * $args = [table=>'',columns=>[], values = ["column"=>"value"] || [["column"=>"value","column"=>"value"]]]
                 */
                $sql = instantiate(new sqlSpinner())->INSERT($args)->getSQL();
+               if($this->debug){
+                    print_r($sql);
+               }
                try {
                     
                     $this->pdo->beginTransaction();
@@ -136,6 +139,7 @@
                               //for each grouping of values in a multi-entity insert
                               foreach($args['values'][$i] as $column=>$value){
                                    $$column = $value;
+                                   print_r($$column.":".$$column);
                               }
                               $stmt->execute();
                               
@@ -150,6 +154,9 @@
                          foreach($args['values'] as $column=>$value){
                               $prepCol = ":$column";
                               $values[$prepCol] = $value;
+                         }
+                         if($this->debug){
+                              print_r($values);
                          }
                          $stmt->execute($values);
                     }
@@ -225,6 +232,23 @@
                }
           }
           
+          function getColumns($table){
+               $sql = instantiate(new sqlSpinner())->DESCRIBE($table)->getSQL();
+               $stmt = $this->pdo->prepare($sql);
+               $stmt->execute();
+               $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
+               $columns = [];
+               foreach($chunk as $row){
+                    if($row['Null']){
+                         $columns[$row['field']]=null;
+                    }
+                    else {
+                         $columns[$row['field']]="";
+                    }
+               }
+               return($columns);
+          }
+          
           function queue($instructions = []){
                try {
                     $this->pdo->beginTransaction();
@@ -239,17 +263,6 @@
                     echo "Failed: ".$e->getMessage();
                     return(false);
                }
-          }
-     }
-     
-     
-     class pdoITable extends PDOI {
-          protected $tableName;
-          protected $columns;
-          
-          function __construct($config, $table){
-               parent::__construct($config);
-               $this->tableName = $table;
           }
      }
 ?>

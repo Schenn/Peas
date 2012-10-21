@@ -1,6 +1,6 @@
 <?php
 
-     require_once("PDOI.php");
+     require_once("pdoITable.php");
      $config = [
                'dns'=>'mysql:dbname=pdoi_tester;localhost',
                'username'=>'pdoi_tester',
@@ -8,42 +8,56 @@
                'driver_options'=>[PDO::ATTR_PERSISTENT => true]
           ];
      
-     if(isset($_POST['name'])){
-          $i = new PDOI($config, true);
-          
-          $insert = [
-               'table'=>'pdoi_test',
-               'columns'=>['name','species', 'planet'],
-               'values'=>['name'=>$_POST['name'], 'species'=>$_POST['species'], 'planet'=>$_POST['planet']]
-          ];
-          
-          $i->INSERT($insert);
+     $pdoi_test_control = new pdoITable($config, 'pdoi_test', true);
+     
+     if(isset($_POST['action'])==="insert"){
+          $values = [];
+          foreach($_POST as $column=>$value){
+               if($column!=="action"){
+                    $values[$column]=$value;
+               }
+          }
+          if($pdoi_test_control->insert($values)){
+               $pdoi_test_control->display();
+          }
      }
-     else if(isset($_POST['getByName'])){
-          $i = new PDOI($config);
-          
-          $select = [
-               'table'=>'pdoi_test',
-               'columns'=>['id','name','species', 'planet'],
-               'where'=>['name'=>['like'=>'%'.$_POST['getByName'].'%']]
-          ];
-          $result = $i->SELECT($select);
-          print_r($result);
-          
-     }
+     
 
 ?>
 <html>
      <body>
-          <form action="form.php" method="post" id="PDOI_Demo" name="PDOI_Demo" >
-               <input type="text" name="name" required='true' />
-               <input type="text" name="species" required='true' />
-               <input type="text" name="planet" required='true' />
-               <input type="submit" required='true' />
+          <!-- name, species, planet, system, solar_years, class -->
+          <div>
+          </div>
+          <form action="form.php" method="post" >
+               <table>
+                    <th>Insert</th>
+                    <tr>
+                         <td><label for="name">Name:</label></td><td><input type="text" name="name" /></td>
+                    </tr>
+                    <tr>
+                         <td><label for="species">Species:</label></td><td><input type="text" name="species" /></td>
+                    </tr>
+                    <tr>
+                         <td><label for="planet">Planet:</label></td><td><input type="text" name="planet" /></td>
+                    </tr>
+                    <tr>
+                         <td><label for="system">System:</label></td><td><input type="text" name="system" /></td>
+                    </tr>
+                    <tr>
+                         <td><label for="solar_years">Age:</label></td><td><input type="text" name="solar_years" /></td>
+                    </tr>
+                    <tr>
+                         <td><label for="class">Class:</label></td><td><input type="text" name="class" /></td>
+                    </tr>
+                    <tr>
+                         <td><input type="hidden" name="action" value="insert" /></td>
+                    </tr>
+                    </tr>
+                         <td><input type="submit" /></td><td><input type="reset" /></td>
+                    <tr>
+               </table>
           </form>
-          <form action="form.php" method="post" id="PDOI_Demo2" name="PDOI_Demo2" >
-               <input type="text" name="getByName" required='true' />
-               <input type="submit" />
-          </form>
+         
      </body>
 </html>
