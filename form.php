@@ -58,6 +58,19 @@
                     <tr>
                </table>
           </form>
-         
+         <form action="form.php" method="get">
+               <table>
+                    <th>Select</th>
+                    <tr>
+                         
+                    </tr>
+                    <tr>
+                         <td><input type="hidden" name="action" value="select" /></td>
+                    </tr>
+                    <tr>
+                         <td><input type="submit" /></td><td><input type="reset" /></td>
+                    </tr>
+               </table>
+         </form>
      </body>
 </html>

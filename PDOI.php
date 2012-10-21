@@ -208,6 +208,7 @@
                $whereValues = [];
                if(isset($args['where'])){
                     $whereValues = $this->prepValues($args['where']);
+                    $where=$args['where'];
                }
                $order = [];
                if(isset($args['orderby'])){
@@ -217,7 +218,7 @@
                if(isset($args['limit'])){
                     $limit = $args['limit'];
                }
-               $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($whereValues)->ORDERBY($order)->LIMIT($limit);
+               $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($where)->ORDERBY($order)->LIMIT($limit);
                
                try {
                     $this->pdo->beginTransaction();
