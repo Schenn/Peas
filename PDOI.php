@@ -264,5 +264,21 @@
                     return(false);
                }
           }
+          
+          function run($sql="", $values=[]){
+               if($sql !==""){
+                    try{
+                         $this->pdo->beginTransaction();
+                         $this->pdo->prepare($sql);
+                         $this->pdo->execute($values);
+                         return($this->pdo->commit());
+                    }
+                    catch (Exception $e){
+                         $this->pdo->rollBack();
+                         echo("Failed: ").$e->getMessage();
+                         return(false);
+                    }
+               }
+          }
      }
 ?>
