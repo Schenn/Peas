@@ -20,34 +20,55 @@
           
           function setColumns(){
                $this->columns = parent::getColumns($this->tableName);
-               $this->args['columns'] = $this->columns;
+               $this->args['columns']=[];
+               foreach($this->columns as $column=>$n){
+                    array_push($this->args['columns'], $column);
+               }
           }
           
-          function select($where, $options=[]){
+          function select($options){
                $a = $this->args;
-               $a['where'] = $where;
-               array_merge($a, $options);
+               foreach($options as $option=>$setting){
+                    $a[$option]=$setting;
+               }
                return(parent::SELECT($a));
           }
           
-          function insert($values){
+          function insert($options){
                $a = $this->args;
-               $a['values'] = $values;
+               if(!isset($options['values'])){
+                    $a['values']=[];
+                    foreach($this->columns as $column=>$value){
+                         $a['values'][$column]=$value;
+                    }
+               }
+               foreach($options as $option=>$setting){
+                    $a[$option]=$setting;
+               }
                return(parent::INSERT($a));
           }
           
-          function update($set, $where, $options=[]){
+          function setCol($col,$val){
+               $this->columns[$col]=$val;
+          }
+          
+          function getCol($col){
+               return($this->columns[$col]);
+          }
+          
+          function update($options){
                $a = $this->args;
-               $a['set']=$set;
-               $a['where']=$where;
-               array_merge($a, $options);
+               foreach($options as $option=>$setting){
+                    $a[$option]=$setting;
+               }
                return(parent::UPDATE($a));
           }
           
-          function delete($where, $options=[]){
+          function delete($options){
                $a= $this->args;
-               $a['where'] = $where;
-               array_merge($a,$options);
+               foreach($options as $option=>$setting){
+                    $a[$option]=$setting;
+               }
                return(parent::DELETE($a));
           }
           

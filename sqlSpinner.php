@@ -1,5 +1,9 @@
 <?php
 
+     class sqlSpunError extends Exception {
+          
+     }
+
      function instantiate($instance){
           return($instance);
      }
@@ -177,6 +181,7 @@
                                    if(gettype($secondValue)!=='array'){
                                         switch(strtolower(trim($method))){
                                              case "not":
+                                             case "!=":
                                                   $this->sql .= $column." != :".$column;
                                                   break;
                                              case "like":
@@ -186,15 +191,19 @@
                                                   $this->sql .= $column." NOT LIKE :".$column;
                                                   break;
                                              case "less":
+                                             case "<":
                                                   $this->sql .= $column." < :".$column;
                                                   break;
                                              case "lessequal":
+                                             case "<=":
                                                   $this->sql .= $column." <= :".$column;
                                                   break;
                                              case "greater":
+                                             case ">":
                                                   $this->sql .= $column." > :".$column;
                                                   break;
                                              case "greaterequal":
+                                             case ">=":
                                                   $this->sql .= $column." >= :".$column;
                                                   break;
                                         }

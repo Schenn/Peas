@@ -45,6 +45,7 @@
      
           function __construct($config, $debug = false){
                $this->pdo = new cleanPDO($config);
+               $this->pdo->query("SET wait_timeout=1200");
                $this->debug = $debug;
           }
           
@@ -121,6 +122,7 @@
                $sql = instantiate(new sqlSpinner())->INSERT($args)->getSQL();
                if($this->debug){
                     print_r($sql);
+                    print_r($args);
                }
                try {
                     
@@ -156,14 +158,16 @@
                               $values[$prepCol] = $value;
                          }
                          if($this->debug){
+                              echo("Values: ");
                               print_r($values);
                          }
-                         $stmt->execute($values);
+                         if(!($stmt->execute($values))){
+                              throw new Exception("Insert Failed: ");
+                         }
                     }
                     
                     return($this->pdo->commit());
-               }
-               catch (Exception $e){
+               } catch (Exception $e){
                     $this->pdo->rollBack();
                     echo "Insert Failed: ".$e->getMessage();
                     return(false);
@@ -240,11 +244,13 @@
                $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
                $columns = [];
                foreach($chunk as $row){
-                    if($row['Null']){
-                         $columns[$row['field']]=null;
-                    }
-                    else {
-                         $columns[$row['field']]="";
+                    if($row['Key'] !== "PRI"){
+                         if($row['Null'] ==='YES'){
+                              $columns[$row['Field']]=null;
+                         }
+                         else {
+                              $columns[$row['Field']]="";
+                         }
                     }
                }
                return($columns);

@@ -8,17 +8,18 @@
                'driver_options'=>[PDO::ATTR_PERSISTENT => true]
           ];
      
-     $pdoi_test_control = new pdoITable($config, 'pdoi_test', true);
-     
-     if(isset($_POST['action'])==="insert"){
+     $pdoi_test = new pdoITable($config, 'pdoi_test', true);
+          
+     if($_POST['action']==="insert"){
           $values = [];
           foreach($_POST as $column=>$value){
                if($column!=="action"){
                     $values[$column]=$value;
                }
           }
-          if($pdoi_test_control->insert($values)){
-               $pdoi_test_control->display();
+          $a = ['values'=>$values];
+          if($pdoi_test->insert($a)){
+               $pdoi_test->display();
           }
      }
      
