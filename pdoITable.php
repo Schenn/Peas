@@ -76,5 +76,9 @@
                $display = [$this->tableName=>$this->columns];
                print_r($display);
           }
+          
+          function offshoot(){
+               print_r(json_encode([$this->tableName=>$this->columns]));
+          }
      }
 ?>

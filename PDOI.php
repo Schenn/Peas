@@ -49,39 +49,40 @@
                $this->debug = $debug;
           }
           
-          protected function prepValues($values = []){
-               if(!empty($values)){
-                    $prepValues = [];
-                    foreach($values as $column=>$value){
-                         $c = ":".$column;
-                         
-                         if(gettype($value)!=='array'){
-                              $prepValues[$c]=$value;
-                         }
-                         else {
-                              foreach($value as $method=>$secondValue){
-                                   if(gettype($secondValue)!=="array"){
-                                        $prepValues[$c]=$secondValue;
-                                   }
-                                   else {
-                                        $vCount = count($secondValue);
-                                        for($vc=0;$vc<$vCount;$vc++){
-                                             $newC = $c.$vc;
-                                             $prepValues[$newC] = $secondValue[$vc];
-                                        }
-                                   }
-                              }
-                         }
-                    }
-                    return($prepValues);
-               }
-          }
           
           function SELECT($args){
                //$args = ['table'=>'', ('columns'=>['',''], 'where' = 'x'=>'1'], 'orderby' = ['key'=>'method'])]
                $whereValues = [];
+               $where = [];
                if(isset($args['where'])){
-                    $whereValues = $this->prepValues($args['where']);
+                    foreach($args['where'] as $column=>$value){
+                         if(gettype($value)!=='array'){
+                              $c = ":".$column;
+                              $whereValues[$c]=$value;
+                              $where[$column]=$value;
+                         }
+                         else {
+                              foreach($value as $method=>$compareValue){
+                                   if(gettype($compareValue)!=='array'){
+                                        $c = ":".$column;
+                                        $m = str_replace(" ","",$method);
+                                        if($m === "like" || $m === "notlike"){
+                                             $compareValue = "%".$compareValue."%";
+                                        }
+                                        $whereValues[$c] = $compareValue;
+                                        $where[$column] = [$method=>$compareValue];
+                                   }
+                                   else {
+                                        $compCount = count($compareValue);
+                                        for($i=0; $i<$compCount; $i++){
+                                             $c = ":".$column.$i;
+                                             $whereValues[$c]=$compareValue[$i];
+                                        }
+                                        $where[$column]=[$method=>$compareValue];
+                                   }
+                              }
+                         }
+                    }
                }
                
                $groupby = [];
@@ -105,6 +106,7 @@
                $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->getSQL();
                if($this->debug){
                     print_r($sql);
+                    echo("<br />\n");
                     print_r($whereValues);
                }
                $stmt = $this->pdo->prepare($sql);
@@ -122,6 +124,7 @@
                $sql = instantiate(new sqlSpinner())->INSERT($args)->getSQL();
                if($this->debug){
                     print_r($sql);
+                    echo("<br />\n");
                     print_r($args);
                }
                try {

@@ -1,36 +1,10 @@
-<?php
 
-     require_once("pdoITable.php");
-     $config = [
-               'dns'=>'mysql:dbname=pdoi_tester;localhost',
-               'username'=>'pdoi_tester',
-               'password'=>'pdoi_pass',
-               'driver_options'=>[PDO::ATTR_PERSISTENT => true]
-          ];
-     
-     $pdoi_test = new pdoITable($config, 'pdoi_test', true);
-          
-     if($_POST['action']==="insert"){
-          $values = [];
-          foreach($_POST as $column=>$value){
-               if($column!=="action"){
-                    $values[$column]=$value;
-               }
-          }
-          $a = ['values'=>$values];
-          if($pdoi_test->insert($a)){
-               $pdoi_test->display();
-          }
-     }
-     
-
-?>
 <html>
      <body>
           <!-- name, species, planet, system, solar_years, class -->
           <div>
           </div>
-          <form action="form.php" method="post" >
+          <form action="formTest.php" method="post" >
                <table>
                     <th>Insert</th>
                     <tr>
@@ -46,7 +20,7 @@
                          <td><label for="system">System:</label></td><td><input type="text" name="system" /></td>
                     </tr>
                     <tr>
-                         <td><label for="solar_years">Age:</label></td><td><input type="text" name="solar_years" /></td>
+                         <td><label for="solar_years">Solar_Years:</label></td><td><input type="text" name="solar_years" /></td>
                     </tr>
                     <tr>
                          <td><label for="class">Class:</label></td><td><input type="text" name="class" /></td>
@@ -59,14 +33,41 @@
                     <tr>
                </table>
           </form>
-         <form action="form.php" method="get">
+         <form action="formTest.php" method="get">
                <table>
-                    <th>Select</th>
+                    <!-- While the select function allows for custom column selection for simplicity the test retrieves all -->
+                    <th>Select * [Where column method value]</th>
                     <tr>
-                         
+                         <td><label for='column'>Column:</label></td><td><input type= "text" name="column"/></td>
                     </tr>
                     <tr>
-                         <td><input type="hidden" name="action" value="select" /></td>
+                         <td><label for='method'>Method:</label></td>
+                         <td><select size = '3' name='method'>
+                              <option value='=' selected='selected'>=</option>
+                              <option value='equal'>equal</option>
+                              <option value='!='>!=</option>
+                              <option value='not'>NOT</option>
+                              <option value='<'><</option>
+                              <option value='less'>Less Than</option>
+                              <option value='<='><=</option>
+                              <option value='less equal'>Less Than or Equal To</option>
+                              <option value='>'>></option>
+                              <option value='greater'>Greater Than</option>
+                              <option value='>='>>=</option>
+                              <option value='greater equal'>Greater Than or Equal To</option>
+                              <option value='<'><</option>
+                              <option value='less'>Less Than</option>
+                              <option value='<='><=</option>
+                              <option value='like'>Like</option>
+                              <option value='not like'>Not Like</option>
+                              
+                         </select></td>
+                    </tr>
+                    <tr>
+                         <td><label for='colvalue'>Column Value:</label></td><td><input type= "text" name="colvalue"/></td>
+                    </tr>
+                    <tr>
+                         <td><input type="hidden" name="action" value="select1" /></td>
                     </tr>
                     <tr>
                          <td><input type="submit" /></td><td><input type="reset" /></td>
