@@ -22,7 +22,7 @@
           protected $method;
           protected $sql;
 
-          protected function aggregate($aggMethod, $aggValues){
+          protected function aggregate($aggMethod, $aggValues=[]){
                //if columnNames is empty, * is used
                $this->sql .= strtoupper($aggMethod)."(";
                $cNameCount = count($aggValues);
@@ -31,7 +31,7 @@
                }
                else {
                     for($vc=0;$vc<$cNameCount;$vc++){
-                         $this->sql .= $aggValues;
+                         $this->sql .= $aggValues[$vc];
                          if($vc !== $cNameCount-1){
                               $this->sql .= ", ";
                          }
@@ -40,7 +40,7 @@
                          }
                     }
                }
-               $this->sql.=") ";
+               $this->sql.=")";
           }
           
           function SELECT($args){
@@ -336,7 +336,7 @@
           function GROUPBY($groupby = []){
                
                if(!empty($groupby)){
-                    $this->sql.="GROUP BY ";
+                    $this->sql.=" GROUP BY ";
                     $groupCount = count($groupby);
                     for($i=0;$i<$groupCount;$i++){
                          $this->sql .=$groupby[$i];
@@ -355,12 +355,51 @@
                //DO NOT USE HAVING TO REPLACE A WHERE
                //Having should only use group by columns for accuracy
                
+               
                if(!empty($having)){
-                    $this->sql .= "HAVING ";
-                    foreach($having['agg'] as $aggMethod=>$columnNames){
-                         $this->aggregate($aggMethod,$columnNames);
+                    $this->sql .= " HAVING ";
+                    
+                    $method = $having['aggMethod'];
+                    $columns = (isset($having['columns'])) ? $having['columns'] : [];
+                    $comparison = $having['comparison']['method'];
+                    $compareValue = $having['comparison']['value'];
+                    
+                    $this->aggregate($method, $columns);
+                    
+                    switch(strtolower(str_replace(" ", "",$comparison))){
+                         case "=":
+                         case "equal":
+                              $this->sql .= " = ".$compareValue;
+                              break;
+                         case "not":
+                         case "!=":
+                              $this->sql .= " != ".$compareValue;
+                              break;
+                         case "like":
+                              $this->sql .= " LIKE ".$compareValue;
+                              break;
+                         case "notlike":
+                              $this->sql .= " NOT LIKE ".$compareValue;
+                              break;
+                         case "less":
+                         case "<":
+                              $this->sql .= " < ".$compareValue;
+                              break;
+                         case "lessequal":
+                         case "<=":
+                              $this->sql .= " <= ".$compareValue;
+                              break;
+                         case "greater":
+                         case ">":
+                              $this->sql .= " > ".$compareValue;
+                              break;
+                         case "greaterequal":
+                         case ">=":
+                              $this->sql .= " >= ".$compareValue;
+                              break;
                     }
                }
+               
                
                return($this);
           }
@@ -369,7 +408,7 @@
                //$sort = ['column'=>'method','column'=>'method']
                
                if(!empty($sort)){
-                    $this->sql .= "ORDER BY ";
+                    $this->sql .= " ORDER BY ";
                     $i = 0;
                     
                     if($sort==='NULL'){
@@ -377,13 +416,18 @@
                     }
                     else {
                          $orderCount = count($sort);
-                         foreach($sort as $column=>$method){
-                              $method = strtoupper($method);
-                              $this->sql .= $column." ".strtoupper($method);
-                              if($i < $orderCount){
-                                   $this->sql .=", ";
+                         if(gettype($sort)==='array'){
+                              foreach($sort as $column=>$method){
+                                   $method = strtoupper($method);
+                                   $this->sql .= $column." ".strtoupper($method);
+                                   if($i < $orderCount-1){
+                                        $this->sql .=", ";
+                                   }
+                                   $i++;
                               }
-                              $i++;
+                         }
+                         else {
+                              $this->sql .= $sort;
                          }
                     }
                }
@@ -395,7 +439,7 @@
           
           function LIMIT($limit = null){
                if($limit !== null){
-                    $this->sql .= "LIMIT ".$limit;
+                    $this->sql .= " LIMIT ".$limit;
                }
                return($this);
           }

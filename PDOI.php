@@ -41,10 +41,12 @@
      class PDOI
      {
           protected $pdo;
+          protected $config;
           protected $debug;
      
           function __construct($config, $debug = false){
                $this->pdo = new cleanPDO($config);
+               $this->config=$config;
                $this->pdo->query("SET wait_timeout=1200");
                $this->debug = $debug;
           }
@@ -88,7 +90,7 @@
                $groupby = [];
                $having = [];
                if(isset($args['groupby'])){
-                    $groupby = $args['groupby'];
+                    $groupby = $args['groupby']['column'];
                     if(!isset($args['orderby']) || empty($args['orderby'])){
                          $args['orderby'] = 'NULL';
                     }
@@ -109,6 +111,7 @@
                     echo("<br />\n");
                     print_r($whereValues);
                }
+               $this->ping();
                $stmt = $this->pdo->prepare($sql);
                $stmt->execute($whereValues);
                $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -128,7 +131,7 @@
                     print_r($args);
                }
                try {
-                    
+                    $this->ping();
                     $this->pdo->beginTransaction();
                     $stmt = $this->pdo->prepare($sql);
                     
@@ -175,6 +178,11 @@
                     echo "Insert Failed: ".$e->getMessage();
                     return(false);
                }
+               catch(PDOException $pe){
+                    $this->pdo->rollBack();
+                    echo "Delete Failed: ".$pe->getMessage();
+                    return(false);
+               }
 
           }
           
@@ -199,6 +207,7 @@
                $sql = instantiate(new sqlSpinner())->UPDATE($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit);
                
                try {
+                    $this->ping();
                     $this->pdo->beginTransaction();
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute(array_merge($setValues, $whereValues));
@@ -207,6 +216,11 @@
                catch(Exception $e){
                     $this->pdo->rollBack();
                     echo "Update Failed: ".$e->getMessage();
+                    return(false);
+               }
+               catch(PDOException $pe){
+                    $this->pdo->rollBack();
+                    echo "Delete Failed: ".$pe->getMessage();
                     return(false);
                }
           }
@@ -228,6 +242,7 @@
                $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($where)->ORDERBY($order)->LIMIT($limit);
                
                try {
+                    $this->ping();
                     $this->pdo->beginTransaction();
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute($whereValues);
@@ -238,10 +253,16 @@
                     echo "Delete Failed: ".$e->getMessage();
                     return(false);
                }
+               catch(PDOException $pe){
+                    $this->pdo->rollBack();
+                    echo "Delete Failed: ".$pe->getMessage();
+                    return(false);
+               }
           }
           
           function getColumns($table){
                $sql = instantiate(new sqlSpinner())->DESCRIBE($table)->getSQL();
+               $this->ping();
                $stmt = $this->pdo->prepare($sql);
                $stmt->execute();
                $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -272,6 +293,17 @@
                     $this->pdo->rollBack();
                     echo "Failed: ".$e->getMessage();
                     return(false);
+               }
+          }
+          
+          function ping(){
+               try {
+                    $this->pdo->query("SELECT 1"); a:
+                    return(true);
+               }
+               catch (PDOException $pe){
+                    $this->pdo = new cleanPDO($this->config);
+                    goto a;
                }
           }
           
