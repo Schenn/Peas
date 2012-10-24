@@ -27,13 +27,13 @@
           }
           
           function commit() {
-               parent::commit();
                $this->hasActiveTransaction = false;
+               return(parent::commit());
           }
           
           function rollback() {
-               parent::rollBack();
                $this->hasActiveTransaction = false;
+               return(parent::rollBack());
           }
      }
 
@@ -41,52 +41,56 @@
      class PDOI
      {
           protected $pdo;
+          protected $config;
           protected $debug;
      
           function __construct($config, $debug = false){
                $this->pdo = new cleanPDO($config);
+               $this->config=$config;
+               $this->pdo->query("SET wait_timeout=1200");
                $this->debug = $debug;
           }
           
-          protected function prepValues($values = []){
-               if(!empty($values)){
-                    $prepValues = [];
-                    foreach($values as $column=>$value){
-                         $c = ":".$column;
-                         
-                         if(gettype($value)!=='array'){
-                              $prepValues[$c]=$value;
-                         }
-                         else {
-                              foreach($value as $method=>$secondValue){
-                                   if(gettype($secondValue)!=="array"){
-                                        $prepValues[$c]=$secondValue;
-                                   }
-                                   else {
-                                        $vCount = count($secondValue);
-                                        for($vc=0;$vc<$vCount;$vc++){
-                                             $newC = $c.$vc;
-                                             $prepValues[$newC] = $secondValue[$vc];
-                                        }
-                                   }
-                              }
-                         }
-                    }
-                    return($prepValues);
-               }
-          }
           
           function SELECT($args){
                //$args = ['table'=>'', ('columns'=>['',''], 'where' = 'x'=>'1'], 'orderby' = ['key'=>'method'])]
                $whereValues = [];
+               $where = [];
                if(isset($args['where'])){
-                    $whereValues = $this->prepValues($args['where']);
+                    foreach($args['where'] as $column=>$value){
+                         if(gettype($value)!=='array'){
+                              $c = ":".$column;
+                              $whereValues[$c]=$value;
+                              $where[$column]=$value;
+                         }
+                         else {
+                              foreach($value as $method=>$compareValue){
+                                   if(gettype($compareValue)!=='array'){
+                                        $c = ":".$column;
+                                        $m = str_replace(" ","",$method);
+                                        if($m === "like" || $m === "notlike"){
+                                             $compareValue = "%".$compareValue."%";
+                                        }
+                                        $whereValues[$c] = $compareValue;
+                                        $where[$column] = [$method=>$compareValue];
+                                   }
+                                   else {
+                                        $compCount = count($compareValue);
+                                        for($i=0; $i<$compCount; $i++){
+                                             $c = ":".$column.$i;
+                                             $whereValues[$c]=$compareValue[$i];
+                                        }
+                                        $where[$column]=[$method=>$compareValue];
+                                   }
+                              }
+                         }
+                    }
                }
                
                $groupby = [];
                $having = [];
                if(isset($args['groupby'])){
-                    $groupby = $args['groupby'];
+                    $groupby = $args['groupby']['column'];
                     if(!isset($args['orderby']) || empty($args['orderby'])){
                          $args['orderby'] = 'NULL';
                     }
@@ -104,8 +108,10 @@
                $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->getSQL();
                if($this->debug){
                     print_r($sql);
+                    echo("<br />\n");
                     print_r($whereValues);
                }
+               $this->ping();
                $stmt = $this->pdo->prepare($sql);
                $stmt->execute($whereValues);
                $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -119,8 +125,13 @@
                 * $args = [table=>'',columns=>[], values = ["column"=>"value"] || [["column"=>"value","column"=>"value"]]]
                 */
                $sql = instantiate(new sqlSpinner())->INSERT($args)->getSQL();
+               if($this->debug){
+                    print_r($sql);
+                    echo("<br />\n");
+                    print_r($args);
+               }
                try {
-                    
+                    $this->ping();
                     $this->pdo->beginTransaction();
                     $stmt = $this->pdo->prepare($sql);
                     
@@ -136,6 +147,7 @@
                               //for each grouping of values in a multi-entity insert
                               foreach($args['values'][$i] as $column=>$value){
                                    $$column = $value;
+                                   print_r($$column.":".$$column);
                               }
                               $stmt->execute();
                               
@@ -151,14 +163,24 @@
                               $prepCol = ":$column";
                               $values[$prepCol] = $value;
                          }
-                         $stmt->execute($values);
+                         if($this->debug){
+                              echo("Values: ");
+                              print_r($values);
+                         }
+                         if(!($stmt->execute($values))){
+                              throw new Exception("Insert Failed: ");
+                         }
                     }
                     
                     return($this->pdo->commit());
-               }
-               catch (Exception $e){
+               } catch (Exception $e){
                     $this->pdo->rollBack();
                     echo "Insert Failed: ".$e->getMessage();
+                    return(false);
+               }
+               catch(PDOException $pe){
+                    $this->pdo->rollBack();
+                    echo "Delete Failed: ".$pe->getMessage();
                     return(false);
                }
 
@@ -185,6 +207,7 @@
                $sql = instantiate(new sqlSpinner())->UPDATE($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit);
                
                try {
+                    $this->ping();
                     $this->pdo->beginTransaction();
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute(array_merge($setValues, $whereValues));
@@ -195,12 +218,18 @@
                     echo "Update Failed: ".$e->getMessage();
                     return(false);
                }
+               catch(PDOException $pe){
+                    $this->pdo->rollBack();
+                    echo "Delete Failed: ".$pe->getMessage();
+                    return(false);
+               }
           }
           
           function DELETE($args){
                $whereValues = [];
                if(isset($args['where'])){
                     $whereValues = $this->prepValues($args['where']);
+                    $where=$args['where'];
                }
                $order = [];
                if(isset($args['orderby'])){
@@ -210,9 +239,10 @@
                if(isset($args['limit'])){
                     $limit = $args['limit'];
                }
-               $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($whereValues)->ORDERBY($order)->LIMIT($limit);
+               $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($where)->ORDERBY($order)->LIMIT($limit);
                
                try {
+                    $this->ping();
                     $this->pdo->beginTransaction();
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute($whereValues);
@@ -223,6 +253,31 @@
                     echo "Delete Failed: ".$e->getMessage();
                     return(false);
                }
+               catch(PDOException $pe){
+                    $this->pdo->rollBack();
+                    echo "Delete Failed: ".$pe->getMessage();
+                    return(false);
+               }
+          }
+          
+          function getColumns($table){
+               $sql = instantiate(new sqlSpinner())->DESCRIBE($table)->getSQL();
+               $this->ping();
+               $stmt = $this->pdo->prepare($sql);
+               $stmt->execute();
+               $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
+               $columns = [];
+               foreach($chunk as $row){
+                    if($row['Key'] !== "PRI"){
+                         if($row['Null'] ==='YES'){
+                              $columns[$row['Field']]=null;
+                         }
+                         else {
+                              $columns[$row['Field']]="";
+                         }
+                    }
+               }
+               return($columns);
           }
           
           function queue($instructions = []){
@@ -240,6 +295,32 @@
                     return(false);
                }
           }
+          
+          function ping(){
+               try {
+                    $this->pdo->query("SELECT 1"); a:
+                    return(true);
+               }
+               catch (PDOException $pe){
+                    $this->pdo = new cleanPDO($this->config);
+                    goto a;
+               }
+          }
+          
+          function run($sql="", $values=[]){
+               if($sql !==""){
+                    try{
+                         $this->pdo->beginTransaction();
+                         $this->pdo->prepare($sql);
+                         $this->pdo->execute($values);
+                         return($this->pdo->commit());
+                    }
+                    catch (Exception $e){
+                         $this->pdo->rollBack();
+                         echo("Failed: ").$e->getMessage();
+                         return(false);
+                    }
+               }
+          }
      }
-     
 ?>

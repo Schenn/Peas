@@ -1,5 +1,19 @@
 <?php
 
+     class sqlSpunError extends Exception {
+          
+          protected $errorList = [
+               "Invalid Column data for Insert Spinning.",
+               "Missing Table Name",
+               "Missing 'set' data for Update Spinning"
+          ];
+          
+          public function __construct($message,$code, Exception $previous = null){
+               $message .= " sqlSpinner ERROR: ".$code.": ".$this->errorList[$code];
+               parent::__construct($message, $code, $previous);
+          }
+     }
+
      function instantiate($instance){
           return($instance);
      }
@@ -8,7 +22,7 @@
           protected $method;
           protected $sql;
 
-          protected function aggregate($aggMethod, $aggValues){
+          protected function aggregate($aggMethod, $aggValues=[]){
                //if columnNames is empty, * is used
                $this->sql .= strtoupper($aggMethod)."(";
                $cNameCount = count($aggValues);
@@ -17,7 +31,7 @@
                }
                else {
                     for($vc=0;$vc<$cNameCount;$vc++){
-                         $this->sql .= $aggValues;
+                         $this->sql .= $aggValues[$vc];
                          if($vc !== $cNameCount-1){
                               $this->sql .= ", ";
                          }
@@ -26,17 +40,32 @@
                          }
                     }
                }
-               $this->sql.=") ";
+               $this->sql.=")";
           }
           
           function SELECT($args){
                $this->method = 'select';
                $this->sql = "SELECT ";
                
-               if(isset($args['distinct'])){
-                    $distinct = strtoupper($args['distinct']);
-                    if($distinct !== 'ALL'){
-                         $this->sql .= $distinct." ";
+               try {
+                    
+                    if(isset($args['distinct'])){
+                         $distinct = strtoupper($args['distinct']);
+                         if($distinct !== 'ALL'){
+                              $this->sql .= $distinct." ";
+                              if(isset($args['result'])){
+                                   $resultSize = strtoupper($args['result']);
+                                   if($resultSize==='BIG'){
+                                        $this->sql.="SQL_BIG_RESULT ";
+                                   }
+                                   elseif($resultSize==='SMALL'){
+                                        $this->sql.="SQL_SMALL_RESULT ";
+                                   }
+                              }
+                         }
+                    }
+                    
+                    if(isset($args['groupby'])){
                          if(isset($args['result'])){
                               $resultSize = strtoupper($args['result']);
                               if($resultSize==='BIG'){
@@ -47,118 +76,152 @@
                               }
                          }
                     }
-               }
-               
-               if(isset($args['groupby'])){
-                    if(isset($args['result'])){
-                         $resultSize = strtoupper($args['result']);
-                         if($resultSize==='BIG'){
-                              $this->sql.="SQL_BIG_RESULT ";
+                    
+                    if(isset($args['priority'])){
+                         if(isset($args['union'])){
+                              unset($args['union']);
                          }
-                         elseif($resultSize==='SMALL'){
-                              $this->sql.="SQL_SMALL_RESULT ";
+                         $this->sql .= "HIGH_PRIORITY ";
+                    }
+                    
+                    if(isset($args['buffer'])){
+                         $this->sql .= "SQL_BUFFER_RESULT ";
+                    }
+                    
+                    if(isset($args['cache'])){
+                         if($args['cache']===true){
+                              $this->sql .= "SQL_CACHE ";
+                         }
+                         elseif($args['cache'] === false){
+                              $this->sql .= "SQL_NO_CACHE";
                          }
                     }
-               }
-               
-               if(isset($args['priority'])){
-                    if(isset($args['union'])){
-                         unset($args['union']);
-                    }
-                    $this->sql .= "HIGH_PRIORITY ";
-               }
-               
-               if(isset($args['buffer'])){
-                    $this->sql .= "SQL_BUFFER_RESULT ";
-               }
-               
-               if(isset($args['cache'])){
-                    if($args['cache']===true){
-                         $this->sql .= "SQL_CACHE ";
-                    }
-                    elseif($args['cache'] === false){
-                         $this->sql .= "SQL_NO_CACHE";
-                    }
-               }
-               
-               
-               if(isset($args['columns'])){
-                    $i=0;
-                    $cols = count($args['columns']);
-                    foreach($args['columns'] as $col){
-                         if(!isset($col['agg'])){
-                              if($i !== $cols-1){
-                                   $this->sql .="$col, ";
+                    
+                    
+                    if(isset($args['columns'])){
+                         $i=0;
+                         $cols = count($args['columns']);
+                         foreach($args['columns'] as $col){
+                              if(!isset($col['agg'])){
+                                   if($i !== $cols-1){
+                                        $this->sql .="$col, ";
+                                   }
+                                   else {
+                                        $this->sql .= $col . ' ';
+                                   }
                               }
                               else {
-                                   $this->sql .= $col . ' ';
+                                   foreach($col['agg'] as $method=>$columnNames){
+                                        $this->aggregate($method, $columnValues);
+                                   }
                               }
+                              $i++;
+                                   
                          }
-                         else {
-                              foreach($col['agg'] as $method=>$columnNames){
-                                   $this->aggregate($method, $columnValues);
-                              }
-                         }
-                         $i++;
-                              
                     }
+                    else {
+                         $this->sql .= " * ";
+                    }
+                    
+                    if(isset($args['table'])){
+                         $this->sql .= "FROM ".$args['table'];
+                    }
+                    else {
+                         throw new sqlSpunError("Invalid Arguments",1);
+                    }
+               } catch(sqlSpunError $e){
+                    echo $e->getMessage();
                }
-               else {
-                    $this->sql .= " * ";
-               }
-               
-               $this->sql .= "FROM ".$args['table'];
                
                return($this);
           }
           
           function INSERT($args){
                $this->method = 'insert';
-               $this->sql = "INSERT INTO ".$args['table'];
                
-               $columnCount = count($args['columns']);
-               
-               $this->sql .="(";
-               for($i = 0; $i<$columnCount; $i++){
-                    $this->sql .= $args['columns'][$i];
-                    if($i !== $columnCount-1)
-                    {
-                         $this->sql .= ", ";
+               try {
+                    if(isset($args['table'])){
+                         $this->sql = "INSERT INTO ".$args['table'];
                     }
-               }
-               $this->sql .=") VALUES (";
-               for($i = 0; $i<$columnCount; $i++){
-                    $this->sql .= ":".$args['columns'][$i];
-                    if($i !== $columnCount-1)
-                    {
-                         $this->sql .= ", ";
+                    else {
+                         throw new sqlSpunError("Invalid Arguments", 1);
                     }
+               
+                    
+                    if((gettype($args['columns'])==="array") && (isset($args['columns'][0]))){
+                         $columnCount = count($args['columns']);
+                    }
+                    else {
+                         throw new sqlSpunError("Invalid Arguments",0);
+                    }
+                    
+                    $this->sql .="(";
+                    for($i = 0; $i<$columnCount; $i++){
+                         $this->sql .= $args['columns'][$i];
+                         if($i !== $columnCount-1)
+                         {
+                              $this->sql .= ", ";
+                         }
+                    }
+                    $this->sql .=") VALUES (";
+                    for($i = 0; $i<$columnCount; $i++){
+                         $this->sql .= ":".$args['columns'][$i];
+                         if($i !== $columnCount-1)
+                         {
+                              $this->sql .= ", ";
+                         }
+                    }
+                    $this->sql .=")";
+                    
+                    return($this);
+               } catch(sqlSpunError $e){
+                    echo $e->getMessage();
                }
-               $this->sql .=")";
-               
-               return($this);
-               
           }
 
           function UPDATE($args){
                $this->method = "update";
-               $this->sql = "UPDATE ".$args['table']." SET (";
-               $i = 0;
-               $cCount = count($args['set']);
-               foreach($args['set'] as $colmumn=>$value){
-                    $this->sql .=":".$column;
-                    if($i !== $cCount-1){
-                         $this->sql.=", ";
+               try {
+                    if(isset($args['table'])){
+                         $this->sql = "UPDATE ".$args['table']." SET (";
                     }
+                    else {
+                         throw new sqlSpunError("Invalid Arguments", 1);
+                    }
+                    $i = 0;
+                    if(!isset($args['set'])){
+                         throw new sqlSpunError("Invalid Arguments", 2);
+                    }
+                    $cCount = count($args['set']);
+                    foreach($args['set'] as $colmumn=>$value){
+                         $this->sql .=":".$column;
+                         if($i !== $cCount-1){
+                              $this->sql.=", ";
+                         }
+                    }
+                    $this->sql .= ") ";
+                    return($this);
                }
-               $this->sql .= ") ";
-               return($this);
+               catch (sqlSpunError $e){
+                    echo $e->getMessage();
+               }
           }
           
           function DELETE($args){
                $this->method = "delete";
-               $this->sql = "DELETE FROM ".$args['table'];
-               return($this);
+               try {
+                    if(isset($args['table'])){
+                         $this->sql = "DELETE FROM ".$args['table'];
+                    }
+                    else {
+                         throw new sqlSpunError("Invalid Arguments",1);
+                    }
+                    return($this);
+               }
+               catch (sqlSpunError $e){
+                    echo $e->getMessage();
+               }
+
           }
           
           
@@ -175,8 +238,13 @@
                          else {
                               foreach($value as $method=>$secondValue){
                                    if(gettype($secondValue)!=='array'){
-                                        switch(strtolower(trim($method))){
+                                        switch(strtolower(str_replace(" ", "",$method))){
+                                             case "=":
+                                             case "equal":
+                                                  $this->sql .= $column." = :".$column;
+                                                  break;
                                              case "not":
+                                             case "!=":
                                                   $this->sql .= $column." != :".$column;
                                                   break;
                                              case "like":
@@ -186,15 +254,19 @@
                                                   $this->sql .= $column." NOT LIKE :".$column;
                                                   break;
                                              case "less":
+                                             case "<":
                                                   $this->sql .= $column." < :".$column;
                                                   break;
                                              case "lessequal":
+                                             case "<=":
                                                   $this->sql .= $column." <= :".$column;
                                                   break;
                                              case "greater":
+                                             case ">":
                                                   $this->sql .= $column." > :".$column;
                                                   break;
                                              case "greaterequal":
+                                             case ">=":
                                                   $this->sql .= $column." >= :".$column;
                                                   break;
                                         }
@@ -233,7 +305,7 @@
                                              case "notin":
                                                   $this->sql .= $column." NOT IN (";
                                                   for($vI=0;$vI<$vCount;$v++){
-                                                       $this->sql .= ":".$column.$vI;
+                                                       $this->sql .=":".$column.$vI;
                                                        if($vI !== $vCount-1){
                                                             $this->sql .= ", ";
                                                        }
@@ -264,7 +336,7 @@
           function GROUPBY($groupby = []){
                
                if(!empty($groupby)){
-                    $this->sql.="GROUP BY ";
+                    $this->sql.=" GROUP BY ";
                     $groupCount = count($groupby);
                     for($i=0;$i<$groupCount;$i++){
                          $this->sql .=$groupby[$i];
@@ -283,12 +355,51 @@
                //DO NOT USE HAVING TO REPLACE A WHERE
                //Having should only use group by columns for accuracy
                
+               
                if(!empty($having)){
-                    $this->sql .= "HAVING ";
-                    foreach($having['agg'] as $aggMethod=>$columnNames){
-                         $this->aggregate($aggMethod,$columnNames);
+                    $this->sql .= " HAVING ";
+                    
+                    $method = $having['aggMethod'];
+                    $columns = (isset($having['columns'])) ? $having['columns'] : [];
+                    $comparison = $having['comparison']['method'];
+                    $compareValue = $having['comparison']['value'];
+                    
+                    $this->aggregate($method, $columns);
+                    
+                    switch(strtolower(str_replace(" ", "",$comparison))){
+                         case "=":
+                         case "equal":
+                              $this->sql .= " = ".$compareValue;
+                              break;
+                         case "not":
+                         case "!=":
+                              $this->sql .= " != ".$compareValue;
+                              break;
+                         case "like":
+                              $this->sql .= " LIKE ".$compareValue;
+                              break;
+                         case "notlike":
+                              $this->sql .= " NOT LIKE ".$compareValue;
+                              break;
+                         case "less":
+                         case "<":
+                              $this->sql .= " < ".$compareValue;
+                              break;
+                         case "lessequal":
+                         case "<=":
+                              $this->sql .= " <= ".$compareValue;
+                              break;
+                         case "greater":
+                         case ">":
+                              $this->sql .= " > ".$compareValue;
+                              break;
+                         case "greaterequal":
+                         case ">=":
+                              $this->sql .= " >= ".$compareValue;
+                              break;
                     }
                }
+               
                
                return($this);
           }
@@ -297,7 +408,7 @@
                //$sort = ['column'=>'method','column'=>'method']
                
                if(!empty($sort)){
-                    $this->sql .= "ORDER BY ";
+                    $this->sql .= " ORDER BY ";
                     $i = 0;
                     
                     if($sort==='NULL'){
@@ -305,13 +416,18 @@
                     }
                     else {
                          $orderCount = count($sort);
-                         foreach($sort as $column=>$method){
-                              $method = strtoupper($method);
-                              $this->sql .= $column." ".strtoupper($method);
-                              if($i < $orderCount){
-                                   $this->sql .=", ";
+                         if(gettype($sort)==='array'){
+                              foreach($sort as $column=>$method){
+                                   $method = strtoupper($method);
+                                   $this->sql .= $column." ".strtoupper($method);
+                                   if($i < $orderCount-1){
+                                        $this->sql .=", ";
+                                   }
+                                   $i++;
                               }
-                              $i++;
+                         }
+                         else {
+                              $this->sql .= $sort;
                          }
                     }
                }
@@ -323,7 +439,15 @@
           
           function LIMIT($limit = null){
                if($limit !== null){
-                    $this->sql .= "LIMIT ".$limit;
+                    $this->sql .= " LIMIT ".$limit;
+               }
+               return($this);
+          }
+          
+          function DESCRIBE($table, $column = ""){
+               $this->sql = "DESC ".$table;
+               if($column !== ""){
+                    $this->sql .= " " . $column;
                }
                return($this);
           }
