@@ -207,10 +207,7 @@
                $sql = instantiate(new sqlSpinner())->UPDATE($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit);
                
                try {
-<<<<<<< HEAD
                     $this->ping();
-=======
->>>>>>> ffd1497b0ccdb2878a30efc7e79883b59ab7b6e2
                     $this->pdo->beginTransaction();
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute(array_merge($setValues, $whereValues));
@@ -221,24 +218,18 @@
                     echo "Update Failed: ".$e->getMessage();
                     return(false);
                }
-<<<<<<< HEAD
                catch(PDOException $pe){
                     $this->pdo->rollBack();
                     echo "Delete Failed: ".$pe->getMessage();
                     return(false);
                }
-=======
->>>>>>> ffd1497b0ccdb2878a30efc7e79883b59ab7b6e2
           }
           
           function DELETE($args){
                $whereValues = [];
                if(isset($args['where'])){
                     $whereValues = $this->prepValues($args['where']);
-<<<<<<< HEAD
                     $where=$args['where'];
-=======
->>>>>>> ffd1497b0ccdb2878a30efc7e79883b59ab7b6e2
                }
                $order = [];
                if(isset($args['orderby'])){
@@ -248,16 +239,10 @@
                if(isset($args['limit'])){
                     $limit = $args['limit'];
                }
-<<<<<<< HEAD
                $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($where)->ORDERBY($order)->LIMIT($limit);
                
                try {
                     $this->ping();
-=======
-               $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($whereValues)->ORDERBY($order)->LIMIT($limit);
-               
-               try {
->>>>>>> ffd1497b0ccdb2878a30efc7e79883b59ab7b6e2
                     $this->pdo->beginTransaction();
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute($whereValues);
@@ -268,7 +253,6 @@
                     echo "Delete Failed: ".$e->getMessage();
                     return(false);
                }
-<<<<<<< HEAD
                catch(PDOException $pe){
                     $this->pdo->rollBack();
                     echo "Delete Failed: ".$pe->getMessage();
@@ -294,8 +278,6 @@
                     }
                }
                return($columns);
-=======
->>>>>>> ffd1497b0ccdb2878a30efc7e79883b59ab7b6e2
           }
           
           function queue($instructions = []){
