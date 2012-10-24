@@ -111,9 +111,18 @@
                                    }
                               }
                               else {
+<<<<<<< HEAD
                                    foreach($col['agg'] as $method=>$columnNames){
                                         $this->aggregate($method, $columnValues);
                                    }
+=======
+                                   $this->sql .= $col . ' ';
+                              }
+                         }
+                         else {
+                              foreach($col['agg'] as $method=>$columnNames){
+                                   $this->aggregate($method, $columnValues)
+>>>>>>> ffd1497b0ccdb2878a30efc7e79883b59ab7b6e2
                               }
                               $i++;
                                    
@@ -138,6 +147,10 @@
           
           function INSERT($args){
                $this->method = 'insert';
+<<<<<<< HEAD
+=======
+               $this->sql = "INSERT INTO ".$args['table'];
+>>>>>>> ffd1497b0ccdb2878a30efc7e79883b59ab7b6e2
                
                try {
                     if(isset($args['table'])){
@@ -222,6 +235,28 @@
                     echo $e->getMessage();
                }
 
+<<<<<<< HEAD
+=======
+          function UPDATE($args){
+               $this->method = "update";
+               $this->sql = "UPDATE ".$args['table']." SET (";
+               $i = 0;
+               $cCount = count($args['set']);
+               foreach($args['set'] as $colmumn=>$value){
+                    $this->sql .=":".$column;
+                    if($i !== $cCount-1){
+                         $this->sql.=", ";
+                    }
+               }
+               $this->sql .= ") ";
+               return($this);
+          }
+          
+          function DELETE($args){
+               $this->method = "delete";
+               $this->sql = "DELETE FROM ".$args['table'];
+               return($this);
+>>>>>>> ffd1497b0ccdb2878a30efc7e79883b59ab7b6e2
           }
           
           
@@ -439,6 +474,7 @@
           
           function LIMIT($limit = null){
                if($limit !== null){
+<<<<<<< HEAD
                     $this->sql .= " LIMIT ".$limit;
                }
                return($this);
@@ -448,6 +484,9 @@
                $this->sql = "DESC ".$table;
                if($column !== ""){
                     $this->sql .= " " . $column;
+=======
+                    $this->sql .= "LIMIT ".$limit;
+>>>>>>> ffd1497b0ccdb2878a30efc7e79883b59ab7b6e2
                }
                return($this);
           }
