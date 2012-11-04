@@ -112,11 +112,7 @@
                               }
                               else {
                                    foreach($col['agg'] as $method=>$columnNames){
-<<<<<<< HEAD
-                                        $this->aggregate($method, $columnValues);
-=======
                                         $this->aggregate($method, $columnNames);
->>>>>>> indev
                                    }
                               }
                               $i++;
@@ -157,7 +153,6 @@
                     }
                     else {
                          throw new sqlSpunError("Invalid Arguments",0);
-<<<<<<< HEAD
                     }
                     
                     $this->sql .="(";
@@ -176,26 +171,6 @@
                               $this->sql .= ", ";
                          }
                     }
-=======
-                    }
-                    
-                    $this->sql .="(";
-                    for($i = 0; $i<$columnCount; $i++){
-                         $this->sql .= $args['columns'][$i];
-                         if($i !== $columnCount-1)
-                         {
-                              $this->sql .= ", ";
-                         }
-                    }
-                    $this->sql .=") VALUES (";
-                    for($i = 0; $i<$columnCount; $i++){
-                         $this->sql .= ":".$args['columns'][$i];
-                         if($i !== $columnCount-1)
-                         {
-                              $this->sql .= ", ";
-                         }
-                    }
->>>>>>> indev
                     $this->sql .=")";
                     
                     return($this);
@@ -208,11 +183,7 @@
                $this->method = "update";
                try {
                     if(isset($args['table'])){
-<<<<<<< HEAD
-                         $this->sql = "UPDATE ".$args['table']." SET (";
-=======
                          $this->sql = "UPDATE ".$args['table']." SET ";
->>>>>>> indev
                     }
                     else {
                          throw new sqlSpunError("Invalid Arguments", 1);
@@ -220,17 +191,6 @@
                     $i = 0;
                     if(!isset($args['set'])){
                          throw new sqlSpunError("Invalid Arguments", 2);
-<<<<<<< HEAD
-                    }
-                    $cCount = count($args['set']);
-                    foreach($args['set'] as $colmumn=>$value){
-                         $this->sql .=":".$column;
-                         if($i !== $cCount-1){
-                              $this->sql.=", ";
-                         }
-                    }
-                    $this->sql .= ") ";
-=======
                     }
                     $cCount = count($args['set']);
                     foreach($args['set'] as $column=>$value){
@@ -240,7 +200,6 @@
                          }
                     }
                     $this->sql .= " ";
->>>>>>> indev
                     return($this);
                }
                catch (sqlSpunError $e){
@@ -282,19 +241,11 @@
                                         switch(strtolower(str_replace(" ", "",$method))){
                                              case "=":
                                              case "equal":
-<<<<<<< HEAD
-                                                  $this->sql .= $column." = :".$column;
-                                                  break;
-                                             case "not":
-                                             case "!=":
-                                                  $this->sql .= $column." != :".$column;
-=======
                                                   $this->sql .= $column." = :where".$column;
                                                   break;
                                              case "not":
                                              case "!=":
                                                   $this->sql .= $column." != :where".$column;
->>>>>>> indev
                                                   break;
                                              case "like":
                                                   $this->sql .= $column." LIKE :where".$column;
@@ -304,21 +255,6 @@
                                                   break;
                                              case "less":
                                              case "<":
-<<<<<<< HEAD
-                                                  $this->sql .= $column." < :".$column;
-                                                  break;
-                                             case "lessequal":
-                                             case "<=":
-                                                  $this->sql .= $column." <= :".$column;
-                                                  break;
-                                             case "greater":
-                                             case ">":
-                                                  $this->sql .= $column." > :".$column;
-                                                  break;
-                                             case "greaterequal":
-                                             case ">=":
-                                                  $this->sql .= $column." >= :".$column;
-=======
                                                   $this->sql .= $column." < :where".$column;
                                                   break;
                                              case "lessequal":
@@ -332,7 +268,6 @@
                                              case "greaterequal":
                                              case ">=":
                                                   $this->sql .= $column." >= :where".$column;
->>>>>>> indev
                                                   break;
                                         }
                                    }
@@ -370,11 +305,7 @@
                                              case "notin":
                                                   $this->sql .= $column." NOT IN (";
                                                   for($vI=0;$vI<$vCount;$v++){
-<<<<<<< HEAD
-                                                       $this->sql .=":".$column.$vI;
-=======
                                                        $this->sql .=":where".$column.$vI;
->>>>>>> indev
                                                        if($vI !== $vCount-1){
                                                             $this->sql .= ", ";
                                                        }
@@ -421,13 +352,8 @@
                //DO NOT USE HAVING TO REPLACE A WHERE
                //Having should only use group by columns for accuracy
                
-               
                if(!empty($having)){
                     $this->sql .= " HAVING ";
-<<<<<<< HEAD
-                    
-=======
->>>>>>> indev
                     $method = $having['aggMethod'];
                     $columns = (isset($having['columns'])) ? $having['columns'] : [];
                     $comparison = $having['comparison']['method'];
@@ -468,11 +394,6 @@
                               break;
                     }
                }
-<<<<<<< HEAD
-               
-               
-=======
->>>>>>> indev
                return($this);
           }
           

@@ -195,8 +195,6 @@
                $setValues = [];
                //update table set(columns=values)  where (columns=values) order by ... limit ...
                try {
-<<<<<<< HEAD
-=======
                     if(isset($args['set'])){
                          foreach($args['set'] as $column=>$value){
                               $prepCol = ":set".$column;
@@ -257,7 +255,6 @@
                          echo("<br />\n");
                     }
                     
->>>>>>> indev
                     $this->ping();
                     $this->pdo->beginTransaction();
                     $stmt = $this->pdo->prepare($sql);
@@ -279,10 +276,6 @@
           function DELETE($args){
                $whereValues = [];
                if(isset($args['where'])){
-<<<<<<< HEAD
-                    $whereValues = $this->prepValues($args['where']);
-                    $where=$args['where'];
-=======
                     foreach($args['where'] as $column=>$value){
                          if(gettype($value)!=='array'){
                               $c = ":where".$column;
@@ -311,7 +304,6 @@
                               }
                          }
                     }
->>>>>>> indev
                }
                $order = [];
                if(isset($args['orderby'])){
@@ -321,11 +313,7 @@
                if(isset($args['limit'])){
                     $limit = $args['limit'];
                }
-<<<<<<< HEAD
-               $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($where)->ORDERBY($order)->LIMIT($limit);
-=======
                $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
->>>>>>> indev
                
                try {
                     $this->ping();
