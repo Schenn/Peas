@@ -104,8 +104,12 @@
                if(isset($args['orderby'])){
                     $orderby = $args['orderby'];
                }
+               $limit;
+               if(isset($args['limit'])){
+                    $limit = $args['limit'];
+               }
                
-               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->getSQL();
+               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
                if($this->debug){
                     print_r($sql);
                     echo("<br />\n");
@@ -190,23 +194,70 @@
                $whereValues = [];
                $setValues = [];
                //update table set(columns=values)  where (columns=values) order by ... limit ...
-               $setValues = $this->prepValues($args['set']);
-               $where = [];
-               if(isset($args['where'])){
-                    $whereValues = $this->prepValues($args['where']);
-                    $where = $args['where'];
-               }
-               $orderby = [];
-               if(isset($args['orderby'])){
-                    $orderby = $args['orderby'];
-               }
-               $limit = null;
-               if(isset($args['limit'])){
-                    $limit = $args['limit'];
-               }
-               $sql = instantiate(new sqlSpinner())->UPDATE($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit);
-               
                try {
+<<<<<<< HEAD
+=======
+                    if(isset($args['set'])){
+                         foreach($args['set'] as $column=>$value){
+                              $prepCol = ":set".$column;
+                              $setValues[$prepCol] = $value;
+                         }
+                    }
+                    
+                    $where = [];
+                    if(isset($args['where'])){
+                         $where = [];
+                         foreach($args['where'] as $column=>$value){
+                              if(gettype($value)!=='array'){
+                                   $c = ":where".$column;
+                                   $whereValues[$c]=$value;
+                                   $where[$column]=$value;
+                              }
+                              else {
+                                   foreach($value as $method=>$compareValue){
+                                        if(gettype($compareValue)!=='array'){
+                                             $c = ":".$column;
+                                             $m = str_replace(" ","",$method);
+                                             if($m === "like" || $m === "notlike"){
+                                                  $compareValue = "%".$compareValue."%";
+                                             }
+                                             $whereValues[$c] = $compareValue;
+                                             $where[$column] = [$method=>$compareValue];
+                                        }
+                                        else {
+                                             $compCount = count($compareValue);
+                                             for($i=0; $i<$compCount; $i++){
+                                                  $c = ":where".$column.$i;
+                                                  $whereValues[$c]=$compareValue[$i];
+                                             }
+                                             $where[$column]=[$method=>$compareValue];
+                                        }
+                                   }
+                              }
+                         }
+                    }
+
+                    $orderby = [];
+                    if(isset($args['orderby'])){
+                         $orderby = $args['orderby'];
+                    }
+                    $limit;
+                    if(isset($args['limit'])){
+                         $limit = $args['limit'];
+                    }
+                                       
+                    $sql = instantiate(new sqlSpinner())->UPDATE($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+                    
+                    if($this->debug){
+                         print_r($sql);
+                         echo("<br />\n");
+                         print_r($setValues);
+                         echo("<br />\n");
+                         print_r($whereValues);
+                         echo("<br />\n");
+                    }
+                    
+>>>>>>> indev
                     $this->ping();
                     $this->pdo->beginTransaction();
                     $stmt = $this->pdo->prepare($sql);
@@ -228,8 +279,39 @@
           function DELETE($args){
                $whereValues = [];
                if(isset($args['where'])){
+<<<<<<< HEAD
                     $whereValues = $this->prepValues($args['where']);
                     $where=$args['where'];
+=======
+                    foreach($args['where'] as $column=>$value){
+                         if(gettype($value)!=='array'){
+                              $c = ":where".$column;
+                              $whereValues[$c]=$value;
+                              $where[$column]=$value;
+                         }
+                         else {
+                              foreach($value as $method=>$compareValue){
+                                   if(gettype($compareValue)!=='array'){
+                                        $c = ":".$column;
+                                        $m = str_replace(" ","",$method);
+                                        if($m === "like" || $m === "notlike"){
+                                             $compareValue = "%".$compareValue."%";
+                                        }
+                                        $whereValues[$c] = $compareValue;
+                                        $where[$column] = [$method=>$compareValue];
+                                   }
+                                   else {
+                                        $compCount = count($compareValue);
+                                        for($i=0; $i<$compCount; $i++){
+                                             $c = ":where".$column.$i;
+                                             $whereValues[$c]=$compareValue[$i];
+                                        }
+                                        $where[$column]=[$method=>$compareValue];
+                                   }
+                              }
+                         }
+                    }
+>>>>>>> indev
                }
                $order = [];
                if(isset($args['orderby'])){
@@ -239,7 +321,11 @@
                if(isset($args['limit'])){
                     $limit = $args['limit'];
                }
+<<<<<<< HEAD
                $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($where)->ORDERBY($order)->LIMIT($limit);
+=======
+               $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
+>>>>>>> indev
                
                try {
                     $this->ping();
