@@ -58,14 +58,14 @@
                $where = [];
                if(isset($args['where'])){
                     foreach($args['where'] as $column=>$value){
-                         if(gettype($value)!=='array'){
+                         if(!(is_array($value))){
                               $c = ":".$column;
                               $whereValues[$c]=$value;
                               $where[$column]=$value;
                          }
                          else {
                               foreach($value as $method=>$compareValue){
-                                   if(gettype($compareValue)!=='array'){
+                                   if(!is_array($compareValue)){
                                         $c = ":".$column;
                                         $m = str_replace(" ","",$method);
                                         if($m === "like" || $m === "notlike"){
@@ -277,14 +277,14 @@
                $whereValues = [];
                if(isset($args['where'])){
                     foreach($args['where'] as $column=>$value){
-                         if(gettype($value)!=='array'){
+                         if(!is_array($value)){
                               $c = ":where".$column;
                               $whereValues[$c]=$value;
                               $where[$column]=$value;
                          }
                          else {
                               foreach($value as $method=>$compareValue){
-                                   if(gettype($compareValue)!=='array'){
+                                   if(!is_array($compareValue)){
                                         $c = ":".$column;
                                         $m = str_replace(" ","",$method);
                                         if($m === "like" || $m === "notlike"){

@@ -77,8 +77,12 @@
                print_r($display);
           }
           
-          function offshoot(){
+          function jsonOffshoot(){
                print_r(json_encode([$this->tableName=>$this->columns]));
+          }
+          
+          function objOffshoot(){
+               return((object)[$this->tableName=>$this->columns]);
           }
      }
 ?>

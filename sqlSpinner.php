@@ -124,7 +124,16 @@
                     }
                     
                     if(isset($args['table'])){
-                         $this->sql .= "FROM ".$args['table'];
+                         $this->sql .= "FROM ";
+                         if(is_array($args['table'])){
+                              $tCount = count($args['table']);
+                              for($i=0;$i<$tCount;$i++){
+                                   $this->sql .= implode(", ", $args['table'])." ";
+                              }
+                         }
+                         else {
+                              $this->sql .= $args['table'];    
+                         }
                     }
                     else {
                          throw new sqlSpunError("Invalid Arguments",1);
