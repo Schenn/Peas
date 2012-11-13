@@ -333,6 +333,41 @@
 
           }
           
+          function JOIN($join = [], $condition = []){
+               if($join !== []){
+                    foreach($join as $joinMethod=>$tableName){
+                         $this->sql .= strtoupper($joinMethod)." ".$tableName;
+                    }
+                    $this->sql .=" ";
+                    
+                    if(array_key_exists("on", $condition)){
+                         $this->sql .= "ON ";
+                         $c = count($condition);
+                         for($i=0;$i<$c;$i++){
+                              $match = $condition['on'][$i];
+                              $pre = $match[0];
+                              $post = $match[1];
+                              
+                              foreach($pre as $tableName=>$column){
+                                   $this->sql .= $tableName.".".$column."=";
+                              }
+                              foreach($post as $tableName=>$column){
+                                   $this->sql .= $tableName.'.'$column." ";
+                              }
+                         }
+                    }
+                    elseif(array_key_exists("using", $condition)){
+                         $this->sql .= "USING (";
+                         $using = $condition['using'];
+                         $uC = count($using);
+                         $this->sql .= implode(",", $using);
+                         $this->sql.=") ";
+                    }
+               }
+               
+               return($this);
+          }
+          
           /*
            * Name: WHERE
            * Takes: where = [

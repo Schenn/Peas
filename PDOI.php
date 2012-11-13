@@ -101,15 +101,22 @@
           /* Method Name: SELECT
            * Takes: $args = [
            *             REQUIRED
-           *                  'table'=>'',
+           *                  'table'=>['','']
+           *                       IF JOINING!!!! (if array_key_exists("join", $args))  //put into delete and update!
+           *                       'table'=>['tableName'=>['columnName','columnName'], "tableName"=>['columnName','columnName']]
            *             OPTIONAL
            *                  'columns'=>['','']
            *                       if missing or empty, select statement will build as SELECT *
-           *                  'join'=>['method'=>'table', ]
            *                  'where'=>[column=>value] | [column=>[method=>value]] | [column=>[method=>[values]]]
            *                       prepares columns and values for pdo query.  Each index in where can be any of the above column options.
            *                       if method is 'like' or 'not like' | 'notlike', appends % to beginning and end of value
            *                       See sqlSpinner.php - WHERE for more information on how it is parsed and how to specify 'method'
+           *
+           *                       IF JOINING!!!
+           *                       'where'=>['tableName'=>[column=>value] | [column=>[method=>value]] | [column=>[method=>[values]]], 'tableName'=>[column=>value] | [column=>[method=>value]] | [column=>[method=>[values]]]]
+           *                  'join'=> ['method'=>'tableName']
+           *                  'on'=>[['table'=>'column', 'table'=>'column'], ['table'=>'column', 'table'=>'column']]
+           *                       || 'using' =>['columnName','columnName']
            *                  'groupby'=>['column'=>[""], "having"=>['aggmethod'=>"", 'columns'=>['',''], 'comparison'=>['method'=>'','value'=>'']]
            *                       Sets the order by to NULL if not already set
            *                       See sqlSpinner.php - HAVING for more information on how having is passed and how to set it up
@@ -137,6 +144,41 @@
            */
           
           function SELECT($args, $obj = null){
+               $join = [];
+               $jCond = [];
+               if(array_key_exists("join", $args)){
+                    $cols = [];
+                    $pTable="";
+                    foreach($args['table'] as $tableName=>$columnList){
+                         if(empty($pTable)){
+                              $pTable = $tableName;
+                         }
+                         $c = count($columnList);
+                         for($i=0;$i<$c;$i++){
+                              array_push($cols, $tableName.".".$columnList[$i]);
+                         }
+                    }
+                    $args['columns'] = $cols;
+                    $args['table']=$pTable;
+                    
+                    $joinWhere = [];
+                    foreach($args['where'] as $table=>$columnInfo){
+                         foreach($columnInfo as $columnName=>$columnRules){
+                              $column = [$table.".".$columnName=>$columnRules);
+                              array_push($joinWhere, $column);
+                         }
+                    }
+                    $args['where'] = $joinWhere;
+                    
+                    $join = $args['join'];
+                    if(array_key_exists("on", $args)){
+                         $jCond["on"] = $args['on'];
+                    }
+                    else if(array_key_exists("using", $args)){
+                         $jCond["using"] = $args['using'];
+                    }
+               }
+               
                $whereValues = [];
                $where = [];
                if(isset($args['where'])){
@@ -194,7 +236,7 @@
                if(isset($args['limit'])){
                     $limit = $args['limit'];
                }
-               $sql = instantiate(new sqlSpinner())->SELECT($args)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+               $sql = instantiate(new sqlSpinner())->SELECT($args)->JOIN($join, $joinCond)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
                if($this->debug){
                     print_r($sql);
                     echo("<br />\n");
