@@ -352,7 +352,7 @@
                                    $this->sql .= $tableName.".".$column."=";
                               }
                               foreach($post as $tableName=>$column){
-                                   $this->sql .= $tableName.'.'$column." ";
+                                   $this->sql .= $tableName.'.'.$column." ";
                               }
                          }
                     }

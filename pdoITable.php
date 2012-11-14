@@ -152,6 +152,7 @@
                foreach($options as $option=>$setting){
                     $a[$option]=$setting;
                }
+               unset($a['columns']);
                return(parent::DELETE($a));
           }
           
@@ -187,6 +188,8 @@
                               }
                          }
                     }
+                    
+                    print_r($args);
                     $t->insert($args);
                     
                };

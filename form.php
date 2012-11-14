@@ -86,8 +86,9 @@
      }
      
 
-     $persons = new pdoITable($config, "persons");
-     $ships = new pdoITable($config, "ships");
+     $persons = new pdoITable($config, "persons", true);
+     $ships = new pdoITable($config, "ships", true);
+     
      
      $person = $persons->Offshoot();
      $ship = $ships->Offshoot();
@@ -133,15 +134,12 @@
 <html>
      <head>
           <style>
-               #left {
-                    float:left;
+               
+               div {
                     border: 3px solid #000;
+                    float: left;
                }
                
-               #right {
-                    float: left;
-                    border: 3px solid #000;
-               }
           </style>
      </head>
      <body>
@@ -258,6 +256,39 @@
                          orderby();
                          endofform("deleteShip", true);
                     ?>
+          </div>
+          <div class='left'>
+               
+          <form action='formTest.php' method='post'>
+               <table>
+                    <th>Add Person to Ship</th>
+                    <tr><td><label for='ship_id'>Ship</label></td>
+                         <td><select name="ship_id">
+                              <?php
+                                   $shipCollection = $ships->select([]);
+                                   foreach($shipCollection as $index=>$aShip){
+                                        echo "<option value='".$aShip->ship_id."'>".$aShip->ship_name."</option>";
+                                   }
+                              ?>
+                         </select></td>
+                    </tr>
+                    <tr><td><label for='person_id'>Person</label></td>
+                         <td><select name="person_id">
+                              <?php
+                                   $personCollection = $persons->select([]);
+                                   foreach($personCollection as $index=>$aPerson){
+                                        echo "<option value='".$aPerson->id."'>".$aPerson->name."</option>";
+                                   }
+                              ?>
+                         </select></td>
+                    </tr>
+                    <tr>
+                         <td><label for='role'>Role</label></td>
+                         <td><input type='text' name='role'/></td>
+                    </tr>
+               <?php
+                    endofform("manifestAdd");
+               ?>
           </div>
      </body>
 </html>

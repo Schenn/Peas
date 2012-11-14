@@ -10,6 +10,7 @@
      
      $persons = new pdoITable($config, 'persons', true);
      $ships = new pdoITable($config, 'ships', true);
+     $manifest = new pdoITable($config, 'manifest', true);
      
      function insert($entity){
           foreach($entity as $column=>$value){
@@ -70,6 +71,8 @@
                     $opts['where'][$key] = ($_POST[$whereMethod] === "=") ? $_POST[$whereKey] : [$_POST[$whereMethod]=>$_POST[$whereKey]];
                }
           }
+          
+          print_r($opts);
           
           if(trim($_POST['orderby']) !== ""){
                $opts['orderby'] = ($_POST['orderMethod'] === "none") ? $_POST['orderby'] : [$_POST['orderby']=>$_POST['orderMethod']];
@@ -163,6 +166,19 @@
                $ship = $ships->Offshoot();
                insert($ship);
           }
+          elseif($_POST['action']==="manifestAdd"){
+               $crew = $manifest->Offshoot();
+               
+               echo($crew);
+               foreach($crew as $key=>$value){
+                    if(!array_key_exists("fixed", $crew->getRule($key))){
+                         $crew->$key = $_POST[$key];
+                    }
+                    
+               }
+               $crew->insert();
+               
+          }
           else if($_POST['action'] === 'update'){
                update($persons);
           }
@@ -185,3 +201,9 @@
           }
      }
 ?>
+<html>
+     <body>
+          <br />
+          <a href="form.php">Back to form</a>
+     </body>
+</html>

@@ -164,7 +164,7 @@
                     $joinWhere = [];
                     foreach($args['where'] as $table=>$columnInfo){
                          foreach($columnInfo as $columnName=>$columnRules){
-                              $column = [$table.".".$columnName=>$columnRules);
+                              $column = [$table.".".$columnName=>$columnRules];
                               array_push($joinWhere, $column);
                          }
                     }
@@ -236,7 +236,7 @@
                if(isset($args['limit'])){
                     $limit = $args['limit'];
                }
-               $sql = instantiate(new sqlSpinner())->SELECT($args)->JOIN($join, $joinCond)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+               $sql = instantiate(new sqlSpinner())->SELECT($args)->JOIN($join, $jCond)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
                if($this->debug){
                     print_r($sql);
                     echo("<br />\n");
@@ -487,7 +487,7 @@
                          else {
                               foreach($value as $method=>$compareValue){
                                    if(!is_array($compareValue)){
-                                        $c = ":".$column;
+                                        $c = ":where".$column;
                                         $m = str_replace(" ","",$method);
                                         if($m === "like" || $m === "notlike"){
                                              $compareValue = "%".$compareValue."%";
@@ -516,7 +516,12 @@
                     $limit = $args['limit'];
                }
                $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
-               
+               if($this->debug){
+                         print_r($sql);
+                         echo("<br />\n");
+                         print_r($whereValues);
+                         echo("<br />\n");
+                    }
                try {
                     $this->ping();
                     $this->pdo->beginTransaction();
