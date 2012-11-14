@@ -164,10 +164,12 @@
                     $joinWhere = [];
                     foreach($args['where'] as $table=>$columnInfo){
                          foreach($columnInfo as $columnName=>$columnRules){
-                              $column = [$table.".".$columnName=>$columnRules];
-                              array_push($joinWhere, $column);
+                              $ky = $table.".".$columnName;
+                              $joinWhere[$ky]=$columnRules;
                          }
                     }
+                    
+                    print_r($joinWhere);
                     $args['where'] = $joinWhere;
                     
                     $join = $args['join'];
@@ -185,14 +187,14 @@
                     //converts where into a prepared value array
                     foreach($args['where'] as $column=>$value){
                          if(!is_array($value)){
-                              $c = ":where".$column;
+                              $c = ":where".str_replace(".","",$column);
                               $whereValues[$c]=$value;
                               $where[$column]=$value;
                          }
                          else {
                               foreach($value as $method=>$compareValue){
                                    if(!is_array($compareValue)){
-                                        $c = ":where".$column;
+                                        $c = ":where".str_replace(".","",$column);
                                         $m = str_replace(" ","",$method);
                                         if($m === "like" || $m === "notlike"){
                                              $compareValue = "%".$compareValue."%";
@@ -203,7 +205,7 @@
                                    else {
                                         $compCount = count($compareValue);
                                         for($i=0; $i<$compCount; $i++){
-                                             $c = ":where".$column.$i;
+                                             $c = ":where".str_replace(".","",$column).$i;
                                              $whereValues[$c]=$compareValue[$i];
                                         }
                                         $where[$column]=[$method=>$compareValue];

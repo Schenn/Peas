@@ -289,6 +289,24 @@
                <?php
                     endofform("manifestAdd");
                ?>
+          <form action='formTest.php' method='get'>
+               <table>
+                    <th>
+                         SHOW ALL CREW FOR 
+                    </th>
+                    <tr>
+                         <td><label for='ship_name'>Ship</label></td>
+                         <td><select name="ship_name">
+                              <?php
+                                   foreach($shipCollection as $index=>$aShip){
+                                        echo "<option value='".$aShip->ship_name."'>".$aShip->ship_name."</option>";
+                                   }
+                              ?>
+                         </select></td>
+                    </tr>
+               <?php
+                    endofform("selectCrew");
+               ?>
           </div>
      </body>
 </html>

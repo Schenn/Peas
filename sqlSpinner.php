@@ -335,24 +335,31 @@
           
           function JOIN($join = [], $condition = []){
                if($join !== []){
-                    foreach($join as $joinMethod=>$tableName){
-                         $this->sql .= strtoupper($joinMethod)." ".$tableName;
+                    foreach($join as $tableMethod){
+                         foreach($tableMethod as $joinMethod=>$tableName){
+                              $this->sql .= strtoupper($joinMethod)." ".$tableName. " ";
+                         }
+                         
                     }
                     $this->sql .=" ";
                     
                     if(array_key_exists("on", $condition)){
                          $this->sql .= "ON ";
-                         $c = count($condition);
-                         for($i=0;$i<$c;$i++){
-                              $match = $condition['on'][$i];
-                              $pre = $match[0];
-                              $post = $match[1];
+                         $c = count($condition['on']);
+                         for($i=0; $i<$c; $i += 2){
+                              $match = $condition['on'];
+                              $pre = $match[$i];
+                              $post = $match[$i+1];
                               
                               foreach($pre as $tableName=>$column){
                                    $this->sql .= $tableName.".".$column."=";
                               }
                               foreach($post as $tableName=>$column){
                                    $this->sql .= $tableName.'.'.$column." ";
+                              }
+                              
+                              if($i < $c-2){
+                                   $this->sql .= "AND ";
                               }
                          }
                     }
@@ -392,12 +399,12 @@
                     $whereCount = count($where);
                     foreach($where as $column=>$value){
                          if(!is_array($value)){
-                              $this->sql .= $column." = :where".$column;
+                              $this->sql .= $column." = :where".str_replace(".","",$column);
                          }
                          else {
                               foreach($value as $method=>$secondValue){
                                    if(!is_array($secondValue)){
-                                        $this->sql .= $column.$this->methodSpin($method).":where".$column;
+                                        $this->sql .= $column.$this->methodSpin($method).":where".str_replace(".","",$column);
                                    }
                                    else {
                                         $vCount = count($secondValue);
@@ -405,7 +412,7 @@
                                             case "between":
                                                   $this->sql .= $column." BETWEEN ";
                                                   for($vI=0;$vI<$vCount;$vI++){
-                                                       $this->sql .= ":where".$column.$vI;
+                                                       $this->sql .= ":where".str_replace(".","",$column).$vI;
                                                        if($vI !== $vCount-1){
                                                             $this->sql .= " AND ";
                                                        }
@@ -414,7 +421,7 @@
                                              case "or":
                                                   $this->sql .=$column." =";
                                                   for($vI=0;$vI<$vCount;$vI++){
-                                                       $this->sql .= ":where".$column.$vI;
+                                                       $this->sql .= ":where".str_replace(".","",$column).$vI;
                                                        if($vI !== $vCount-1){
                                                             $this->sql .= " OR ";
                                                        }
@@ -423,7 +430,7 @@
                                              case "in":
                                                   $this->sql .= $column." IN (";
                                                   for($vI=0;$vI<$vCount;$v++){
-                                                       $this->sql .= ":where".$column.$vI;
+                                                       $this->sql .= ":where".str_replace(".","",$column).$vI;
                                                        if($vI !== $vCount-1){
                                                             $this->sql .= ", ";
                                                        }
@@ -433,7 +440,7 @@
                                              case "notin":
                                                   $this->sql .= $column." NOT IN (";
                                                   for($vI=0;$vI<$vCount;$v++){
-                                                       $this->sql .=":where".$column.$vI;
+                                                       $this->sql .=":where".str_replace(".","",$column).$vI;
                                                        if($vI !== $vCount-1){
                                                             $this->sql .= ", ";
                                                        }
