@@ -307,6 +307,24 @@
                <?php
                     endofform("selectCrew");
                ?>
+          <form action='formTest.php' method='get'>
+               <table>
+                    <th>
+                         WORKS WITH 
+                    </th>
+                    <tr>
+                         <td><label for='name'>Person</label></td>
+                         <td><select name="name">
+                              <?php
+                                   foreach($personCollection as $index=>$aPerson){
+                                        echo "<option value='".$aPerson->name."'>".$aPerson->name."</option>";
+                                   }
+                              ?>
+                         </select></td>
+                    </tr>
+               <?php
+                    endofform("worksWith");
+               ?>
           </div>
      </body>
 </html>

@@ -157,6 +157,41 @@
           }
      }
      
+     function selectjoin1($where, $p, $persons, $ships) {
+          $opts = [];
+          $opts['table'] = ['persons'=>[], 'ships'=>[],
+                            'manifest'=>['role']];
+          $person=$persons->Offshoot();
+          foreach($person as $key=>$val){
+               if(!array_key_exists("fixed", $person->getRule($key))){
+                    array_push($opts['table']['persons'], $key);
+               }
+          }
+          $ship = $ships->Offshoot();
+          foreach($ship as $key=>$val){
+               if(!array_key_exists("fixed", $ship->getRule($key))){
+                    array_push($opts['table']['ships'], $key);
+               }
+          }
+          $opts['join']=[['inner join'=>'manifest'], ['inner join'=>'ships']];
+          $opts['on']=[['manifest'=>'person_id'],['persons'=>'id'],['manifest'=>'ship_id'], ['ships'=>'ship_id']];
+          $opts['where']=$where;
+          
+          $chunk = $p->select($opts, instantiate(new dynamo));
+          
+          if(is_object($chunk)){
+               echo ($chunk."<br/>");
+          }
+          elseif(is_array($chunk)){
+               foreach($chunk as $index=>$hero){
+                    echo($hero."<br/>");
+               }
+          }
+          else {
+               echo "SELECT failed!";
+          }
+     }
+     
      if(isset($_POST['action'])){         
           if($_POST['action']==="insert"){
                $person = $persons->Offshoot();
@@ -193,47 +228,11 @@
      }
      
      if(isset($_GET['action'])){
-          if($_GET['action']==='select1'){
-               select($persons);
+          if($_GET['action'] === 'selectCrew'){
+               selectjoin1(['ships'=>['ship_name'=>$_GET['ship_name']]], new pdoi($config, true), $persons, $ships);     
           }
-          else if($_GET['action']==='selectShip'){
-               select($ships);
-          }
-          else if($_GET['action']==='selectCrew'){
-               $p = new pdoi($config, true);
-               $opts = [];
-               $opts['table'] = ['persons'=>[], 'ships'=>[],
-                                 'manifest'=>['role']];
-               $person=$persons->Offshoot();
-               foreach($person as $key=>$val){
-                    if(!array_key_exists("fixed", $person->getRule($key))){
-                         array_push($opts['table']['persons'], $key);
-                    }
-               }
-               $ship = $ships->Offshoot();
-               foreach($ship as $key=>$val){
-                    if(!array_key_exists("fixed", $ship->getRule($key))){
-                         array_push($opts['table']['ships'], $key);
-                    }
-               }
-               $opts['join']=[['inner join'=>'manifest'], ['inner join'=>'ships']];
-               $opts['on']=[['manifest'=>'person_id'],['persons'=>'id'],['manifest'=>'ship_id'], ['ships'=>'ship_id']];
-               $opts['where']=['ships'=>['ship_name'=>$_GET['ship_name']]];
-               
-               $chunk = $p->select($opts, instantiate(new dynamo));
-               
-               if(is_object($chunk)){
-                    echo ($chunk."<br/>");
-               }
-               elseif(is_array($chunk)){
-                    foreach($chunk as $index=>$hero){
-                         echo($hero."<br/>");
-                    }
-               }
-               else {
-                    echo "SELECT failed!";
-               }
-               
+          else if($_GET['action'] === 'worksWith'){
+               //selectjoin2(['persons'=>['name'=>$_GET['name']]], new pdoi($config, true), $persons, $ships);
           }
      }
 ?>
