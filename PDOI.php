@@ -146,7 +146,7 @@
           function SELECT($args, $obj = null){
                $join = [];
                $jCond = [];
-               if(array_key_exists("join", $args)){
+               if(array_key_exists("join", $args)){ // if select query involves a join
                     $cols = [];
                     $pTable="";
                     foreach($args['table'] as $tableName=>$columnList){
@@ -169,7 +169,6 @@
                          }
                     }
                     
-                    print_r($joinWhere);
                     $args['where'] = $joinWhere;
                     
                     $join = $args['join'];
@@ -183,7 +182,7 @@
                
                $whereValues = [];
                $where = [];
-               if(isset($args['where'])){
+               if(isset($args['where'])){ //if where options
                     //converts where into a prepared value array
                     foreach($args['where'] as $column=>$value){
                          if(!is_array($value)){
@@ -217,60 +216,62 @@
                
                $groupby = [];
                $having = [];
-               if(isset($args['groupby'])){
+               if(isset($args['groupby'])){//if groupby options
                     $groupby = $args['groupby']['column'];
                     //if theres no set orderby but there is a groupby, orderby is set to NULL to increase mysql response speed
                     if(!isset($args['orderby']) || empty($args['orderby'])){
                          $args['orderby'] = 'NULL';
                     }
-                    if(isset($args['groupby']['having'])){
+                    if(isset($args['groupby']['having'])){  //if having options
                          $having = $args['groupby']['having'];
                          unset($args['groupby']['having']);
                     }
                }
                
                $orderby= [];
-               if(isset($args['orderby'])){
+               if(isset($args['orderby'])){ //if orderby options
                     $orderby = $args['orderby'];
                }
                
                $limit = null;
-               if(isset($args['limit'])){
+               if(isset($args['limit'])){ //if limit
                     $limit = $args['limit'];
                }
+               
+               //spin sql statement from options
                $sql = instantiate(new sqlSpinner())->SELECT($args)->JOIN($join, $jCond)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
-               if($this->debug){
+               if($this->debug){ //if in debug mode
                     print_r($sql);
                     echo("<br />\n");
                     print_r($whereValues);
                }
-               $this->ping();
+               $this->ping(); // before running sql query, ensure the db is still 'there'
                try {
-                    $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute($whereValues);
-                    if(is_object($obj)){
-                         $stmt->setFetchMode(PDO::FETCH_INTO, $obj);
+                    $stmt = $this->pdo->prepare($sql);  //prepare sql statement through pdo
+                    $stmt->execute($whereValues); //execute statement with prepared value array
+                    if(is_object($obj)){ //if plugging results into an object
+                         $stmt->setFetchMode(PDO::FETCH_INTO, $obj); 
                          $chunk = [];
-                         while($o = $stmt->fetch()){
+                         while($o = $stmt->fetch()){ //for each result, put representitive object into an array
                               array_push($chunk, clone $o);
                          }
                     }
                     else {
-                         $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                         $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC); //returns an associative array of result(s)
                     }               
-                    if(count($chunk) > 0){
-                         if(count($chunk) === 1){
-                              return($chunk[0]);
+                    if(count($chunk) > 0){ //if result
+                         if(count($chunk) === 1){ //if only 1 result
+                              return($chunk[0]); //return 1 result as the result entry
                          }
                          else { 
-                              return($chunk);
+                              return($chunk); //return the whole result array if result size > 1
                          }
                     }
                     else {
-                         return(false);
+                         return(false); //no results
                     }
                }
-               catch (PDOException $e){
+               catch (PDOException $e){ //pdo failure
                     echo "SELECT failed: ".$e->getMessage();
                     return(false);
                }
@@ -292,17 +293,18 @@
                /*
                 * $args = [table=>'',columns=>[], values = ["column"=>"value"] || [["column"=>"value","column"=>"value"], ["column"=>"value","column"=>"value"]]]
                 */
-               $sql = instantiate(new sqlSpinner())->INSERT($args)->getSQL();
-               if($this->debug){
+               $sql = instantiate(new sqlSpinner())->INSERT($args)->getSQL(); //spin sql statement from arguments
+               if($this->debug){ //if in debug mode
                     print_r($sql);
                     echo("<br />\n");
                     print_r($args);
                }
                try {
-                    $this->ping();
-                    $this->pdo->beginTransaction();
-                    $stmt = $this->pdo->prepare($sql);
+                    $this->ping(); //verify db access
+                    $this->pdo->beginTransaction(); //begin a transaction session with the database
+                    $stmt = $this->pdo->prepare($sql);  //prepare the statement
                     
+                    //if array of value arrays to process multiple inserts in one table, uses bindParam over executing with value array
                     if(isset($args['values'][0])){ //if index 0 isset, then values is [["column"=>"value","column"=>"value"], ["column"=>"value","column"=>"value"]]
                          $colCount = count($columns);
                          $cols = [];
@@ -316,9 +318,9 @@
                               foreach($args['values'][$i] as $column=>$value){ 
                                    //set variable placeholders to current row values
                                    $$column = $value;
-                                   if($this->debug) print_r($$column.":".$$column);
+                                   if($this->debug) print_r($$column.":".$$column); //if debugging
                               }
-                              $stmt->execute();
+                              $stmt->execute(); //execute statement with bound parameters for each row in array of value arrays
                               
                               $varCount = count($cols);
                               for($z=0;$z < $varCount; $z++){
@@ -326,22 +328,22 @@
                               }
                          }
                     }
-                    else {
+                    else { //one row of values to insert
                          $values = [];
                          foreach($args['values'] as $column=>$value){
                               $prepCol = ":$column";
                               $values[$prepCol] = $value;
                          }
-                         if($this->debug){
+                         if($this->debug){ //if debugging
                               echo("Values: ");
                               print_r($values);
                          }
-                         if(!($stmt->execute($values))){
+                         if(!($stmt->execute($values))){ //executes with parameter array, if fails throws exception
                               throw new Exception("Insert Failed");
                          }
                     }
                     
-                    return($this->pdo->commit());
+                    return($this->pdo->commit()); //returns result of committing changes to db
                
                }catch(PDOException $pe){
                     $this->pdo->rollBack();
@@ -379,15 +381,18 @@
                $whereValues = [];
                $setValues = [];
                try {
-                    if(isset($args['set'])){
+                    if(isset($args['set'])){  //set values for update (UPDATE table SET setColumn = setValue, etc)
                          foreach($args['set'] as $column=>$value){
                               $prepCol = ":set".$column;
                               $setValues[$prepCol] = $value;
                          }
                     }
+                    else { //no set values assigned, throw an error
+                         throw new Exception("Set values missing for update command!",10);
+                    }
                     
                     $where = [];
-                    if(isset($args['where'])){
+                    if(isset($args['where'])){ //where
                          $where = [];
                          foreach($args['where'] as $column=>$value){
                               if(!is_array($value)){
@@ -418,19 +423,23 @@
                               }
                          }
                     }
+                    else {
+                         throw new Exception("Missing WHERE values for update command!", 11);
+                    }
 
-                    $orderby = [];
+                    $orderby = [];  //orderby
                     if(isset($args['orderby'])){
                          $orderby = $args['orderby'];
                     }
-                    $limit;
+                    $limit = null; //limit
                     if(isset($args['limit'])){
                          $limit = $args['limit'];
                     }
-                                       
+                                  
+                    //Spin sql from options     
                     $sql = instantiate(new sqlSpinner())->UPDATE($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
                     
-                    if($this->debug){
+                    if($this->debug){ //if debugging
                          print_r($sql);
                          echo("<br />\n");
                          print_r($setValues);
@@ -439,11 +448,11 @@
                          echo("<br />\n");
                     }
                     
-                    $this->ping();
-                    $this->pdo->beginTransaction();
-                    $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute(array_merge($setValues, $whereValues));
-                    return($this->pdo->commit());
+                    $this->ping(); //determine db access
+                    $this->pdo->beginTransaction(); //begin new transaction in the db
+                    $stmt = $this->pdo->prepare($sql); //prepares sql statement 
+                    $stmt->execute(array_merge($setValues, $whereValues)); //executes with the value arrays
+                    return($this->pdo->commit()); //returns commit status
                }
                catch(PDOException $pe){
                     $this->pdo->rollBack();
@@ -479,8 +488,8 @@
            */
           function DELETE($args){
                $whereValues = [];
-               if(isset($args['where'])){
-                    foreach($args['where'] as $column=>$value){
+               if(isset($args['where'])){ //where
+                    foreach($args['where'] as $column=>$value){ //foreach where
                          if(!is_array($value)){
                               $c = ":where".$column;
                               $whereValues[$c]=$value;
@@ -509,27 +518,31 @@
                          }
                     }
                }
+               else {
+                    throw new Exception("Where values needed to delete from table.", 12);
+               }
                $order = [];
-               if(isset($args['orderby'])){
+               if(isset($args['orderby'])){ //orderby
                     $order = $args['orderby'];
                }
                $limit = null;
-               if(isset($args['limit'])){
+               if(isset($args['limit'])){ //limit
                     $limit = $args['limit'];
                }
+               //spin sql from arguments
                $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
-               if($this->debug){
+               if($this->debug){ //if debugging
                          print_r($sql);
                          echo("<br />\n");
                          print_r($whereValues);
                          echo("<br />\n");
                     }
                try {
-                    $this->ping();
-                    $this->pdo->beginTransaction();
-                    $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute($whereValues);
-                    return($this->pdo->commit());
+                    $this->ping(); //ensure db access
+                    $this->pdo->beginTransaction(); //begin transaction
+                    $stmt = $this->pdo->prepare($sql); //prepare statement
+                    $stmt->execute($whereValues); //exewcute with value array
+                    return($this->pdo->commit()); //return commit status
                }
                catch(PDOException $pe){
                     $this->pdo->rollBack();
@@ -544,12 +557,17 @@
                
           }
           
+          /* Name: describe
+           * Description:  Returns table schema information about a table
+           * Takes: table name
+           */
+          
           function describe($table){
-               $sql = instantiate(new sqlSpinner())->DESCRIBE($table)->getSQL();
-               $this->ping();
-               $stmt = $this->pdo->prepare($sql);
-               $stmt->execute();
-               $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
+               $sql = instantiate(new sqlSpinner())->DESCRIBE($table)->getSQL(); //instantiate sql
+               $this->ping(); //ensure db access
+               $stmt = $this->pdo->prepare($sql); //prepare statement
+               $stmt->execute(); //execute statement
+               $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC); //return assocative array of table schema
                return($chunk);
           }
           
