@@ -15,18 +15,25 @@
           ];
      
      
-     function stringWhereBox($col){
-          echo("<td><select size = '5' name='where".ucfirst($col)."Method'>
+     function stringWhereBox($col, &$html = ""){
+          $bit="<td><select size = '5' name='where".ucfirst($col)."Method'>
                          <option value='=' selected='selected'>=</option>
                          <option value='!='>!=</option>
                          <option value='not'>NOT</option>
                          <option value='like'>Like</option>
                          <option value='not like'>Not Like</option>
-                    </select></td>");
+                    </select></td>";
+          if($html !== ""){
+               $html .= $bit;
+          }
+          else {
+               echo($bit);
+          }
+          
      }
      
-     function numWhereBox($col){
-          echo("</tr><tr><td></td>
+     function numWhereBox($col, &$html = ""){
+          $bit = "</tr><tr><td></td>
           <td><select size = '5' name='where".ucfirst($col)."Method'>
                          <option value='=' selected='selected'>=</option>
                          <option value='!='>!=</option>
@@ -40,22 +47,36 @@
                          <option value='>='>>=</option>
                          <option value='greater equal'>Greater Than or Equal To</option>
                     </select></td>
-               ");
+               ";
+          if($html !== ""){
+               $html .= $bit;
+          }
+          else {
+               echo($bit);
+          }
+          
      }
      
-     function aggBox($col){
-          echo("<td><select size = '3' name='".$col."Method'>
+     function aggBox($col, &$html = ""){
+          $bit = "<td><select size = '3' name='".$col."Method'>
                          <option value='sum'>Sum</option>
                          <option value='avg'>Average</option>
                          <option value='max'>Max</option>
                          <option value='min'>Min</option>
                          <option value='count'>Count</option>
                     </select></td>
-               ");
+               ";
+          if($html !== ""){
+               $html .= $bit;
+          }
+          else {
+               echo($bit);
+          }
+          
      }
      
      function orderby(){
-          echo("
+          $bit = "
                <tr>
                     <td><label for='orderby'>Order By:</label></td><td><input type= 'text' name='orderby'/></td>
                     <td><input type='radio' name='orderMethod' value='ASC' />Ascending<br />
@@ -63,7 +84,8 @@
                          <input type='radio' name='orderMethod' value='none' checked='checked' />None
                     </td>
                </tr>
-          ");
+          ";
+          echo($bit);
      }
      
      function endofform($action= "", $limit = false){
@@ -96,33 +118,51 @@
      $genInsertForm = function(){
           $html = "";
           foreach($this as $column=>$value){
-               if(!array_key_exists('fixed',$this->getRule($column))){
+               $rules = $this->getRule($column);
+               if(!array_key_exists('fixed',$rules)){
                     $uColumn = ucfirst($column);
                     $html .= "<tr><td>";
                     $html .= "<label for='$column'>$uColumn:</label>";
                     $html .= "</td><td>";
-                    $html .= "<input type='text' name='$column' value='$value' />";
-                    $html .= "</td></tr>";
+                    $html .= "<input type='text' name='$column' value='$value' ";
+                    
+                    if(array_key_exists('length', $rules)){
+                         $html .= "size = '".$rules['length']."' maxlength = '".$rules['length'];
+                    }
+                    elseif(array_key_exists('max', $rules)){
+                         $html .= 'max = '.$rules['max'];
+                    }
+                    $html .= "' /></td></tr>";
                }
+               
           }
           echo $html;
      };
      
      $genWhereForm = function(){
+          $html = "";
           foreach($this as $column=>$value){
                $lColumn = ucfirst($column);
-               echo("<tr><td><label for='where".$lColumn."'>$lColumn</label></td>");
-               $type = $this->getRule($column)['type'];
-               if($type==='string'){
-                    stringWhereBox($lColumn);
+               $rules = $this->getRule($column);
+               $html .= "<tr><td><label for='where".$lColumn."'>$lColumn</label></td>";
+               if($rules['type']==='string'){
+                    stringWhereBox($lColumn, $html);
                }
                
-               elseif($type ==='numeric') {
-                    numWhereBox($lColumn);
+               elseif($rules['type'] ==='numeric') {
+                    numWhereBox($lColumn, $html);
                }
-               echo("<td><input type='text' name='where".$lColumn."' /></td>
-                    ");
+               $html .= "<td><input type='text' name='where".$lColumn."' ";
+               
+               if(array_key_exists('length', $rules)){
+                    $html .= "size = '".$rules['length']."' maxlength = '".$rules['length'];
+               }
+               elseif(array_key_exists('max', $rules)){
+                    $html .= 'max = '.$rules['max'];
+               }
+               $html .= "' /></td></tr>";
           }
+          echo($html);
      };
      
      $person->insertForm = $genInsertForm;     
@@ -325,6 +365,30 @@
                <?php
                     endofform("worksWith");
                ?>
+          <!-- update join -- Send ship on mission.  (updates all solar_years by mission length) -->
+          <form action='formTest.php' method='post'>
+               <table>
+                    <th>
+                         Send on a Mission 
+                    </th>
+                    <tr>
+                         <td><label for='ship_name'>Ship</label></td>
+                         <td><select name="ship_name">
+                              <?php
+                                   foreach($shipCollection as $index=>$aShip){
+                                        echo "<option value='".$aShip->ship_name."'>".$aShip->ship_name."</option>";
+                                   }
+                              ?>
+                         </select></td>
+                    </tr>
+                    <tr>
+                         <td><label for='mission_years'>Mission Years</label></td>
+                         <td><input type='text' value='1' name='mission_years' /></td>
+                    </tr>
+               <?php
+                    endofform("sendMission");
+               ?>
           </div>
+          
      </body>
 </html>

@@ -297,6 +297,7 @@
                          if($i !== $cCount-1){
                               $this->sql.=", ";
                          }
+                         $i++;
                     }
                     $this->sql .= " ";
                     return($this);

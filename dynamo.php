@@ -44,10 +44,10 @@ class dynamo implements Iterator{
                          if(!array_key_exists('fixed',$this->meta)){
                               if($this->meta[$name]['type'] ==="numeric"){
                                    if(abs($value)<=$this->meta[$name]['max'] && $value >= $this->meta[$name]['max'] * -1){
-                                        $this->properties[$name] = $value;
+                                        $this->properties[$name] = (float)$value;
                                    }
                                    else {
-                                        throw new validationException("$value falls outside of $name available range", 1);
+                                        throw new validationException("$value falls outside of $name available range (".($this->meta[$name]['max'] * -1)." to ".$this->meta[$name]['max'].")", 1);
                                    }
                               }
                               elseif($this->meta[$name]['type'] === "string"){

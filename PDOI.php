@@ -350,8 +350,10 @@
                     else { //one row of values to insert
                          $values = [];
                          foreach($args['values'] as $column=>$value){
-                              $prepCol = ":$column";
-                              $values[$prepCol] = $value;
+                              if(!empty($value)){
+                                   $prepCol = ":$column";
+                                   $values[$prepCol] = $value;
+                              }
                          }
                          if($this->debug){ //if debugging
                               echo("Values: ");
@@ -453,7 +455,7 @@
                }
                catch(PDOException $pe){
                     $this->pdo->rollBack();
-                    echo "Delete Failed: ".$pe->getMessage();
+                    echo "Update Failed: ".$pe->getMessage();
                     return(false);
                }
                catch(Exception $e){

@@ -115,7 +115,7 @@
            * Takes: options = [] (associative array of options.  Overrides currently stored arguments for the query)
            */
           function select($options, $entity = null){
-               $entity = ($entity !== null ? $entity : $this->entity); //if no object supplied to take values from select query, use dynamo
+               $entity = ($entity !== null ? $entity : $this->Offshoot()); //if no object supplied to take values from select query, use dynamo
                $a = $this->args;
                foreach($options as $option=>$setting){ //supplied options override stored arguments
                     $a[$option]=$setting;
@@ -180,7 +180,7 @@
                foreach($this->columns as $column=>$value){
                     array_push($opts['table'][$this->tableName],$column);
                }
-               $e = clone $this->entity;
+               $e = $this->Offshoot();
                foreach($join as $index=>$joinRules){
                     
                foreach($joinRules as $method=>$table){
@@ -317,7 +317,8 @@
            *
            */
           function Offshoot(){
-               $e = $this->entity;
+               $e = clone $this->entity;
+               
                $t = $this;
                
                //dynamo insert function, uses this pdoITable
@@ -341,13 +342,14 @@
                //dynamo update function, uses this pdoITable
                $e->update = function() use ($t){
                     $args = [];
-                    foreach($this->properties as $key=>$value){
+
+                    foreach($this as $key=>$value){
                          if(!array_key_exists('fixed',$this->getRule($key))){
-                              $setKey = 'set'.$key;
+                              $setKey = $key;
                               $args['set'][$setKey]=$value;
                          }
                          else {
-                              $whereKey = 'where'.$key;
+                              $whereKey = $key;
                               $args['where'][$whereKey] = $value;
                          }
                     }
@@ -358,7 +360,7 @@
                //dynamo delete function, uses this pdoITable
                $e->delete = function() use ($t){
                     $args = [];
-                    foreach($this->properties as $key=>$value){
+                    foreach($this as $key=>$value){
                          if(array_key_exists('fixed',$this->getRule($key))){
                               $args['where'] = [$key=>$value];
                          }

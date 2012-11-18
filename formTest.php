@@ -27,8 +27,9 @@
           $opts['set'] = [];
           $entity = $pdoit->Offshoot();
           foreach($entity as $key=>$defValue){
+               
                if(!array_key_exists("fixed", $entity->getRule($key))){
-                    if(trim($_POST[$key]) !== ""){
+                    if(trim($_POST[$key]) !== "" && $_POST[$key] != $defValue){
                          $opts['set'][$key]=$_POST[$key];
                     }
                }
@@ -46,8 +47,10 @@
                }
           }
           
+          if(array_key_exists("orderby", $_POST)){
           if(trim($_POST['orderby']) !== ""){
                $opts['orderby'] = ($_POST['orderMethod'] === "none") ? $_POST['orderby'] : [$_POST['orderby']=>$_POST['orderMethod']];
+          }
           }
           if(trim($_POST['limit']) !== ""){
                $opts['limit'] = $_POST['limit'];  
@@ -157,16 +160,22 @@
           }
      }
      
-     function selectjoin1($where,$persons) {
+     function selectjoin1($where,$persons, $ret = null) {
  
           $join = [["inner join"=>"manifest"],["inner join"=>"ships"]];
           $cond = ["on"=>[['manifest'=>'person_id'],['persons'=>'id'],['manifest'=>'ship_id'], ['ships'=>'ship_id']]];
           $entities = $persons->joinWith($join, $cond, $where);
           
           if(is_object($entities)){
+               if($ret !== null){
+                    return($entities);
+               }
                echo($entities."<br/>");
           }
           elseif(is_array($entities)){
+               if($ret !== null){
+                    return($entities);
+               }
                foreach($entities as $index=>$result){
                     echo($result."<br/>");
                }
@@ -207,6 +216,40 @@
           }else if($_POST['action'] === "deleteShip"){
                delete($ships);
           }
+          else if($_POST['action'] === "sendMission"){
+               //get each person on the ship
+               //add mission time to their solar_years
+               //add 100xp per mission time to their experience
+               //run update on everyone
+               //add 1 to ship mission count
+               $crew = selectjoin1(['ships'=>['ship_name'=>$_POST['ship_name']]], $persons, true);
+               
+               $years = (int)$_POST['mission_years'];
+               $crewTemplate = $persons->Offshoot();
+               
+               foreach($crew as $index=>$crewman){
+                    foreach($crewTemplate as $key=>$val){
+                         $crewTemplate->$key = $crewman->$key;
+                    }
+                    $crewTemplate->solar_years += $years;
+                    $crewTemplate->experience_points += $years * 100;
+                    $crewTemplate->update();
+               }
+               
+               $opts = ['where'=>["ship_id"=>$crew[0]->ship_id]];
+               $ship = $ships->select($opts);
+               
+               $sTemp = $ships->Offshoot();
+               foreach($sTemp as $key=>$val){
+                    $sTemp->$key = $ship->$key;
+               }
+               $sTemp->ship_mission_count = intval($ship->ship_mission_count) + 1;
+               
+               echo($sTemp->ship_mission_count);
+               echo($sTemp);
+               echo("<br />");
+               $sTemp->update();
+          }
      }
      
      if(isset($_GET['action'])){
@@ -214,7 +257,35 @@
                selectjoin1(['ships'=>['ship_name'=>$_GET['ship_name']]], $persons);     
           }
           else if($_GET['action'] === 'worksWith'){
-               //selectjoin2(['persons'=>['name'=>$_GET['name']]], new pdoi($config, true), $persons, $ships);
+               
+               //get shipid of person
+               $join = [['inner join'=>'manifest']];
+               $cond = ["on"=>[['manifest'=>'person_id'],['persons'=>'id']]];
+               $where = ['persons'=>['name'=>$_GET['name']]];
+               $entity = $persons->joinWith($join, $cond, $where);
+               
+               $join2 = [['inner join'=>'manifest'], ['inner join'=>'persons']];
+               $cond2 = ['on'=>[['manifest'=>'ship_id'], ['ships'=>'ship_id'], ['manifest'=>'person_id'],['persons'=>'id']]];
+               $where2 = ['ships'=>['ship_id'=>$entity->ship_id]];
+               
+               $entities = $ships->joinWith($join2,$cond2,$where2);
+               if(is_object($entities)){
+                    echo($entities."<br/>");
+               }
+               elseif(is_array($entities)){
+                    foreach($entities as $index=>$result){
+                         echo($result."<br/>");
+                    }
+               }
+               else {
+                    echo "<br />Select Failed";
+               }
+          }
+          else if($_GET['action'] === "select1"){
+               select($persons);
+          }
+          else if($_GET['action'] === "selectShip"){
+               select($ships);
           }
      }
 ?>
