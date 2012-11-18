@@ -97,6 +97,82 @@
                }
           }
           
+          protected function prepWhere($args, &$where =[], &$whereValues = []){
+               foreach($args as $column=>$value){
+                    if(!is_array($value)){
+                         $c = ":where".str_replace(".","",$column);
+                         $whereValues[$c]=$value;
+                         $where[$column]=$value;
+                    }
+                    else {
+                         foreach($value as $method=>$compareValue){
+                              if(!is_array($compareValue)){
+                                   $c = ":where".str_replace(".","",$column);
+                                   $m = str_replace(" ","",$method);
+                                   if($m === "like" || $m === "notlike"){
+                                        $compareValue = "%".$compareValue."%";
+                                   }
+                                   $whereValues[$c] = $compareValue;
+                                   $where[$column] = [$method=>$compareValue];
+                              }
+                              else {
+                                   $compCount = count($compareValue);
+                                   for($i=0; $i<$compCount; $i++){
+                                        $c = ":where".str_replace(".","",$column).$i;
+                                        $whereValues[$c]=$compareValue[$i];
+                                   }
+                                   $where[$column]=[$method=>$compareValue];
+                              }
+                         }
+                    }
+               }
+          }
+          
+          protected function prepJoin(&$args, &$join=[], &$jCond=[]){
+               $cols = [];
+               $pTable="";
+               foreach($args['table'] as $tableName=>$columnList){
+                    if(empty($pTable)){
+                         $pTable = $tableName;
+                    }
+                    $c = count($columnList);
+                    for($i=0;$i<$c;$i++){
+                         array_push($cols, $tableName.".".$columnList[$i]);
+                    }
+               }
+               $args['columns'] = $cols;
+               $args['table']=$pTable;
+               
+               if(array_key_exists("where", $args)){
+                    foreach($args['where'] as $table=>$columnInfo){
+                         foreach($columnInfo as $columnName=>$columnRules){
+                              $ky = $table.".".$columnName;
+                              $args['where'][$ky]=$columnRules;
+                         }
+                         unset($args['where'][$table]);
+                    }
+               }
+               
+               if(array_key_exists("set", $args)){
+                    foreach($args['set'] as $table=>$columnInfo){
+                         foreach($columnInfo as $columnName=>$columnRules){
+                              $ky = $table.".".$columnName;
+                              $args['set'][$ky]=$columnRules;
+                         }
+                         unset($args['set'][$table]);
+                    }
+               }
+               
+               $join = $args['join'];
+               if(array_key_exists("on", $args)){
+                    $jCond["on"] = $args['on'];
+               }
+               else if(array_key_exists("using", $args)){
+                    $jCond["using"] = $args['using'];
+               }
+               
+          }
+          
           
           /* Method Name: SELECT
            * Takes: $args = [
@@ -116,7 +192,7 @@
            *                       'where'=>['tableName'=>[column=>value] | [column=>[method=>value]] | [column=>[method=>[values]]], 'tableName'=>[column=>value] | [column=>[method=>value]] | [column=>[method=>[values]]]]
            *                  'join'=> ['method'=>'tableName']
            *                  'on'=>[['table'=>'column', 'table'=>'column'], ['table'=>'column', 'table'=>'column']]
-           *                       || 'using' =>['columnName','columnName']
+           *                  || 'using' =>['columnName','columnName']
            *                  'groupby'=>['column'=>[""], "having"=>['aggmethod'=>"", 'columns'=>['',''], 'comparison'=>['method'=>'','value'=>'']]
            *                       Sets the order by to NULL if not already set
            *                       See sqlSpinner.php - HAVING for more information on how having is passed and how to set it up
@@ -147,71 +223,14 @@
                $join = [];
                $jCond = [];
                if(array_key_exists("join", $args)){ // if select query involves a join
-                    $cols = [];
-                    $pTable="";
-                    foreach($args['table'] as $tableName=>$columnList){
-                         if(empty($pTable)){
-                              $pTable = $tableName;
-                         }
-                         $c = count($columnList);
-                         for($i=0;$i<$c;$i++){
-                              array_push($cols, $tableName.".".$columnList[$i]);
-                         }
-                    }
-                    $args['columns'] = $cols;
-                    $args['table']=$pTable;
-                    
-                    $joinWhere = [];
-                    foreach($args['where'] as $table=>$columnInfo){
-                         foreach($columnInfo as $columnName=>$columnRules){
-                              $ky = $table.".".$columnName;
-                              $joinWhere[$ky]=$columnRules;
-                         }
-                    }
-                    
-                    $args['where'] = $joinWhere;
-                    
-                    $join = $args['join'];
-                    if(array_key_exists("on", $args)){
-                         $jCond["on"] = $args['on'];
-                    }
-                    else if(array_key_exists("using", $args)){
-                         $jCond["using"] = $args['using'];
-                    }
+                    $this->prepJoin($args, $join, $jCond);
                }
                
-               $whereValues = [];
                $where = [];
+               $whereValues = [];
                if(isset($args['where'])){ //if where options
                     //converts where into a prepared value array
-                    foreach($args['where'] as $column=>$value){
-                         if(!is_array($value)){
-                              $c = ":where".str_replace(".","",$column);
-                              $whereValues[$c]=$value;
-                              $where[$column]=$value;
-                         }
-                         else {
-                              foreach($value as $method=>$compareValue){
-                                   if(!is_array($compareValue)){
-                                        $c = ":where".str_replace(".","",$column);
-                                        $m = str_replace(" ","",$method);
-                                        if($m === "like" || $m === "notlike"){
-                                             $compareValue = "%".$compareValue."%";
-                                        }
-                                        $whereValues[$c] = $compareValue;
-                                        $where[$column] = [$method=>$compareValue];
-                                   }
-                                   else {
-                                        $compCount = count($compareValue);
-                                        for($i=0; $i<$compCount; $i++){
-                                             $c = ":where".str_replace(".","",$column).$i;
-                                             $whereValues[$c]=$compareValue[$i];
-                                        }
-                                        $where[$column]=[$method=>$compareValue];
-                                   }
-                              }
-                         }
-                    }
+                    $this->prepWhere($args['where'], $where, $whereValues);
                }
                
                $groupby = [];
@@ -378,9 +397,14 @@
            */
           
           function UPDATE($args){
-               $whereValues = [];
+               
                $setValues = [];
                try {
+                    $join = [];
+                    $jCond = [];
+                    if(array_key_exists("join", $args)){ // if select query involves a join
+                         $this->prepJoin($args, $join, $jCond);
+                    }
                     if(isset($args['set'])){  //set values for update (UPDATE table SET setColumn = setValue, etc)
                          foreach($args['set'] as $column=>$value){
                               $prepCol = ":set".$column;
@@ -392,36 +416,9 @@
                     }
                     
                     $where = [];
+                    $whereValues = [];
                     if(isset($args['where'])){ //where
-                         $where = [];
-                         foreach($args['where'] as $column=>$value){
-                              if(!is_array($value)){
-                                   $c = ":where".$column;
-                                   $whereValues[$c]=$value;
-                                   $where[$column]=$value;
-                              }
-                              else {
-                                   foreach($value as $method=>$compareValue){
-                                        if(!is_array($compareValue)){
-                                             $c = ":where".$column;
-                                             $m = str_replace(" ","",$method);
-                                             if($m === "like" || $m === "notlike"){
-                                                  $compareValue = "%".$compareValue."%";
-                                             }
-                                             $whereValues[$c] = $compareValue;
-                                             $where[$column] = [$method=>$compareValue];
-                                        }
-                                        else {
-                                             $compCount = count($compareValue);
-                                             for($i=0; $i<$compCount; $i++){
-                                                  $c = ":where".$column.$i;
-                                                  $whereValues[$c]=$compareValue[$i];
-                                             }
-                                             $where[$column]=[$method=>$compareValue];
-                                        }
-                                   }
-                              }
-                         }
+                         $this->prepWhere($args['where'], $where, $whereValues);
                     }
                     else {
                          throw new Exception("Missing WHERE values for update command!", 11);
@@ -437,7 +434,7 @@
                     }
                                   
                     //Spin sql from options     
-                    $sql = instantiate(new sqlSpinner())->UPDATE($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+                    $sql = instantiate(new sqlSpinner())->UPDATE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
                     
                     if($this->debug){ //if debugging
                          print_r($sql);
@@ -487,36 +484,15 @@
            *        if query succeeds, returns true, else returns false
            */
           function DELETE($args){
+               $join = [];
+               $jCond = [];
+               if(array_key_exists("join", $args)){ // if select query involves a join
+                    $this->prepJoin($args, $join, $jCond);
+               }
+               $where = [];
                $whereValues = [];
                if(isset($args['where'])){ //where
-                    foreach($args['where'] as $column=>$value){ //foreach where
-                         if(!is_array($value)){
-                              $c = ":where".$column;
-                              $whereValues[$c]=$value;
-                              $where[$column]=$value;
-                         }
-                         else {
-                              foreach($value as $method=>$compareValue){
-                                   if(!is_array($compareValue)){
-                                        $c = ":where".$column;
-                                        $m = str_replace(" ","",$method);
-                                        if($m === "like" || $m === "notlike"){
-                                             $compareValue = "%".$compareValue."%";
-                                        }
-                                        $whereValues[$c] = $compareValue;
-                                        $where[$column] = [$method=>$compareValue];
-                                   }
-                                   else {
-                                        $compCount = count($compareValue);
-                                        for($i=0; $i<$compCount; $i++){
-                                             $c = ":where".$column.$i;
-                                             $whereValues[$c]=$compareValue[$i];
-                                        }
-                                        $where[$column]=[$method=>$compareValue];
-                                   }
-                              }
-                         }
-                    }
+                    $this->prepWhere($args['where'], $where, $whereValues);
                }
                else {
                     throw new Exception("Where values needed to delete from table.", 12);
@@ -530,7 +506,7 @@
                     $limit = $args['limit'];
                }
                //spin sql from arguments
-               $sql = instantiate(new sqlSpinner())->DELETE($args)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
+               $sql = instantiate(new sqlSpinner())->DELETE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
                if($this->debug){ //if debugging
                          print_r($sql);
                          echo("<br />\n");

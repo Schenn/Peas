@@ -167,6 +167,96 @@
                return($this->columns[$col]);
           }
           
+          function joinWith($join, $connector=[], $where = []){
+               /*
+               *'join'=> ['method'=>'tableName']
+               *'on'=>[['table'=>'column', 'table'=>'column'], ['table'=>'column', 'table'=>'column']]
+               * || 'using' =>['columnName','columnName']
+                */
+               $opts = [];
+               $opts["join"]=$join;
+               $opts['table']=[];
+               $opts['table'][$this->tableName]=[];
+               foreach($this->columns as $column=>$value){
+                    array_push($opts['table'][$this->tableName],$column);
+               }
+               $e = clone $this->entity;
+               foreach($join as $index=>$joinRules){
+                    
+               foreach($joinRules as $method=>$table){
+                    $meta=[];
+                    $cols=[];
+                    
+                    $opts['table'][$table]=[];
+                    $d = $this->describe($table);
+                    foreach($d as $columnData){
+                         $field = $columnData['Field'];
+                         $sansType = preg_split("/int|decimal|double|float|double|real|bit|bool|serial|date|time|year|char|text|binary|blob|enum|set|geometrycollection|multipolygon|multilinestring|multipoint|polygon|linestring|point|geometry/",strtolower($columnData['Type']));
+                         if(isset($sansType[1])){
+                              $sansParens = preg_split("/\(|\)/",$sansType[1]);
+                              if(isset($sansParens[1])){
+                                   $meta[$field]['length'] = intval($sansParens[1]);
+                              }
+                         }
+                         $meta[$field]['type'] = preg_filter("/\(|\d+|\)/","",strtolower($columnData['Type']));
+                         $meta[$field]['default'] = $columnData['Default'];
+                         if($columnData['Key'] === "PRI"){
+                              $meta[$field]['primaryKey'] = true;
+                              
+                              //if its auto_incremented
+                              if($columnData['Extra'] === "auto_increment"){
+                                   $meta[$field]['auto'] = true;
+                              }
+                         }
+                         
+                         //set default values to the columns
+                         switch($meta[$field]['type']){
+                              case "int":
+                              case "decimal":
+                              case "double":
+                              case "float":
+                              case "real":
+                              case "bit":
+                              case "serial":
+                                   $cols[$field] = (empty($columnData['Default'])) ? 0 : $columnData['Default'];
+                                   break;
+                              case "bool":
+                                   $cols[$field] = (empty($columnData['Default'])) ? false : $columnData['Default'];
+                                   break;
+                              case "date":
+                              case "time":
+                              case "year":
+                                   $cols[$field]= (empty($columnData['Default'])) ? date("Y-m-d H:i:s") : strtotime($columnData['Default']);
+                                   $meta[$field]['format'] = "Y-m-d H:i:s";
+                                   break;
+                              default:
+                                   $cols[$field]= (empty($columnData['Default'])) ? "" : $columnData['Default'];
+                                   break;
+                         }
+                    }
+                    foreach($cols as $column=>$def){
+                         array_push($opts['table'][$table], $column);
+                         $e->$column=$def;
+                    }
+                    $e->setValidationRules($meta);
+               }
+               }
+               
+               if(array_key_exists("on",$connector)){
+                    $opts['on']=$connector["on"];
+               }else{
+                    $opts['using']=$connector["using"];
+               }
+               
+               if($where !== []){ //if where, run select operation 
+                    $opts['where']=$where;
+                    $chunk = parent::SELECT($opts, $e);
+                    return($chunk);
+               }
+               else { //if no where, return template for join
+                    return($e);
+               }
+          }
           
           /* Name: update
            * Description:  Runs an update query on the table

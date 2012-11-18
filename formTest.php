@@ -157,39 +157,24 @@
           }
      }
      
-     function selectjoin1($where, $p, $persons, $ships) {
-          $opts = [];
-          $opts['table'] = ['persons'=>[], 'ships'=>[],
-                            'manifest'=>['role']];
-          $person=$persons->Offshoot();
-          foreach($person as $key=>$val){
-               if(!array_key_exists("fixed", $person->getRule($key))){
-                    array_push($opts['table']['persons'], $key);
-               }
-          }
-          $ship = $ships->Offshoot();
-          foreach($ship as $key=>$val){
-               if(!array_key_exists("fixed", $ship->getRule($key))){
-                    array_push($opts['table']['ships'], $key);
-               }
-          }
-          $opts['join']=[['inner join'=>'manifest'], ['inner join'=>'ships']];
-          $opts['on']=[['manifest'=>'person_id'],['persons'=>'id'],['manifest'=>'ship_id'], ['ships'=>'ship_id']];
-          $opts['where']=$where;
+     function selectjoin1($where,$persons) {
+ 
+          $join = [["inner join"=>"manifest"],["inner join"=>"ships"]];
+          $cond = ["on"=>[['manifest'=>'person_id'],['persons'=>'id'],['manifest'=>'ship_id'], ['ships'=>'ship_id']]];
+          $entities = $persons->joinWith($join, $cond, $where);
           
-          $chunk = $p->select($opts, instantiate(new dynamo));
-          
-          if(is_object($chunk)){
-               echo ($chunk."<br/>");
+          if(is_object($entities)){
+               echo($entities."<br/>");
           }
-          elseif(is_array($chunk)){
-               foreach($chunk as $index=>$hero){
-                    echo($hero."<br/>");
+          elseif(is_array($entities)){
+               foreach($entities as $index=>$result){
+                    echo($result."<br/>");
                }
           }
           else {
-               echo "SELECT failed!";
+               "<br />Select Failed";
           }
+          
      }
      
      if(isset($_POST['action'])){         
@@ -202,14 +187,11 @@
                insert($ship);
           }
           elseif($_POST['action']==="manifestAdd"){
-               $crew = $manifest->Offshoot();
-               
-               echo($crew);
+               $crew = $manifest->Offshoot(); 
                foreach($crew as $key=>$value){
                     if(!array_key_exists("fixed", $crew->getRule($key))){
                          $crew->$key = $_POST[$key];
                     }
-                    
                }
                $crew->insert();
                
@@ -229,7 +211,7 @@
      
      if(isset($_GET['action'])){
           if($_GET['action'] === 'selectCrew'){
-               selectjoin1(['ships'=>['ship_name'=>$_GET['ship_name']]], new pdoi($config, true), $persons, $ships);     
+               selectjoin1(['ships'=>['ship_name'=>$_GET['ship_name']]], $persons);     
           }
           else if($_GET['action'] === 'worksWith'){
                //selectjoin2(['persons'=>['name'=>$_GET['name']]], new pdoi($config, true), $persons, $ships);
