@@ -172,7 +172,7 @@
                }
           }
           else {
-               "<br />Select Failed";
+               echo "<br />Select Failed";
           }
           
      }
