@@ -1,4 +1,9 @@
 <?php
+     namespace PDOI;
+     require_once("PDOI.php");
+     require_once("Utils\dynamo.php");
+     use PDOI\PDOI as PDOI;
+     use PDOI\Utils\dynamo as dynamo;
      /*
       *   Author: Steven Chennault
       *   Email: schenn@gmail.com
@@ -10,8 +15,6 @@
       *   the results from select queries are stored in an object which outputs as json by default.
       *
       */
-     require_once('PDOI.php');
-     require_once("dynamo.php");
 
      class pdoITable extends PDOI {
           protected $tableName;
@@ -115,7 +118,7 @@
            * Takes: options = [] (associative array of options.  Overrides currently stored arguments for the query)
            */
           function select($options, $entity = null){
-               $entity = ($entity !== null ? $entity : $this->Offshoot()); //if no object supplied to take values from select query, use dynamo
+               $entity = ($entity !== null ? $entity : clone $this->entity); //if no object supplied to take values from select query, use dynamo
                $a = $this->args;
                foreach($options as $option=>$setting){ //supplied options override stored arguments
                     $a[$option]=$setting;

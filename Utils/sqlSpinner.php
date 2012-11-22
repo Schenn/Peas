@@ -1,4 +1,6 @@
 <?php
+     namespace PDOI\Utils;
+     use Exception;
      /*
       *   Author: Steven Chennault
       *   Email: schenn@gmail.com

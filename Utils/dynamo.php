@@ -1,5 +1,6 @@
 <?php
-
+     namespace PDOI\Utils;
+     use Exception, Iterator;
 class validationException extends Exception {
      
      public function __construct($message,$code, Exception $previous = null){

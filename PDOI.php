@@ -1,4 +1,8 @@
 <?php
+     namespace PDOI;
+     require_once("Utils\sqlSpinner.php");
+     use PDOI\Utils\sqlSpinner as sqlSpinner;
+     use PDO;
      /*
       *   Author: Steven Chennault
       *   Email: schenn@gmail.com
@@ -8,10 +12,7 @@
       *             It handles the basic database demands with error catching and dynamic sql generation from an array of parameters.
       *             Currently it is only known to be compatable with mysql, however that setting can be overwritten in the __construct of the cleanPDO
       *
-      */
-     
-     
-     require_once('sqlSpinner.php');     
+      */   
      
      /*
       * Name: cleanPDO
@@ -258,7 +259,7 @@
                }
                
                //spin sql statement from options
-               $sql = instantiate(new sqlSpinner())->SELECT($args)->JOIN($join, $jCond)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+               $sql = Utils\instantiate(new sqlSpinner())->SELECT($args)->JOIN($join, $jCond)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
                if($this->debug){ //if in debug mode
                     print_r($sql);
                     echo("<br />\n");
@@ -312,7 +313,7 @@
                /*
                 * $args = [table=>'',columns=>[], values = ["column"=>"value"] || [["column"=>"value","column"=>"value"], ["column"=>"value","column"=>"value"]]]
                 */
-               $sql = instantiate(new sqlSpinner())->INSERT($args)->getSQL(); //spin sql statement from arguments
+               $sql = Utils\instantiate(new sqlSpinner())->INSERT($args)->getSQL(); //spin sql statement from arguments
                if($this->debug){ //if in debug mode
                     print_r($sql);
                     echo("<br />\n");
@@ -436,7 +437,7 @@
                     }
                                   
                     //Spin sql from options     
-                    $sql = instantiate(new sqlSpinner())->UPDATE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+                    $sql = Utils\instantiate(new sqlSpinner())->UPDATE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
                     
                     if($this->debug){ //if debugging
                          print_r($sql);
@@ -508,7 +509,7 @@
                     $limit = $args['limit'];
                }
                //spin sql from arguments
-               $sql = instantiate(new sqlSpinner())->DELETE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
+               $sql = Utils\instantiate(new sqlSpinner())->DELETE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
                if($this->debug){ //if debugging
                          print_r($sql);
                          echo("<br />\n");
@@ -541,7 +542,7 @@
            */
           
           function describe($table){
-               $sql = instantiate(new sqlSpinner())->DESCRIBE($table)->getSQL(); //instantiate sql
+               $sql = Utils\instantiate(new sqlSpinner())->DESCRIBE($table)->getSQL(); //instantiate sql
                $this->ping(); //ensure db access
                $stmt = $this->pdo->prepare($sql); //prepare statement
                $stmt->execute(); //execute statement

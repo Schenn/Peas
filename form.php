@@ -1,11 +1,10 @@
-
 <?php
-
+     require_once("pdoITable.php");
+     use PDOI\pdoITable;
+     
      if(isset($_GET['action'])){
           print_r($_GET);
      }
-
-     require_once("pdoITable.php");
      
      $config = [
                'dbname'=>'pdoi_tester',

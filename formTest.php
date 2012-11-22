@@ -1,6 +1,7 @@
 <?php
-
      require_once("pdoITable.php");
+     use PDOI\pdoITable as pdoITable;
+     use PDOI\PDOI as PDOI;
      $config = [
                'dbname'=>'pdoi_tester',
                'username'=>'pdoi_tester',
