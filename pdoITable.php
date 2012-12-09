@@ -22,8 +22,8 @@
           protected $columnMeta=[];
           protected $args = [];
           protected $entity;
-          
-          
+
+
           /* Name: __construct
            * Description:  Controls new pdoITable creation
            * Takes: config = db configuration information, table = "" (table name), debug = false
@@ -32,8 +32,8 @@
                parent::__construct($config, $debug);
                $this->setTable($table);
           }
-          
-          
+
+
           /* Name: setTable
            * Description:  sets the tablename, calls setcolumns
            * Takes: table = "" (table name)
@@ -43,7 +43,7 @@
                $this->args['table'] = $this->tableName;
                $this->setColumns();
           }
-          
+
           /* Name: setColumns
            * Description:  Gets table schema from the db.  becomes aware of column names and validation requirements
            */
@@ -52,7 +52,7 @@
                foreach($description as $row){  //for each column in table
                     $field = $row['Field'];
                     unset($row['Field']);
-                    
+
                     //get field length
                     $sansType = preg_split("/int|decimal|double|float|double|real|bit|bool|serial|date|time|year|char|text|binary|blob|enum|set|geometrycollection|multipolygon|multilinestring|multipoint|polygon|linestring|point|geometry/",strtolower($row['Type']));
                     if(isset($sansType[1])){
@@ -61,24 +61,24 @@
                               $this->columnMeta[$field]['length'] = intval($sansParens[1]);
                          }
                     }
-                    
+
                     //get field data type
                     $type = preg_filter("/\(|\d+|\)/","",strtolower($row['Type']));
-                    
+
                     $this->columnMeta[$field]['type'] = $type;
                     $this->columnMeta[$field]['default'] = $row['Default'];
-                    
+
                     //if its a primary key
                     if($row['Key'] === "PRI"){
                          $this->columnMeta[$field]['primaryKey'] = true;
-                         
+
                          //if its auto_incremented
                          if($row['Extra'] === "auto_increment"){
                               $this->columnMeta[$field]['auto'] = true;
                          }
                     }
-                    
-                    
+
+
                     //set default values to the columns
                     switch($type){
                          case "int":
@@ -110,9 +110,9 @@
                }
                $this->entity = new dynamo($this->columns); //generates new dynamic object to template rows from the table
                $this->entity->setValidationRules($this->columnMeta); //sets validation rules on dynamic object based off validation information
-               
+
           }
-          
+
           /* Name: select
            * Description:  Runs a select query on the table
            * Takes: options = [] (associative array of options.  Overrides currently stored arguments for the query)
@@ -123,17 +123,23 @@
                foreach($options as $option=>$setting){ //supplied options override stored arguments
                     $a[$option]=$setting;
                }
-               
+
                return(parent::SELECT($a, $entity)); //return PDOI select result
           }
-          
+
+          function selectAll(){
+               $entity = clone $this->entity;
+               $a = $this->args;
+               return(parent::SELECT($a, $entity));
+          }
+
           /* Name: insert
            * Description:  Runs an insert query into the table
            * Takes: options = [] (associative array of options, overrides currently stored arguments for the query)
            */
           function insert($options){
                $a = $this->args;
-               
+
                //ensures that if the primary key is auto-numbering, no value will be sent
                foreach($a['columns'] as $index=>$key){
                     if(array_key_exists("auto",$this->columnMeta[$key])){
@@ -141,7 +147,7 @@
                     }
                }
                unset($a['columns'][$removeIndex]);
-               
+
                //resets array indexes for columns in arguments
                $a['columns'] = array_values($a['columns']);
                if(!isset($options['values'])){ //if no values supplied, uses stored information for values
@@ -155,21 +161,21 @@
                foreach($options as $option=>$setting){ //overrides the arguments, adds in extra info not stored
                     $a[$option]=$setting;
                }
-               
+
                return(parent::INSERT($a)); //returns result of PDOI->insert
           }
-          
+
           //sets a column to a value
           function setCol($col,$val){
                //Validate?
                $this->columns[$col]=$val;
           }
-          
+
           //gets a column value
           function getCol($col){
                return($this->columns[$col]);
           }
-          
+
           function joinWith($join, $connector=[], $where = []){
                /*
                *'join'=> ['method'=>'tableName']
@@ -185,11 +191,11 @@
                }
                $e = $this->Offshoot();
                foreach($join as $index=>$joinRules){
-                    
+
                foreach($joinRules as $method=>$table){
                     $meta=[];
                     $cols=[];
-                    
+
                     $opts['table'][$table]=[];
                     $d = $this->describe($table);
                     foreach($d as $columnData){
@@ -205,13 +211,13 @@
                          $meta[$field]['default'] = $columnData['Default'];
                          if($columnData['Key'] === "PRI"){
                               $meta[$field]['primaryKey'] = true;
-                              
+
                               //if its auto_incremented
                               if($columnData['Extra'] === "auto_increment"){
                                    $meta[$field]['auto'] = true;
                               }
                          }
-                         
+
                          //set default values to the columns
                          switch($meta[$field]['type']){
                               case "int":
@@ -244,14 +250,14 @@
                     $e->setValidationRules($meta);
                }
                }
-               
+
                if(array_key_exists("on",$connector)){
                     $opts['on']=$connector["on"];
                }else{
                     $opts['using']=$connector["using"];
                }
-               
-               if($where !== []){ //if where, run select operation 
+
+               if($where !== []){ //if where, run select operation
                     $opts['where']=$where;
                     $chunk = parent::SELECT($opts, $e);
                     return($chunk);
@@ -260,7 +266,7 @@
                     return($e);
                }
           }
-          
+
           /* Name: update
            * Description:  Runs an update query on the table
            * Takes: options = [] (associative array of options, overrides currently stored arguments for the query)
@@ -275,14 +281,14 @@
                }
                unset($a['columns'][$removeIndex]);
                $a['columns'] = array_values($a['columns']);
-               
+
                //override stored arguments
                foreach($options as $option=>$setting){
                     $a[$option]=$setting;
                }
                return(parent::UPDATE($a)); //return PDOI->update result
           }
-          
+
           /* Name: delete
            * Description:  Runs a delete query on the table
            * Takes: options = [] (associative array of options, overrides currently stored arguments for the query)
@@ -295,40 +301,40 @@
                unset($a['columns']); //no columns in DELETE command
                return(parent::DELETE($a));
           }
-          
+
           // Adds a function to the currently existing dynamo template
           function addMethodToEntity($name, $method){
                if(is_callable($method)){
                     $this->entity->$name = $method;
                }
-          }        
-          
+          }
+
           // resets the columns to their default values
           function reset(){
                foreach($this->columns as $key=>$value){
                     $this->columns[$key] = $this->columnMeta[$key]['default'];
                }
           }
-          
-          //displays the current dynamo     
+
+          //displays the current dynamo
           function display(){
                echo($this->Offshoot());
           }
-          
+
           /* Name: Offshoot
            * Description:  Returns the current entity with the ability to contact its parent table for insert, update and delete commands
            *
            */
           function Offshoot(){
                $e = clone $this->entity;
-               
+
                $t = $this;
-               
+
                //dynamo insert function, uses this pdoITable
                $e->insert = function() use($t){
                     $args = [];
                     $args['values'] = [];
-                    
+
                     foreach($this as $key=>$value){
                          $validation = $this->getRule($key);
                          if(!array_key_exists('fixed',$validation)){
@@ -337,11 +343,11 @@
                               }
                          }
                     }
-                    
+
                     $t->insert($args);
-                    
+
                };
-               
+
                //dynamo update function, uses this pdoITable
                $e->update = function() use ($t){
                     $args = [];
@@ -359,7 +365,7 @@
                     $args['limit']=1;
                     $t->update($args);
                };
-               
+
                //dynamo delete function, uses this pdoITable
                $e->delete = function() use ($t){
                     $args = [];
@@ -370,7 +376,7 @@
                     }
                     $t->delete($args);
                };
-               
+
                $this->reset();
                return($e); //returns the dynamo with access to the parent table
           }
