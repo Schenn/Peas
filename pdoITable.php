@@ -1,7 +1,7 @@
 <?php
      namespace PDOI;
      require_once("PDOI.php");
-     require_once("Utils\dynamo.php");
+     require_once("Utils/dynamo.php");
      use PDOI\PDOI as PDOI;
      use PDOI\Utils\dynamo as dynamo;
      /*
@@ -328,9 +328,8 @@
           function Offshoot(){
                $e = clone $this->entity;
 
-               $t = $this;
-
                //dynamo insert function, uses this pdoITable
+               $t = $this;
                $e->insert = function() use($t){
                     $args = [];
                     $args['values'] = [];
@@ -377,8 +376,93 @@
                     $t->delete($args);
                };
 
+               $e->spinForm = function($formData) {
+                    if(isset($formData[0])){
+                         $formData = $formData[0];
+                    }
+                    $html = "<form method = '".$formData['method']."' action = '".$formData['action']."' ";
+
+                    if(isset($formData['name'])){
+                         $html .= 'name = '.$formData["name"];
+                    }
+                    if(isset($formData['class'])){
+                         $html .= 'class = '.$formData["class"];
+                    }
+                    if(isset($formData['id'])){
+                         $html .= 'id = '.$formData["id"];
+                    }
+
+                    $html .= " >
+                         <table>
+                              <th>".$formData['heading']."</th>";
+
+                    foreach($this as $column=>$value){
+                         $colRules = $this->getRule($column);
+                         $html .="<tr><td>";
+                         $html .="<label for=".$column.">".ucfirst($column)."</label></td><td>";
+                         if($colRules['type'] === 'string' || $colRules['type'] === 'numeric'){
+                              if(isset($colRules['length']) || isset($colRules['max'])){
+                                   if($column !== 'password'){
+                                        $html .= "<input type='text' ";
+                                   }
+                                   else {
+                                        $html .= "<input type='password' ";
+                                   }
+                                   $html .= "name=".$column." value = '".$value."' ";
+                                   if(isset($colRules['length'])){
+                                        $html .= "maxlength=".$colRules['length']." ";
+                                   }
+                                   if(isset($colRules['max'])){
+                                        $html .=" max=".$colRules['max']." ";
+                                        if(isset($colRules['min'])){
+                                             $html .= "min=".$colRules['min']." ";
+                                        }
+                                        else {
+                                             $html .= "min=".($colRules['max']*-1)." ";
+                                        }
+                                   }
+                                   if(isset($colRules['fixed'])){
+                                        $html .= "readonly ";
+                                   }
+                                   $html .= " />";
+                              }
+                              else {
+                                   $html .= "<textarea name=".$column." ";
+                                   if(isset($colRules['fixed'])){
+                                        $html .= "readonly ";
+                                   }
+                                   $html .= ">".$value;
+                                   $html .="</textarea>";
+                              }
+                         }
+                         elseif($colRules['type']==='boolean'){
+                              $html .="<select name=".$column.">";
+                              $html .="<option value='1'>True</option>";
+                              $html .="<option value='0'>False</option>";
+                              $html .="</select>";
+                         }
+                         elseif($colRules['type']==='date'){
+                              $html .="<input type='datetime' name='$column' ";
+                              if(isset($colRules['max'])){
+                                   $html .="min=".$colRules['min']." max=".$colRules['max']." ";
+                              }
+                              if(isset($colRules['fixed'])){
+                                   $html .= "readonly ";
+                              }
+                              $html .= " />";
+                         }
+                         $html .="</td></tr>";
+                    }
+                    $html .= "
+                         </table>
+                    </form>";
+
+                    echo($html);
+               };
+
                $this->reset();
                return($e); //returns the dynamo with access to the parent table
           }
      }
+
 ?>

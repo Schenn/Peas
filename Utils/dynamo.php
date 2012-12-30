@@ -1,6 +1,6 @@
 <?php
      namespace PDOI\Utils;
-     use Exception, Iterator;
+     use Exception, Iterator, JsonSerializable;
 class validationException extends Exception {
 
      public function __construct($message,$code, Exception $previous = null){
@@ -8,13 +8,18 @@ class validationException extends Exception {
      }
 }
 
+interface dynamoInterface extends Iterator, JsonSerializable {
+
+}
+
+
 /*
  * Name: dynamo
  * Description: Dynamic object.  Can take anonymous functions as methods with access to $this.
  *        Contains validation information for the table it spawned from
  *
  */
-class dynamo implements Iterator{
+class dynamo implements dynamoInterface{
      private $properties = [];
      private $meta = [];
 
@@ -203,6 +208,10 @@ class dynamo implements Iterator{
       */
      public function next(){
           return(next($this->properties));
+     }
+
+     public function jsonSerialize(){
+          return(json_encode($this->properties));
      }
 
      /* Name: valid
