@@ -8,29 +8,38 @@
       *   Name: sqlSpinner.php
       *   Description:  sqlSpinner is a chainable class which generates an sql string based off
       *             an associative array of arguments.  This allows applications to ensure that
-      *             their sql statements are prepared properly.
+      *             their sql statements are prepared properly. 
       *
       */
-
+     
      /*
       * Name: sqlSpunError
       * Description:  Error exception for sqlSpinner
       */
-
+     
      class sqlSpunError extends Exception {
-
+          
           protected $errorList = [
                "Invalid Column data for Insert Spinning.",
                "Missing Table Name",
                "Missing 'set' data for Update Spinning"
           ];
-
+          
           public function __construct($message,$code, Exception $previous = null){
                $message .= " sqlSpinner ERROR: ".$code.": ".$this->errorList[$code];
                parent::__construct($message, $code, $previous);
           }
      }
 
+     /*
+      * Name: instantiate
+      * Description: returns instance being generated for chaining.
+      */
+     
+     function instantiate($instance){
+          return($instance);
+     }
+     
      /*
       * Name: sqlSpinner
       * Description: generates sql statements from an argument array
@@ -40,7 +49,7 @@
      class sqlSpinner {
           protected $method;
           protected $sql;
-
+          
           /*
            * Name: aggregate
            * Takes: aggMethod = "" (sum, avg, count, min, max)
@@ -60,8 +69,8 @@
                }
                $this->sql.=")";
           }
-
-
+          
+          
           protected function methodSpin($method){
                switch(strtolower(str_replace(" ", "",$method))){
                     case "!=":
@@ -95,7 +104,7 @@
                          break;
                }
           }
-
+          
           /*
            * Name: SELECT
            * Takes: args = [
@@ -115,9 +124,9 @@
           function SELECT($args){
                $this->method = 'select';
                $this->sql = "SELECT ";
-
+               
                try {
-
+                    
                     if(isset($args['distinct'])){
                          $distinct = strtoupper($args['distinct']);
                          if($distinct !== 'ALL'){
@@ -133,7 +142,7 @@
                               }
                          }
                     }
-
+                    
                     if(isset($args['groupby'])){
                          if(isset($args['result'])){
                               $resultSize = strtoupper($args['result']);
@@ -145,18 +154,18 @@
                               }
                          }
                     }
-
+                    
                     if(isset($args['priority'])){
                          if(isset($args['union'])){
                               unset($args['union']);
                          }
                          $this->sql .= " HIGH_PRIORITY ";
                     }
-
+                    
                     if(isset($args['buffer'])){
                          $this->sql .= " SQL_BUFFER_RESULT ";
                     }
-
+                    
                     if(isset($args['cache'])){
                          if($args['cache']===true){
                               $this->sql .= "SQL_CACHE ";
@@ -165,8 +174,8 @@
                               $this->sql .= "SQL_NO_CACHE";
                          }
                     }
-
-
+                    
+                    
                     if(!empty($args['columns'])){
                          $i=0;
                          $cols = count($args['columns']);
@@ -185,13 +194,13 @@
                                    }
                               }
                               $i++;
-
+                                   
                          }
                     }
                     else {
                          $this->sql .= " * ";
                     }
-
+                    
                     if(isset($args['table'])){
                          $this->sql .= "FROM ";
                          if(is_array($args['table'])){
@@ -199,7 +208,7 @@
                          }
                          elseif(is_string($args['table'])){
                               $this->sql .= $args['table'];
-                         }
+                         }     
                          $this->sql .= " ";
                     }
                     else {
@@ -208,10 +217,10 @@
                } catch(sqlSpunError $e){
                     echo $e->getMessage();
                }
-
+               
                return($this);
           }
-
+          
           /*
            * Name: INSERT
            * Takes: args = [
@@ -225,7 +234,7 @@
            */
           function INSERT($args){
                $this->method = 'insert';
-
+               
                try {
                     if(isset($args['table'])){
                          $this->sql = "INSERT INTO ".$args['table'];
@@ -233,15 +242,15 @@
                     else {
                          throw new sqlSpunError("Invalid Arguments", 1);
                     }
-
-
+               
+                    
                     if((is_array($args['columns'])) && (isset($args['columns'][0]))){
                          $columnCount = count($args['columns']);
                     }
                     else {
                          throw new sqlSpunError("Invalid Arguments",0);
                     }
-
+                    
                     $this->sql .="(";
                     $this->sql .= implode(", ", $args['columns']);
                     $this->sql .=") VALUES (";
@@ -253,7 +262,7 @@
                          }
                     }
                     $this->sql .=")";
-
+                    
                     return($this);
                } catch(sqlSpunError $e){
                     echo $e->getMessage();
@@ -299,7 +308,7 @@
                     echo $e->getMessage();
                }
           }
-
+          
           /*
            * Name: DELETE
            * Takes: args = [
@@ -326,17 +335,17 @@
                }
 
           }
-
+          
           function JOIN($join = [], $condition = []){
                if($join !== []){
                     foreach($join as $tableMethod){
                          foreach($tableMethod as $joinMethod=>$tableName){
                               $this->sql .= strtoupper($joinMethod)." ".$tableName. " ";
                          }
-
+                         
                     }
                     $this->sql .=" ";
-
+                    
                     if(array_key_exists("on", $condition)){
                          $this->sql .= "ON ";
                          $c = count($condition['on']);
@@ -344,14 +353,14 @@
                               $match = $condition['on'];
                               $pre = $match[$i];
                               $post = $match[$i+1];
-
+                              
                               foreach($pre as $tableName=>$column){
                                    $this->sql .= $tableName.".".$column."=";
                               }
                               foreach($post as $tableName=>$column){
                                    $this->sql .= $tableName.'.'.$column." ";
                               }
-
+                              
                               if($i < $c-2){
                                    $this->sql .= "AND ";
                               }
@@ -365,17 +374,17 @@
                          $this->sql.=") ";
                     }
                }
-
+               
                return($this);
           }
-
+          
           /*
            * Name: WHERE
            * Takes: where = [
            *                  columnName=>columnValue ||    columnName = :columnName
            *                  columnName=>[method=>columnValue] ||
            *                      = columnName . (this->methodSpin(method)) . :where.columnName
-           *
+           *                  
            *                  columnName=>[method=>columnValues]
            *                       method = 'between' = columnName BETWEEN :where.columnName.0 AND :where.columnName.1 (AND :where.columnName.2)
            *                       method = 'or' = columnName = :where.columnName.0 OR :where.columnName.1 (OR :where.columnName.2)
@@ -386,7 +395,7 @@
            *
            */
           function WHERE($where){
-
+               
                if(!empty($where)){
                     $this->sql .="WHERE ";
                     $wI = 0;
@@ -459,8 +468,8 @@
                }
                return($this);
           }
-
-
+          
+          
           /*
            * Name: DELETE
            * Takes: groupby = [columnName, columnName]
@@ -468,15 +477,15 @@
            *
            */
           function GROUPBY($groupby = []){
-
+               
                if(!empty($groupby)){
                     $this->sql.="GROUP BY ";
                     $this->sql .= implode(", ",$groupby)." ";
                }
-
+               
                return($this);
           }
-
+          
           /*
            * Name: HAVING
            * Takes: having = [
@@ -485,33 +494,33 @@
            *             'comparison'=> [
            *                            'method'=>(see this->methodSpin())
            *                            'value'=>value to compare aggregate result to
-           *                            ]
+           *                            ]         
            *            ]
                Description: Appends HAVING clause to the sql statement.  Must use aggregate in having.
                DO NOT use HAVING to replace a WHERE clause.  Where does not handle sql aggregate functions.
            *
-           */
+           */          
           function HAVING($having=[]){
-
+               
                //having = [aggmethod=>[columnNames]]
                //DO NOT USE HAVING TO REPLACE A WHERE
                //Having should only use group by columns for accuracy
-
+               
                if(!empty($having)){
                     $this->sql .= "HAVING ";
                     $method = $having['aggMethod'];
                     $columns = (isset($having['columns'])) ? $having['columns'] : [];
                     $comparison = $having['comparison']['method'];
                     $compareValue = $having['comparison']['value'];
-
+                    
                     $this->aggregate($method, $columns);
-
+                    
                     $this->sql .= $this->methodSpin($comparison).$compareValue." ";
                }
-
+               
                return($this);
           }
-
+          
           /*
            * Name: ORDERBY
            * Takes: sort = ['columnName'=>method (asc | desc) | [columnName=>method (asc | desc), columnName=>method (asc | desc)] | 'NULL' | null
@@ -520,11 +529,11 @@
            *
            */
           function ORDERBY($sort = []){
-
+               
                if(!empty($sort)){
                     $this->sql .= "ORDER BY ";
                     $i = 0;
-
+                    
                     if($sort==='NULL' || $sort === null){
                          $this->sql.= "NULL ";
                     }
@@ -548,11 +557,11 @@
                }
                return($this);
           }
-
+          
           /*
            * Name: LIMIT
            * Takes: limit = int
-               Description: Appends LIMIT clause to sql statement.
+               Description: Appends LIMIT clause to sql statement.  
            *
            */
           function LIMIT($limit = null){
@@ -561,13 +570,13 @@
                }
                return($this);
           }
-
+          
           /*
            * Name: DESCRIBE
            *  Takes: REQUIRED
            *             table = 'tableName'
            *        OPTIONAL
-           *             column = 'columnName'
+           *             column = 'columnName'  
                Description: Generates DESC table || DESC table columnname statement which is used to get information on the schema of a table
            *
            */
@@ -578,7 +587,7 @@
                }
                return($this);
           }
-
+          
           /*
            * Name: getSQL
            * Description: returns the sql statement and resets this->sql to an empty string
