@@ -1,17 +1,13 @@
 *****************************************
 Author: Steven Chennault
 Project: PDOI
-Required Files: PDOI.php, sqlSpinner.php
+Included Files: PDOI.php, pdoITable.php, Utils/dynamo.php, Utils/sqlSpinner.php
+NameSpace Classes: PDOI\PDOI, PDOI\pdoITable, PDOI\Utils\dynamo, PDOI\Utils\sqlSpinner
 
 *****************************************
-	function instantiate(instance)
-		- takes 'new instance' and returns 'instance'
-		- used for chaining to eliminate the need for seperate lines in object creation and chain implementation.
-			$x = instantiate(new object)->method1()->method2(argument)->etc()
-
 
 	class sqlSpinner
-		
+
 		This class is a chaining class which constructs a sql statement through a set of function calls.  It is designed to be used by the pdoI
 	class but can be used by anyone.  The sql query it generates is prepared to work with php's PDO system.  If you use this outside of the PDOI object
 	make sure to check your bindings compatable via the method explained below.
@@ -44,7 +40,7 @@ Required Files: PDOI.php, sqlSpinner.php
 					- cache: true or false; Sets SQL_CACHE and SQL_NO_CACHE sql select options
 
 				Description:
-					- Sets the method to 'select', this tells the Where method to use ' AND ' instead of ', ', 
+					- Sets the method to 'select', this tells the Where method to use ' AND ' instead of ', ',
 					- 'SELECT ['column1','column2','column3'] || * from table
 					- Returns sqlSpinner object
 
@@ -54,7 +50,7 @@ Required Files: PDOI.php, sqlSpinner.php
 					- columns: array of column names
 
 			WHERE
-				takes associate array of arguments 
+				takes associate array of arguments
 					comparisonMethod is trimmed and converted to lowercase so you can type it how you prefer
 						column=>value
 							- "column = :column"
@@ -73,25 +69,25 @@ Required Files: PDOI.php, sqlSpinner.php
 							- not in : column NOT IN (:column.comparisonValueArrayIndex, :column.NextComparisonValueArrayIndex (, :column.NextComparisonValueArrayIndex))
 
 					- appends ' AND ' or ', ' depending on method set by the starter method
-					- returns the spinner object		
-			
+					- returns the spinner object
+
 			ORDERBY
 				takes associative array of arguments
 					sortColumn=>sortMethod
 						sortMethod - asc || desc || ASC || DESC
 						' ORDER BY sortColumn sortMethod(,sortColumn sortMethod)
-			
+
 			getSQL
 				clears and returns the current sql query
 
 	class cleanPDO
-		
+
 		This class offers a pdo with a safer failure message and safer transaction management
 
 		protected attributes:
 			hasActiveTransaction
 				- Flag for if pdo is in a transaction
-		
+
 		public functions
 			beginTransaction
 				- Determines if a transaction is occuring and if not, begins a new transaction
@@ -101,11 +97,11 @@ Required Files: PDOI.php, sqlSpinner.php
 				- rolls back the current transaction and clears the transaction flag
 
 	class PDOI
-		
-		This is the class to use to simplify your interactions with the pdo.  It handles failures safely and greatly reduces the amount of code that 
+
+		This is the class to use to simplify your interactions with the pdo.  It handles failures safely and greatly reduces the amount of code that
 	YOU need to work with the pdo.  Takes 2 arguments, an associative array containing the config information for the cleanPDO and a boolean to set the
 	debug flag.  ($pdoI = new PDOI($configArray, false))
-		
+
 		protected attributes:
 			pdo
 				- cleanPDO
@@ -119,7 +115,7 @@ Required Files: PDOI.php, sqlSpinner.php
 					table=>name of table you are selecting from
 				optional:
 					columns=>array of column names in the table you wish to select ['','']
-					where=>takes an array of [column=>comparisonValue] or [column=>[comparisonMethod, comparisonValue]] 
+					where=>takes an array of [column=>comparisonValue] or [column=>[comparisonMethod, comparisonValue]]
 						or [column=>[comparisonMethod, comparisonValueArray]] depending on what method and condition you are trying to set.
 						See the sqlSpinner class above to determine how to set 'comparisonMethod'.
 					orderby=>array of column=>methods ('id'=>'asc')
@@ -130,7 +126,7 @@ Required Files: PDOI.php, sqlSpinner.php
 					Returns the result set in associate array form
 				Failure:
 					Returns False
-		
+
 			INSERT
 				- Argument Array
 				Required:
@@ -144,8 +140,8 @@ Required Files: PDOI.php, sqlSpinner.php
 					if the values are a associative array of column=>value pairings it
 						prepares a value argument with the prepared column names and executes the insert
 					or if the values are an array of associative arrays then
-						([0=>[column=>value,column=>value,column=>value], 1=>[column=>value,column=>value],etc) 
-						//note that 1 has a different number of fields than 0.  If your table should have optional fields, 
+						([0=>[column=>value,column=>value,column=>value], 1=>[column=>value,column=>value],etc)
+						//note that 1 has a different number of fields than 0.  If your table should have optional fields,
 							you can leave out the respective columns
 						it binds the placeholders in the query to variable variables named for the column and runs through the different
 						sets of value pairings, executing the insert and resetting the variable variables to null.
