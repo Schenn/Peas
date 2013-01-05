@@ -2,8 +2,10 @@
      namespace PDOI;
      require_once("PDOI.php");
      require_once("Utils/dynamo.php");
+     require_once("Utils/schema.php");
      use PDOI\PDOI as PDOI;
      use PDOI\Utils\dynamo as dynamo;
+     use PDOI\Utils\schema as schema;
      /*
       *   Author: Steven Chennault
       *   Email: schenn@gmail.com
@@ -16,21 +18,44 @@
       *
       */
 
+
+      /*
+       * tableName = name of the table this pdoITable is primarily working with
+       * columns = current listing of columns and default values, joins merge those columns into this array in table.columnName format
+       * columnMeta = table data rules retrieved and parsed from the DESCRIBE mysql method
+       * !!!!
+       * args = preconstructed list which the parent PDOI uses to process basic commands.
+       *       REMOVE THIS.  Arguments should be generated at request time from the schema and values, not stored
+       * !!!!
+       * entity = dynamo class object which represents a row or potential row in a table.
+       *       A joinWith function call creates a similar entity but includes the additional column data from the other tables.
+       *       For this reason, using non-conflicting names is a good idea if the table will be joined.
+       *
+       * schema = current relational schema.  Used to generate arguments, maintains relational (and non relational) data between tables.
+       *
+       */
      class pdoITable extends PDOI {
           protected $tableName;
           protected $columns=[];
           protected $columnMeta=[];
-          protected $args = [];
           protected $entity;
+          protected $schema;
+          protected $args = [];
+
+
+          protected function generateArguments(){
+               //uses schema information to generate argument list
+          }
 
 
           /* Name: __construct
            * Description:  Controls new pdoITable creation
            * Takes: config = db configuration information, table = "" (table name), debug = false
            */
-          function __construct($config, $table, $debug=false){
+          function __construct($config, $tables, $debug=false){
                parent::__construct($config, $debug);
-               $this->setTable($table);
+               $this->schema = new schema([]);
+               $this->setTable($tables);
           }
 
 
@@ -38,8 +63,9 @@
            * Description:  sets the tablename, calls setcolumns
            * Takes: table = "" (table name)
            */
-          function setTable($table){
-               $this->tableName = $table;
+          function setTable($tables){
+               $this->schema->addTable($tables);
+               $this->tableName = $tables;
                $this->args['table'] = $this->tableName;
                $this->setColumns();
           }
@@ -48,69 +74,83 @@
            * Description:  Gets table schema from the db.  becomes aware of column names and validation requirements
            */
           function setColumns(){
-               $description = parent::describe($this->tableName);
-               foreach($description as $row){  //for each column in table
-                    $field = $row['Field'];
-                    unset($row['Field']);
+               foreach($this->schema as $table){
+               if(count($this->schema->$table)===0){
 
-                    //get field length
-                    $sansType = preg_split("/int|decimal|double|float|double|real|bit|bool|serial|date|time|year|char|text|binary|blob|enum|set|geometrycollection|multipolygon|multilinestring|multipoint|polygon|linestring|point|geometry/",strtolower($row['Type']));
-                    if(isset($sansType[1])){
-                         $sansParens = preg_split("/\(|\)/",$sansType[1]);
-                         if(isset($sansParens[1])){
-                              $this->columnMeta[$field]['length'] = intval($sansParens[1]);
+                    $description = parent::describe($table);
+                    $cols = [];
+                    foreach($description as $row){  //for each column in table
+                         $field = $row['Field'];
+                         $true = $table.".".$field;
+                         array_push($cols, $field);
+                         unset($row['Field']);
+
+                         array_push($this->schema[$table]['columns'],[$field=>""]);
+
+                         //get field length
+                         $sansType = preg_split("/int|decimal|double|float|double|real|bit|bool|serial|date|time|year|char|text|binary|blob|enum|set|geometrycollection|multipolygon|multilinestring|multipoint|polygon|linestring|point|geometry/",strtolower($row['Type']));
+                         if(isset($sansType[1])){
+                              $sansParens = preg_split("/\(|\)/",$sansType[1]);
+                              if(isset($sansParens[1])){
+                                   $this->columnMeta[$field]['length'] = intval($sansParens[1]);
+                              }
+                         }
+
+                         //get field data type
+                         $type = preg_filter("/\(|\d+|\)/","",strtolower($row['Type']));
+
+                         $this->columnMeta[$field]['type'] = $type;
+                         $this->columnMeta[$field]['default'] = $row['Default'];
+
+                         //if its a primary key
+                         if($row['Key'] === "PRI"){
+                              $this->columnMeta[$field]['primaryKey'] = true;
+                              $this->schema[$table]['primaryKey']=$field;
+
+                              //if its auto_incremented
+                              if($row['Extra'] === "auto_increment"){
+                                   $this->columnMeta[$field]['auto'] = true;
+                              }
+                         }
+
+                         if($row['Null'] === 'NO'){
+                              $this->columnMeta[$field]['required'] = true;
+                         }
+
+
+                         //set default values to the columns
+                         switch($type){
+                              case "int":
+                              case "decimal":
+                              case "double":
+                              case "float":
+                              case "real":
+                              case "bit":
+                              case "serial":
+                                   $this->columns[$field] = (empty($row['Default'])) ? 0 : $row['Default'];
+                                   break;
+                              case "bool":
+                                   $this->columns[$field] = (empty($row['Default'])) ? false : $row['Default'];
+                                   break;
+                              case "date":
+                              case "time":
+                              case "year":
+                                   $this->columns[$field]= (empty($row['Default'])) ? date("Y-m-d H:i:s") : strtotime($row['Default']);
+                                   $this->columnMeta[$field]['format'] = "Y-m-d H:i:s";
+                                   break;
+                              default:
+                                   $this->columns[$field]= (empty($row['Default'])) ? "" : $row['Default'];
+                                   break;
                          }
                     }
-
-                    //get field data type
-                    $type = preg_filter("/\(|\d+|\)/","",strtolower($row['Type']));
-
-                    $this->columnMeta[$field]['type'] = $type;
-                    $this->columnMeta[$field]['default'] = $row['Default'];
-
-                    //if its a primary key
-                    if($row['Key'] === "PRI"){
-                         $this->columnMeta[$field]['primaryKey'] = true;
-
-                         //if its auto_incremented
-                         if($row['Extra'] === "auto_increment"){
-                              $this->columnMeta[$field]['auto'] = true;
-                         }
-                    }
-
-
-                    //set default values to the columns
-                    switch($type){
-                         case "int":
-                         case "decimal":
-                         case "double":
-                         case "float":
-                         case "real":
-                         case "bit":
-                         case "serial":
-                              $this->columns[$field] = (empty($row['Default'])) ? 0 : $row['Default'];
-                              break;
-                         case "bool":
-                              $this->columns[$field] = (empty($row['Default'])) ? false : $row['Default'];
-                              break;
-                         case "date":
-                         case "time":
-                         case "year":
-                              $this->columns[$field]= (empty($row['Default'])) ? date("Y-m-d H:i:s") : strtotime($row['Default']);
-                              $this->columnMeta[$field]['format'] = "Y-m-d H:i:s";
-                              break;
-                         default:
-                              $this->columns[$field]= (empty($row['Default'])) ? "" : $row['Default'];
-                              break;
-                    }
                }
-               $this->args['columns']=[]; //sets arguments for select, update, delete and insert commands
-               foreach($this->columns as $column=>$n){
-                    array_push($this->args['columns'], $column);
                }
+
+               $this->schema->addColumns($this->tableName, $cols);
                $this->entity = new dynamo($this->columns); //generates new dynamic object to template rows from the table
                $this->entity->setValidationRules($this->columnMeta); //sets validation rules on dynamic object based off validation information
 
+               // Set up the schema
           }
 
           /* Name: select
@@ -120,6 +160,7 @@
           function select($options, $entity = null){
                $entity = ($entity !== null ? $entity : clone $this->entity); //if no object supplied to take values from select query, use dynamo
                $a = $this->args;
+               //$a = $this->generateArguments();
                foreach($options as $option=>$setting){ //supplied options override stored arguments
                     $a[$option]=$setting;
                }
@@ -129,7 +170,7 @@
 
           function selectAll(){
                $entity = clone $this->entity;
-               $a = $this->args;
+               $a = $this->generateArguments();
                return(parent::SELECT($a, $entity));
           }
 
@@ -139,6 +180,7 @@
            */
           function insert($options){
                $a = $this->args;
+               //$a = $this->generateArguments();
 
                //ensures that if the primary key is auto-numbering, no value will be sent
                foreach($a['columns'] as $index=>$key){
@@ -218,6 +260,11 @@
                               }
                          }
 
+
+                         if($columnData['Null'] === 'NO'){
+                              $this->columnMeta[$field]['required'] = true;
+                         }
+
                          //set default values to the columns
                          switch($meta[$field]['type']){
                               case "int":
@@ -273,6 +320,7 @@
            */
           function update($options){
                $a = $this->args;
+               //$a = $this->generateArguments();
                //ensures auto_numbering primary key is not 'updated'
                foreach($a['columns'] as $index=>$key){
                     if(array_key_exists("primaryKey",$this->columnMeta[$key])){
@@ -294,7 +342,8 @@
            * Takes: options = [] (associative array of options, overrides currently stored arguments for the query)
            */
           function delete($options){
-               $a= $this->args;
+               $a = $this->args;
+               //$a = $this->generateArguments();
                foreach($options as $option=>$setting){
                     $a[$option]=$setting;
                }
@@ -376,92 +425,15 @@
                     $t->delete($args);
                };
 
-               $e->spinForm = function($formData) {
-                    if(isset($formData[0])){
-                         $formData = $formData[0];
-                    }
-                    $html = "<form method = '".$formData['method']."' action = '".$formData['action']."' ";
-
-                    if(isset($formData['name'])){
-                         $html .= 'name = '.$formData["name"];
-                    }
-                    if(isset($formData['class'])){
-                         $html .= 'class = '.$formData["class"];
-                    }
-                    if(isset($formData['id'])){
-                         $html .= 'id = '.$formData["id"];
-                    }
-
-                    $html .= " >
-                         <table>
-                              <th>".$formData['heading']."</th>";
-
-                    foreach($this as $column=>$value){
-                         $colRules = $this->getRule($column);
-                         $html .="<tr><td>";
-                         $html .="<label for=".$column.">".ucfirst($column)."</label></td><td>";
-                         if($colRules['type'] === 'string' || $colRules['type'] === 'numeric'){
-                              if(isset($colRules['length']) || isset($colRules['max'])){
-                                   if($column !== 'password'){
-                                        $html .= "<input type='text' ";
-                                   }
-                                   else {
-                                        $html .= "<input type='password' ";
-                                   }
-                                   $html .= "name=".$column." value = '".$value."' ";
-                                   if(isset($colRules['length'])){
-                                        $html .= "maxlength=".$colRules['length']." ";
-                                   }
-                                   if(isset($colRules['max'])){
-                                        $html .=" max=".$colRules['max']." ";
-                                        if(isset($colRules['min'])){
-                                             $html .= "min=".$colRules['min']." ";
-                                        }
-                                        else {
-                                             $html .= "min=".($colRules['max']*-1)." ";
-                                        }
-                                   }
-                                   if(isset($colRules['fixed'])){
-                                        $html .= "readonly ";
-                                   }
-                                   $html .= " />";
-                              }
-                              else {
-                                   $html .= "<textarea name=".$column." ";
-                                   if(isset($colRules['fixed'])){
-                                        $html .= "readonly ";
-                                   }
-                                   $html .= ">".$value;
-                                   $html .="</textarea>";
-                              }
-                         }
-                         elseif($colRules['type']==='boolean'){
-                              $html .="<select name=".$column.">";
-                              $html .="<option value='1'>True</option>";
-                              $html .="<option value='0'>False</option>";
-                              $html .="</select>";
-                         }
-                         elseif($colRules['type']==='date'){
-                              $html .="<input type='datetime' name='$column' ";
-                              if(isset($colRules['max'])){
-                                   $html .="min=".$colRules['min']." max=".$colRules['max']." ";
-                              }
-                              if(isset($colRules['fixed'])){
-                                   $html .= "readonly ";
-                              }
-                              $html .= " />";
-                         }
-                         $html .="</td></tr>";
-                    }
-                    $html .= "
-                         </table>
-                    </form>";
-
-                    echo($html);
-               };
-
                $this->reset();
                return($e); //returns the dynamo with access to the parent table
+          }
+
+          function setRelationship($realtionship, $getValueList = false){
+               //attaches anothers table schema information to this pdoiTables schema
+               //relationship = [tableName=>columnName]
+               //if getValueList = true, loads a list of all the values in the table and sets them as the 'list' value in the schema
+
           }
      }
 

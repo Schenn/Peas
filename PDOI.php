@@ -100,6 +100,9 @@
                     catch(Exception $e){
                          $this->pdo = null;
                          $counter++;
+                         if($debug){
+                              echo "Attempt:".$counter;
+                         }
                          if($counter == $limit){
                               throw $e;
                          }
