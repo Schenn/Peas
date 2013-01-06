@@ -1,6 +1,6 @@
 <?php
      namespace PDOI;
-     require_once("Utils\sqlSpinner.php");
+     require_once("Utils/sqlSpinner.php");
      use PDOI\Utils\sqlSpinner as sqlSpinner;
      use PDO;
      /*
@@ -12,8 +12,8 @@
       *             It handles the basic database demands with error catching and dynamic sql generation from an array of parameters.
       *             Currently it is only known to be compatable with mysql, however that setting can be overwritten in the __construct of the cleanPDO
       *
-      */   
-     
+      */
+
      /*
       * Name: cleanPDO
       * Description:  PDO which throws exceptions
@@ -25,17 +25,17 @@
                'driver_options'=>[PDO::ATTR_PERSISTENT => true]
           ];
       */
-     
-     
+
+
      class cleanPDO extends PDO {
           protected $hasActiveTransaction = false;
-          
+
           function __construct($config){
                $config['dns'] = 'mysql:dbname='.$config['dbname'].';localhost';
                parent::__construct($config['dns'], $config['username'], $config['password'], $config['driver_options']);
                parent::setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
           }
-          
+
           function beginTransaction() {
                if($this->hasActiveTransaction){
                     return(false);
@@ -45,18 +45,18 @@
                     return($this->hasActiveTransaction);
                }
           }
-          
+
           function commit() {
                $this->hasActiveTransaction = false;
                return(parent::commit());
           }
-          
+
           function rollback() {
                $this->hasActiveTransaction = false;
                return(parent::rollBack());
           }
      }
-     
+
      /*
       * Class Name: PDOI
       * Description: Takes an associative array of parameters which is used to
@@ -70,8 +70,8 @@
           protected $pdo;
           protected $config;
           protected $debug;
-     
-     
+
+
           /* Method Name: __construct
            * Takes:  $config = [
                          'dns'=>'mysql:dbname=pdoi_tester;localhost',
@@ -85,19 +85,31 @@
            * Sets the timeout to 1200 ms to keep the connection alive
            * Sets the pdoi debug property to the true/false setting sent across
            */
-     
+
           function __construct($config, $debug = false){
-               try {
-                    $this->pdo = new cleanPDO($config);
-                    $this->config=$config;
-                    $this->pdo->query("SET wait_timeout=1200");
-                    $this->debug = $debug;
-               }
-               catch(PDOException $e){
-                    $this->ping();
+               $limit = 3;
+               $counter = 0;
+               while(true){
+                    try {
+                         $this->pdo = new cleanPDO($config);
+                         $this->config=$config;
+                         $this->pdo->query("SET wait_timeout=1200");
+                         $this->debug = $debug;
+                         break;
+                    }
+                    catch(Exception $e){
+                         $this->pdo = null;
+                         $counter++;
+                         if($debug){
+                              echo "Attempt:".$counter;
+                         }
+                         if($counter == $limit){
+                              throw $e;
+                         }
+                    }
                }
           }
-          
+
           protected function prepWhere($args, &$where =[], &$whereValues = []){
                foreach($args as $column=>$value){
                     if(!is_array($value)){
@@ -128,7 +140,7 @@
                     }
                }
           }
-          
+
           protected function prepJoin(&$args, &$join=[], &$jCond=[]){
                $cols = [];
                $pTable="";
@@ -143,7 +155,7 @@
                }
                $args['columns'] = $cols;
                $args['table']=$pTable;
-               
+
                if(array_key_exists("where", $args)){
                     foreach($args['where'] as $table=>$columnInfo){
                          foreach($columnInfo as $columnName=>$columnRules){
@@ -153,7 +165,7 @@
                          unset($args['where'][$table]);
                     }
                }
-               
+
                if(array_key_exists("set", $args)){
                     foreach($args['set'] as $table=>$columnInfo){
                          foreach($columnInfo as $columnName=>$columnRules){
@@ -163,7 +175,7 @@
                          unset($args['set'][$table]);
                     }
                }
-               
+
                $join = $args['join'];
                if(array_key_exists("on", $args)){
                     $jCond["on"] = $args['on'];
@@ -171,10 +183,10 @@
                else if(array_key_exists("using", $args)){
                     $jCond["using"] = $args['using'];
                }
-               
+
           }
-          
-          
+
+
           /* Method Name: SELECT
            * Takes: $args = [
            *             REQUIRED
@@ -219,21 +231,21 @@
            *        if debug is set to true, prints the sql and the prepared value array
            *        if query succeeds, returns result as an array of associative array, else returns false
            */
-          
+
           function SELECT($args, $obj = null){
                $join = [];
                $jCond = [];
                if(array_key_exists("join", $args)){ // if select query involves a join
                     $this->prepJoin($args, $join, $jCond);
                }
-               
+
                $where = [];
                $whereValues = [];
                if(isset($args['where'])){ //if where options
                     //converts where into a prepared value array
                     $this->prepWhere($args['where'], $where, $whereValues);
                }
-               
+
                $groupby = [];
                $having = [];
                if(isset($args['groupby'])){//if groupby options
@@ -247,19 +259,19 @@
                          unset($args['groupby']['having']);
                     }
                }
-               
+
                $orderby= [];
                if(isset($args['orderby'])){ //if orderby options
                     $orderby = $args['orderby'];
                }
-               
+
                $limit = null;
                if(isset($args['limit'])){ //if limit
                     $limit = $args['limit'];
                }
-               
+
                //spin sql statement from options
-               $sql = Utils\instantiate(new sqlSpinner())->SELECT($args)->JOIN($join, $jCond)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+               $sql = (new Utils\sqlSpinner())->SELECT($args)->JOIN($join, $jCond)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
                if($this->debug){ //if in debug mode
                     print_r($sql);
                     echo("<br />\n");
@@ -270,7 +282,7 @@
                     $stmt = $this->pdo->prepare($sql);  //prepare sql statement through pdo
                     $stmt->execute($whereValues); //execute statement with prepared value array
                     if(is_object($obj)){ //if plugging results into an object
-                         $stmt->setFetchMode(PDO::FETCH_INTO, $obj); 
+                         $stmt->setFetchMode(PDO::FETCH_INTO, $obj);
                          $chunk = [];
                          while($o = $stmt->fetch()){ //for each result, put representitive object into an array
                               array_push($chunk, clone $o);
@@ -278,12 +290,12 @@
                     }
                     else {
                          $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC); //returns an associative array of result(s)
-                    }               
+                    }
                     if(count($chunk) > 0){ //if result
                          if(count($chunk) === 1){ //if only 1 result
                               return($chunk[0]); //return 1 result as the result entry
                          }
-                         else { 
+                         else {
                               return($chunk); //return the whole result array if result size > 1
                          }
                     }
@@ -296,7 +308,7 @@
                     return(false);
                }
           }
-          
+
           /* Method Name: INSERT
            * Takes: $args = [
            *             REQUIRED
@@ -308,12 +320,12 @@
            *   Converts Values to placeholder values for sql statement.
            *   Values can either be a single insert row or an array of rows to be inserted
            */
-          
+
           function INSERT($args){
                /*
                 * $args = [table=>'',columns=>[], values = ["column"=>"value"] || [["column"=>"value","column"=>"value"], ["column"=>"value","column"=>"value"]]]
                 */
-               $sql = Utils\instantiate(new sqlSpinner())->INSERT($args)->getSQL(); //spin sql statement from arguments
+               $sql = (new Utils\sqlSpinner())->INSERT($args)->getSQL(); //spin sql statement from arguments
                if($this->debug){ //if in debug mode
                     print_r($sql);
                     echo("<br />\n");
@@ -323,7 +335,7 @@
                     $this->ping(); //verify db access
                     $this->pdo->beginTransaction(); //begin a transaction session with the database
                     $stmt = $this->pdo->prepare($sql);  //prepare the statement
-                    
+
                     //if array of value arrays to process multiple inserts in one table, uses bindParam over executing with value array
                     if(isset($args['values'][0])){ //if index 0 isset, then values is [["column"=>"value","column"=>"value"], ["column"=>"value","column"=>"value"]]
                          $colCount = count($columns);
@@ -335,13 +347,13 @@
                          $valCount = count($args['values']);
                          for($i = 0; $i < $valCount; $i++){
                               //for each grouping of values in a multi-entity insert
-                              foreach($args['values'][$i] as $column=>$value){ 
+                              foreach($args['values'][$i] as $column=>$value){
                                    //set variable placeholders to current row values
                                    $$column = $value;
                                    if($this->debug) print_r($$column.":".$$column); //if debugging
                               }
                               $stmt->execute(); //execute statement with bound parameters for each row in array of value arrays
-                              
+
                               $varCount = count($cols);
                               for($z=0;$z < $varCount; $z++){
                                    $$cols[$z] = null; //destroy temporary placeholder without disturbing index count
@@ -364,9 +376,9 @@
                               throw new Exception("Insert Failed");
                          }
                     }
-                    
+
                     return($this->pdo->commit()); //returns result of committing changes to db
-               
+
                }catch(PDOException $pe){
                     $this->pdo->rollBack();
                     echo "Insert Failed: ".$pe->getMessage();
@@ -375,10 +387,10 @@
                     $this->pdo->rollBack();
                     echo "Insert Failed: ".$e->getMessage();
                }
-               
+
 
           }
-          
+
           /* Method Name: UPDATE
            * Takes: $args = [
            *             REQUIRED
@@ -398,9 +410,9 @@
            *        if debug is set to true, prints the sql and the prepared value array
            *        if query succeeds, returns true, else returns false
            */
-          
+
           function UPDATE($args){
-               
+
                $setValues = [];
                try {
                     $join = [];
@@ -417,7 +429,7 @@
                     else { //no set values assigned, throw an error
                          throw new Exception("Set values missing for update command!",10);
                     }
-                    
+
                     $where = [];
                     $whereValues = [];
                     if(isset($args['where'])){ //where
@@ -435,10 +447,10 @@
                     if(isset($args['limit'])){
                          $limit = $args['limit'];
                     }
-                                  
-                    //Spin sql from options     
-                    $sql = Utils\instantiate(new sqlSpinner())->UPDATE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
-                    
+
+                    //Spin sql from options
+                    $sql = (new Utils\sqlSpinner())->UPDATE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+
                     if($this->debug){ //if debugging
                          print_r($sql);
                          echo("<br />\n");
@@ -447,10 +459,10 @@
                          print_r($whereValues);
                          echo("<br />\n");
                     }
-                    
+
                     $this->ping(); //determine db access
                     $this->pdo->beginTransaction(); //begin new transaction in the db
-                    $stmt = $this->pdo->prepare($sql); //prepares sql statement 
+                    $stmt = $this->pdo->prepare($sql); //prepares sql statement
                     $stmt->execute(array_merge($setValues, $whereValues)); //executes with the value arrays
                     return($this->pdo->commit()); //returns commit status
                }
@@ -464,10 +476,10 @@
                     echo "Update Failed: ".$e->getMessage();
                     return(false);
                }
-               
+
           }
-          
-          
+
+
           /* Method Name: DELETE
            * Takes: $args = [
            *             REQUIRED
@@ -509,7 +521,7 @@
                     $limit = $args['limit'];
                }
                //spin sql from arguments
-               $sql = Utils\instantiate(new sqlSpinner())->DELETE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
+               $sql = (new Utils\sqlSpinner())->DELETE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
                if($this->debug){ //if debugging
                          print_r($sql);
                          echo("<br />\n");
@@ -533,28 +545,28 @@
                     echo "Delete Failed: ".$e->getMessage();
                     return(false);
                }
-               
+
           }
-          
+
           /* Name: describe
            * Description:  Returns table schema information about a table
            * Takes: table name
            */
-          
+
           function describe($table){
-               $sql = Utils\instantiate(new sqlSpinner())->DESCRIBE($table)->getSQL(); //instantiate sql
+               $sql = (new Utils\sqlSpinner())->DESCRIBE($table)->getSQL(); //instantiate sql
                $this->ping(); //ensure db access
                $stmt = $this->pdo->prepare($sql); //prepare statement
                $stmt->execute(); //execute statement
                $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC); //return assocative array of table schema
                return($chunk);
           }
-          
+
           /* Name: queue
            * Takes: instructions = [PDOIMETHOD=>PDOIMETHODARGUMENTS]
            * Description:  Takes a set of instructions and processes through them.  For example, if you wanted to do an insert update then select
            */
-          
+
           function queue($instructions = []){
                try {
                     $this->pdo->beginTransaction();
@@ -570,12 +582,12 @@
                     return(false);
                }
           }
-          
-          
+
+
           /* Name: ping
            * Description: Runs a quick check to determine if the pdo is still active, if not it creates a new one and continues on.
            */
-          
+
           function ping(){
                try {
                     $this->pdo->query("SELECT 1"); a:
@@ -587,13 +599,13 @@
                     goto a;
                }
           }
-          
+
           /* Name: run
            * Takes: sql = '' Sql statement already containing placeholders
            *        values = []  associative array of placeholder=>values
            * Description:  Runs a custom sql statement and executes it with the placeholder array, returning the result.  Doesn't work with select statements.
            */
-          
+
           function run($sql="", $values=[]){
                if($sql !==""){
                     try{
