@@ -1,6 +1,7 @@
 <?php
      namespace PDOI\Utils;
-     use Exception, Iterator, JsonSerializable;
+     use BadMethodCallException, Exception, Iterator, JsonSerializable;
+
 class validationException extends Exception {
 
      public function __construct($message,$code, Exception $previous = null){
@@ -183,28 +184,28 @@ class dynamo implements dynamoInterface{
      }
 
      /* Name: rewind
-      * Description:  Interator required function, returns property list to first index
+      * Description:  Iterator required function, returns property list to first index
       */
      public function rewind(){
           reset($this->properties);
      }
 
      /* Name: rewind
-      * Description:  Interator required function, returns current property in property list
+      * Description:  Iterator required function, returns current property in property list
       */
      public function current(){
           return(current($this->properties));
      }
 
      /* Name: key
-      * Description:  Interator required function, returns key of current property
+      * Description:  Iterator required function, returns key of current property
       */
      public function key(){
           return(key($this->properties));
      }
 
      /* Name: next
-      * Description:  Interator required function, moves property list to next index
+      * Description:  Iterator required function, moves property list to next index
       */
      public function next(){
           return(next($this->properties));
@@ -215,7 +216,7 @@ class dynamo implements dynamoInterface{
      }
 
      /* Name: valid
-      * Description:  Interator required function, returns whether the next key in the properties is not null
+      * Description:  Iterator required function, returns whether the next key in the properties is not null
       */
      public function valid(){
           return(key($this->properties) !== null);
@@ -232,7 +233,6 @@ class dynamo implements dynamoInterface{
 
      public function setValidationRules($vRules = []){
           foreach($vRules as $var=>$rules){
-
                if(array_key_exists($var,$this->properties)){
                     $this->meta[$var] = [];
                     switch($rules['type']){  //sets validation type (numeric, boolean, string or date)
@@ -269,7 +269,6 @@ class dynamo implements dynamoInterface{
                     if(array_key_exists('required', $rules)){
                          $this->meta[$var]['required'] = $rules['required'];
                     }
-
 
                }
           }

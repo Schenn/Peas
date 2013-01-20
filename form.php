@@ -1,19 +1,19 @@
 <?php
      require_once("pdoITable.php");
      use PDOI\pdoITable;
-     
+
      if(isset($_GET['action'])){
           print_r($_GET);
      }
-     
+
      $config = [
                'dbname'=>'pdoi_tester',
                'username'=>'pdoi_tester',
                'password'=>'pdoi_pass',
                'driver_options'=>[PDO::ATTR_PERSISTENT => true]
           ];
-     
-     
+
+
      function stringWhereBox($col, &$html = ""){
           $bit="<td><select size = '5' name='where".ucfirst($col)."Method'>
                          <option value='=' selected='selected'>=</option>
@@ -28,9 +28,9 @@
           else {
                echo($bit);
           }
-          
+
      }
-     
+
      function numWhereBox($col, &$html = ""){
           $bit = "</tr><tr><td></td>
           <td><select size = '5' name='where".ucfirst($col)."Method'>
@@ -53,9 +53,9 @@
           else {
                echo($bit);
           }
-          
+
      }
-     
+
      function aggBox($col, &$html = ""){
           $bit = "<td><select size = '3' name='".$col."Method'>
                          <option value='sum'>Sum</option>
@@ -71,9 +71,9 @@
           else {
                echo($bit);
           }
-          
+
      }
-     
+
      function orderby(){
           $bit = "
                <tr>
@@ -86,7 +86,7 @@
           ";
           echo($bit);
      }
-     
+
      function endofform($action= "", $limit = false){
           if($limit === true){
                echo("<tr>
@@ -94,7 +94,7 @@
                          <td><input type='text' name='limit' /> </td>
                     </tr>");
           }
-          
+
           echo("<tr>
                          <td><input type=\"hidden\" name=\"action\" value=\"$action\" /></td>
                     </tr>
@@ -105,15 +105,15 @@
           </form>
                ");
      }
-     
 
-     $persons = new pdoITable($config, "persons", true);
-     $ships = new pdoITable($config, "ships", true);
-     
-     
+
+     $persons = new pdoITable($config, "persons");
+     $ships = new pdoITable($config, "ships");
+
+
      $person = $persons->Offshoot();
      $ship = $ships->Offshoot();
-     
+
      $genInsertForm = function(){
           $html = "";
           foreach($this as $column=>$value){
@@ -124,7 +124,7 @@
                     $html .= "<label for='$column'>$uColumn:</label>";
                     $html .= "</td><td>";
                     $html .= "<input type='text' name='$column' value='$value' ";
-                    
+
                     if(array_key_exists('length', $rules)){
                          $html .= "size = '".$rules['length']."' maxlength = '".$rules['length'];
                     }
@@ -133,11 +133,11 @@
                     }
                     $html .= "' /></td></tr>";
                }
-               
+
           }
           echo $html;
      };
-     
+
      $genWhereForm = function(){
           $html = "";
           foreach($this as $column=>$value){
@@ -147,12 +147,12 @@
                if($rules['type']==='string'){
                     stringWhereBox($lColumn, $html);
                }
-               
+
                elseif($rules['type'] ==='numeric') {
                     numWhereBox($lColumn, $html);
                }
                $html .= "<td><input type='text' name='where".$lColumn."' ";
-               
+
                if(array_key_exists('length', $rules)){
                     $html .= "size = '".$rules['length']."' maxlength = '".$rules['length'];
                }
@@ -163,22 +163,22 @@
           }
           echo($html);
      };
-     
-     $person->insertForm = $genInsertForm;     
+
+     $person->insertForm = $genInsertForm;
      $person->whereForm = $genWhereForm;
      $ship->insertForm = $genInsertForm;
      $ship->whereForm = $genWhereForm;
-     
+
      ?>
 <html>
      <head>
           <style>
-               
+
                div {
                     border: 3px solid #000;
                     float: left;
                }
-               
+
           </style>
      </head>
      <body>
@@ -236,7 +236,7 @@
                          $person->whereForm();
                          endofform("update", true);
                     ?>
-                    
+
           <form action='formTest.php' method='post'>
                <table>
                     <th>Delete</th>
@@ -297,14 +297,14 @@
                     ?>
           </div>
           <div class='left'>
-               
+
           <form action='formTest.php' method='post'>
                <table>
                     <th>Add Person to Ship</th>
                     <tr><td><label for='ship_id'>Ship</label></td>
                          <td><select name="ship_id">
                               <?php
-                                   $shipCollection = $ships->select([]);
+                                   $shipCollection = $ships->select();
                                    foreach($shipCollection as $index=>$aShip){
                                         echo "<option value='".$aShip->ship_id."'>".$aShip->ship_name."</option>";
                                    }
@@ -314,7 +314,7 @@
                     <tr><td><label for='person_id'>Person</label></td>
                          <td><select name="person_id">
                               <?php
-                                   $personCollection = $persons->select([]);
+                                   $personCollection = $persons->select();
                                    foreach($personCollection as $index=>$aPerson){
                                         echo "<option value='".$aPerson->id."'>".$aPerson->name."</option>";
                                    }
@@ -331,7 +331,7 @@
           <form action='formTest.php' method='get'>
                <table>
                     <th>
-                         SHOW ALL CREW FOR 
+                         SHOW ALL CREW FOR
                     </th>
                     <tr>
                          <td><label for='ship_name'>Ship</label></td>
@@ -349,7 +349,7 @@
           <form action='formTest.php' method='get'>
                <table>
                     <th>
-                         WORKS WITH 
+                         WORKS WITH
                     </th>
                     <tr>
                          <td><label for='name'>Person</label></td>
@@ -368,7 +368,7 @@
           <form action='formTest.php' method='post'>
                <table>
                     <th>
-                         Send on a Mission 
+                         Send on a Mission
                     </th>
                     <tr>
                          <td><label for='ship_name'>Ship</label></td>
@@ -388,6 +388,6 @@
                     endofform("sendMission");
                ?>
           </div>
-          
+
      </body>
 </html>

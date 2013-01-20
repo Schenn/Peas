@@ -11,9 +11,9 @@ interface schemaInterface extends Iterator, JsonSerializable {
 }
 
 class schema implements schemaInterface {
-     private $this->map = [];
-     private $this->primaryKeys = [];
-     private $this->foreignKeys = [];
+     private $map = [];
+     private $primaryKeys = [];
+     private $foreignKeys = [];
 
      public function __construct($maps = []){
           foreach($maps as $table=>$columns){
@@ -42,6 +42,10 @@ class schema implements schemaInterface {
           }
 
           return($cols);
+     }
+
+     public function jsonSerialize(){
+          return(json_encode($this->map));
      }
 
      public function setForeignKey($relationship, $values = []){
@@ -135,6 +139,11 @@ class schema implements schemaInterface {
           array_merge($this->map[$table],$cols);
      }
 
+     public function getColumns($table){
+          print_r($table);
+          return array_keys($this->map[$table]);
+     }
+
      public function addTable($tables){
           if(is_array($tables)){
                foreach($tables as $table){
@@ -145,6 +154,71 @@ class schema implements schemaInterface {
                $this->map[$tables]=[];
           }
 
+     }
+
+     public function getTables(){
+          return(array_keys($this->map));
+     }
+
+     public function setPrimaryKey($table, $key){
+          $this->primaryKeys[$table]=$key;
+     }
+
+     public function addColumn($table, $field){
+          $this->map[$table]=[$field=>[]];
+     }
+
+     public function setMeta($table,$field,$meta=[]){
+
+          $metaTranslate = [];
+          $metaTranslate[$field] = [];
+          if(count($meta)>=0){
+               //get field length
+               $sansType = preg_split("/int|decimal|double|float|double|real|bit|bool|serial|date|time|year|char|text|binary|blob|enum|set|geometrycollection|multipolygon|multilinestring|multipoint|polygon|linestring|point|geometry/",
+                                        strtolower($meta['Type']));
+
+               if(isset($sansType[1])){
+                    $sansParens = preg_split("/\(|\)/",$sansType[1]);
+                    if(isset($sansParens[1])){
+                         $metaTranslate[$field]['length'] = intval($sansParens[1]);
+                    }
+               }
+
+               //field type
+               $metaTranslate[$field]['type'] = preg_filter("/\(|\d+|\)/","",strtolower($meta['Type']));
+               //field default
+               $metaTranslate[$field]['default'] = $meta['Default'];
+
+               if($meta['Key']){
+                    $this->primaryKeys[$table] = $field;
+                    $metaTranslate['primaryKey'] = true;
+
+                    if($meta['Extra'] === "auto_increment"){
+                         $metaTranslate[$field]['auto'] = true;
+                    }
+               }
+
+               if($meta['Null'] === 'NO'){
+                    $metaTranslate[$field]['required'] = true;
+               }
+
+               if(array_key_exists('Format',$meta)){
+                    $metaTranslate[$field]['format'] = $meta['Format'];
+               }
+
+          }
+
+          $this->map[$table][$field]=$metaTranslate[$field];
+     }
+
+     public function getMeta($table, $field){
+
+          return($this->map[$table][$field]);
+
+     }
+
+     public function getForeignKeys(){
+          return $this->foreignKeys;
      }
 
 }

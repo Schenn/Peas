@@ -8,11 +8,11 @@
                'password'=>'pdoi_pass',
                'driver_options'=>[PDO::ATTR_PERSISTENT => true]
           ];
-     
+
      $persons = new pdoITable($config, 'persons', true);
      $ships = new pdoITable($config, 'ships', true);
      $manifest = new pdoITable($config, 'manifest', true);
-     
+
      function insert($entity){
           foreach($entity as $column=>$value){
                if(!array_key_exists("fixed",$entity->getRule($column))){
@@ -21,92 +21,92 @@
           }
           $entity->insert();
      }
-     
+
      function update($pdoit){
           $opts = [];
           //Set
           $opts['set'] = [];
           $entity = $pdoit->Offshoot();
           foreach($entity as $key=>$defValue){
-               
+
                if(!array_key_exists("fixed", $entity->getRule($key))){
                     if(trim($_POST[$key]) !== "" && $_POST[$key] != $defValue){
                          $opts['set'][$key]=$_POST[$key];
                     }
                }
           }
-          
+
           //Where
           $opts['where']=[];
-          
-          foreach($entity as $key=>$value){    
+
+          foreach($entity as $key=>$value){
                $whereKey = 'where'.ucfirst($key);
                $whereMethod = 'where'.ucfirst($key)."Method";
-               
+
                if(trim($_POST[$whereKey]) !== ""){
                     $opts['where'][$key] = ($_POST[$whereMethod] === "=") ? $_POST[$whereKey] : [$_POST[$whereMethod]=>$_POST[$whereKey]];
                }
           }
-          
+
           if(array_key_exists("orderby", $_POST)){
           if(trim($_POST['orderby']) !== ""){
                $opts['orderby'] = ($_POST['orderMethod'] === "none") ? $_POST['orderby'] : [$_POST['orderby']=>$_POST['orderMethod']];
           }
           }
           if(trim($_POST['limit']) !== ""){
-               $opts['limit'] = $_POST['limit'];  
+               $opts['limit'] = $_POST['limit'];
           }
-          
+
           if($pdoit->update($opts)){
                echo "Update Successful<br/>";
           }
      }
-     
+
      function delete($pdoit){
           $entity = $pdoit->Offshoot();
           $opts = [];
           $opts['where']=[];
                //name
-          foreach($entity as $key=>$value){    
+          foreach($entity as $key=>$value){
                $whereKey = 'where'.ucfirst($key);
                $whereMethod = 'where'.ucfirst($key)."Method";
-               
+
                if(trim($_POST[$whereKey]) !== ""){
                     $opts['where'][$key] = ($_POST[$whereMethod] === "=") ? $_POST[$whereKey] : [$_POST[$whereMethod]=>$_POST[$whereKey]];
                }
           }
-          
+
           print_r($opts);
-          
+
           if(trim($_POST['orderby']) !== ""){
                $opts['orderby'] = ($_POST['orderMethod'] === "none") ? $_POST['orderby'] : [$_POST['orderby']=>$_POST['orderMethod']];
           }
           if(trim($_POST['limit']) !== ""){
-               $opts['limit'] = $_POST['limit'];  
+               $opts['limit'] = $_POST['limit'];
           }
-          
+
           if($pdoit->delete($opts)){
                echo "Delete Successful<br/>";
           }
      }
-     
+
      function select($pdoit){
           $opts = [];
           $entity = $pdoit->Offshoot();
           //Select Columns
           $opts['columns'] = (trim($_GET['cols'])!=="") ? explode(",",trim($_GET['cols'])): [];
-          
+
           if(isset($_GET['aggSolar'])){
                $opts['columns']['solar_years'] = [];
                $opts['columns']['solar_years']['agg'] = [$_GET['aggregateMethod']=>['solar_years']];
           }
-          
+
           //Where
           $opts['where']=[];
-          foreach($entity as $key=>$value){    
+          foreach($entity as $key=>$value){
                $whereKey = 'where'.ucfirst($key);
                $whereMethod = 'where'.ucfirst($key)."Method";
-               
+
                if(count($_POST)>0){
                     if(trim($_POST[$whereKey]) !== ""){
                          $opts['where'][$key] = ($_POST[$whereMethod] === "=") ? $_GET[$whereKey] : [$_GET[$whereMethod]=>$_GET[$whereKey]];
@@ -118,11 +118,11 @@
                     }
                }
           }
-          
+
           if(trim($_GET['orderby']) !== ""){
                $opts['orderby'] = ($_GET['orderMethod'] === 'none') ? $_GET['orderby'] : [$_GET['orderby']=>$_GET['orderMethod']];
           }
-          
+
           if(trim($_GET['groupby']) !== ""){
                $opts['groupby'] = ['column'=>[$_GET['groupby']]];
                if(isset($_GET['havingSolar'])){
@@ -133,16 +133,16 @@
                }
           }
           if(trim($_GET['limit'])!== ""){
-               $opts['limit'] = $_GET['limit'];  
+               $opts['limit'] = $_GET['limit'];
           }
-          
+
           $appendDisplay = function(){
                echo($this."<br/>");
           };
-          
+
           $result = $pdoit->select($opts);
           echo("<br />\n");
-          
+
           if($result){
                if(is_array($result)){
                     foreach($result as $row){
@@ -160,13 +160,13 @@
                echo("No records found!");
           }
      }
-     
+
      function selectjoin1($where,$persons, $ret = null) {
- 
-          $join = [["inner join"=>"manifest"],["inner join"=>"ships"]];
-          $cond = ["on"=>[['manifest'=>'person_id'],['persons'=>'id'],['manifest'=>'ship_id'], ['ships'=>'ship_id']]];
-          $entities = $persons->joinWith($join, $cond, $where);
-          
+          $shipmanifest = clone $persons;
+          $shipmanifest->setRelationship(['persons.id'=>'manifest.person_id', 'manifest.ship_id'=>'ships.ship_id'], false);
+
+          $entities = $shipmanifest->select(['where'=>$where]);
+
           if(is_object($entities)){
                if($ret !== null){
                     return($entities);
@@ -184,10 +184,9 @@
           else {
                echo "<br />Select Failed";
           }
-          
      }
-     
-     if(isset($_POST['action'])){         
+
+     if(isset($_POST['action'])){
           if($_POST['action']==="insert"){
                $person = $persons->Offshoot();
                insert($person);
@@ -197,14 +196,14 @@
                insert($ship);
           }
           elseif($_POST['action']==="manifestAdd"){
-               $crew = $manifest->Offshoot(); 
+               $crew = $manifest->Offshoot();
                foreach($crew as $key=>$value){
                     if(!array_key_exists("fixed", $crew->getRule($key))){
                          $crew->$key = $_POST[$key];
                     }
                }
                $crew->insert();
-               
+
           }
           else if($_POST['action'] === 'update'){
                update($persons);
@@ -224,51 +223,49 @@
                //run update on everyone
                //add 1 to ship mission count
                $crew = selectjoin1(['ships'=>['ship_name'=>$_POST['ship_name']]], $persons, true);
-               
                $years = (int)$_POST['mission_years'];
+               $success = false;
                $crewTemplate = $persons->Offshoot();
-               
+
                foreach($crew as $index=>$crewman){
                     foreach($crewTemplate as $key=>$val){
                          $crewTemplate->$key = $crewman->$key;
                     }
                     $crewTemplate->solar_years += $years;
                     $crewTemplate->experience_points += $years * 100;
-                    $crewTemplate->update();
+                    $success = $crewTemplate->update();
                }
-               
+
                $opts = ['where'=>["ship_id"=>$crew[0]->ship_id]];
                $ship = $ships->select($opts);
-               
+
                $sTemp = $ships->Offshoot();
                foreach($sTemp as $key=>$val){
                     $sTemp->$key = $ship->$key;
                }
                $sTemp->ship_mission_count = intval($ship->ship_mission_count) + 1;
-               
-               echo($sTemp->ship_mission_count);
-               echo($sTemp);
-               echo("<br />");
+
                $sTemp->update();
+
           }
      }
-     
+
      if(isset($_GET['action'])){
           if($_GET['action'] === 'selectCrew'){
-               selectjoin1(['ships'=>['ship_name'=>$_GET['ship_name']]], $persons);     
+               selectjoin1(['ships'=>['ship_name'=>$_GET['ship_name']]], $persons);
           }
           else if($_GET['action'] === 'worksWith'){
-               
+
                //get shipid of person
                $join = [['inner join'=>'manifest']];
                $cond = ["on"=>[['manifest'=>'person_id'],['persons'=>'id']]];
                $where = ['persons'=>['name'=>$_GET['name']]];
                $entity = $persons->joinWith($join, $cond, $where);
-               
+
                $join2 = [['inner join'=>'manifest'], ['inner join'=>'persons']];
                $cond2 = ['on'=>[['manifest'=>'ship_id'], ['ships'=>'ship_id'], ['manifest'=>'person_id'],['persons'=>'id']]];
                $where2 = ['ships'=>['ship_id'=>$entity->ship_id]];
-               
+
                $entities = $ships->joinWith($join2,$cond2,$where2);
                if(is_object($entities)){
                     echo($entities."<br/>");
