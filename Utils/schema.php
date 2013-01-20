@@ -11,9 +11,9 @@ interface schemaInterface extends Iterator, JsonSerializable {
 }
 
 class schema implements schemaInterface {
-     private $this->map = [];
-     private $this->primaryKeys = [];
-     private $this->foreignKeys = [];
+     private $map = [];
+     private $primaryKeys = [];
+     private $foreignKeys = [];
 
      public function __construct($maps = []){
           foreach($maps as $table=>$columns){
@@ -44,17 +44,24 @@ class schema implements schemaInterface {
           return($cols);
      }
 
+     public function jsonSerialize(){
+          return(json_encode($this->map));
+     }
+
      public function setForeignKey($relationship, $values = []){
           //relationship = [table.column=>table.column]
 
           $tableColumn1 = array_keys($relationship)[0];
           $tableColumn2 = $relationship[$tableColumn1];
 
-          $table1 = substr($tableColumn1,0,strpos($tableColumn1,'.')-1);
+          $table1 = substr($tableColumn1,0,strpos($tableColumn1,'.'));
           $column1 = substr($tableColumn1,strpos($tableColumn1,'.')+1);
-          $table2 = substr($tableColumn2,0,strpos($tableColumn2,'.')-1);
+          $table2 = substr($tableColumn2,0,strpos($tableColumn2,'.'));
           $column2 = substr($tableColumn2,strpos($tableColumn2,'.')+1);
 
+          if(!isset($this->foreignKeys[$table1])){
+              $this->foreignKeys[$table1] = [];
+          }
           array_push($this->foreignKeys[$table1], [$column1=>[$table2=>$column2]]);
 
           if(count($values)!==0){
@@ -135,10 +142,16 @@ class schema implements schemaInterface {
           array_merge($this->map[$table],$cols);
      }
 
+     public function getColumns($table){
+          return array_keys($this->map[$table]);
+     }
+
      public function addTable($tables){
           if(is_array($tables)){
                foreach($tables as $table){
-                    $this->map[$table]=[];
+                   if(!isset($this->map[$table])){
+                        $this->map[$table]=[];
+                   }
                }
           }
           elseif(is_string($tables)){
@@ -147,5 +160,73 @@ class schema implements schemaInterface {
 
      }
 
+     public function getTables(){
+          return(array_keys($this->map));
+     }
+
+     public function setPrimaryKey($table, $key){
+          $this->primaryKeys[$table]=$key;
+     }
+
+     public function addColumn($table, $field){
+          $this->map[$table]=[$field=>[]];
+     }
+
+     public function setMeta($table,$field,$meta=[]){
+
+          $metaTranslate = [];
+          $metaTranslate[$field] = [];
+          if(count($meta)>=0){
+               //get field length
+               $sansType = preg_split("/int|decimal|double|float|double|real|bit|bool|serial|date|time|year|char|text|binary|blob|enum|set|geometrycollection|multipolygon|multilinestring|multipoint|polygon|linestring|point|geometry/",
+                                        strtolower($meta['Type']));
+
+               if(isset($sansType[1])){
+                    $sansParens = preg_split("/\(|\)/",$sansType[1]);
+                    if(isset($sansParens[1])){
+                         $metaTranslate[$field]['length'] = intval($sansParens[1]);
+                    }
+               }
+
+               //field type
+               $metaTranslate[$field]['type'] = preg_filter("/\(|\d+|\)/","",strtolower($meta['Type']));
+               //field default
+               $metaTranslate[$field]['default'] = $meta['Default'];
+
+               if(!empty($meta['Key'])){
+                    $this->primaryKeys[$table] = $field;
+                    $metaTranslate[$field]['primaryKey'] = true;
+
+                    if($meta['Extra'] === "auto_increment"){
+                         $metaTranslate[$field]['auto'] = true;
+                    }
+               }
+
+               if($meta['Null'] === 'NO'){
+                    $metaTranslate[$field]['required'] = true;
+               }
+
+               if(array_key_exists('Format',$meta)){
+                    $metaTranslate[$field]['format'] = $meta['Format'];
+               }
+
+          }
+
+          $this->map[$table][$field]=$metaTranslate[$field];
+     }
+
+     public function getMeta($table, $field){
+
+          return($this->map[$table][$field]);
+
+     }
+
+     public function getForeignKeys(){
+          return $this->foreignKeys;
+     }
+
+     public function getPrimaryKeys(){
+         return $this->primaryKeys;
+     }
 }
 ?>

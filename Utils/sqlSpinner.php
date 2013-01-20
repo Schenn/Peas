@@ -275,29 +275,36 @@
                $this->method = "update";
                try {
                     if(isset($args['table'])){
-                         $this->sql = "UPDATE ".$args['table']." SET ";
+                         $this->sql = "UPDATE ".$args['table']." ";
                     }
                     else {
                          throw new sqlSpunError("Invalid Arguments", 1);
                     }
-                    $i = 0;
                     if(!isset($args['set'])){
                          throw new sqlSpunError("Invalid Arguments", 2);
                     }
-                    $cCount = count($args['set']);
-                    foreach($args['set'] as $column=>$value){
-                         $this->sql .="$column = :set".$column;
-                         if($i !== $cCount-1){
-                              $this->sql.=", ";
-                         }
-                         $i++;
-                    }
-                    $this->sql .= " ";
+                    
                     return($this);
                }
                catch (sqlSpunError $e){
                     echo $e->getMessage();
                }
+          }
+          
+          // Set Function for update query
+          function SET($args){
+              $this->sql .= "SET ";
+              $i = 0;
+              $cCount = count($args['set']);
+                foreach($args['set'] as $column=>$value){
+                     $this->sql .="$column = :set".str_replace(".","",$column);
+                     if($i !== $cCount-1){
+                          $this->sql.=", ";
+                     }
+                     $i++;
+                }
+                $this->sql .= " ";
+                return($this);
           }
 
           /*
@@ -328,6 +335,55 @@
           }
 
           function JOIN($join = [], $condition = []){
+              if($this->method=='update'){
+              if(!empty($join)){
+                  $block = [];
+                  $i=0;
+                  foreach($join as $tableMethod){
+                         foreach($tableMethod as $joinMethod=>$tableName){
+                             $block[$i] = strtoupper($joinMethod)." ".$tableName;
+                             $i++;
+                              //$this->sql .= strtoupper($joinMethod)." ".$tableName;
+                         }
+
+                    }
+                    
+                    if(array_key_exists("on", $condition)){
+                         //$this->sql .= "ON ";
+                         $c = count($condition['on']);
+                         $i=0;
+                         foreach($condition['on'] as $rel){
+                             $z = 0;
+                             foreach($rel as $table=>$column){
+                                 if(isset($block[$i])){
+                                        if($z===0){
+                                           $this->sql.= $block[$i]." ON ".$table.".".$column."=";
+                                           $z++;
+                                        }
+                                        else {
+                                            $this->sql .= $table.'.'.$column." ";
+                                            $z=0;
+                                        }
+                                 }
+                                 else {
+                                     break;
+                                 }
+                             }
+                             $i++;
+                             //$this->sql.= $block[$i]." ON ".$rel[0]."=".$rel[1];
+                         }
+
+                    }
+                    elseif(array_key_exists("using", $condition)){
+                         $this->sql .= "USING (";
+                         $using = $condition['using'];
+                         $uC = count($using);
+                         $this->sql .= implode(",", $using);
+                         $this->sql.=") ";
+                    }
+                    
+              }
+              } else{
                if($join !== []){
                     foreach($join as $tableMethod){
                          foreach($tableMethod as $joinMethod=>$tableName){
@@ -340,22 +396,25 @@
                     if(array_key_exists("on", $condition)){
                          $this->sql .= "ON ";
                          $c = count($condition['on']);
-                         for($i=0; $i<$c; $i += 2){
-                              $match = $condition['on'];
-                              $pre = $match[$i];
-                              $post = $match[$i+1];
-
-                              foreach($pre as $tableName=>$column){
-                                   $this->sql .= $tableName.".".$column."=";
-                              }
-                              foreach($post as $tableName=>$column){
-                                   $this->sql .= $tableName.'.'.$column." ";
-                              }
-
-                              if($i < $c-2){
-                                   $this->sql .= "AND ";
-                              }
+                         $i=0;
+                         foreach($condition['on'] as $rel){
+                             $z=0;
+                             foreach($rel as $tableName=>$columnName){
+                                 $this->sql .= $tableName.".".$columnName;
+                                 if($z <1){
+                                     $this->sql .= "= ";
+                                 }
+                                 else {
+                                     $this->sql .= " ";
+                                 }
+                                 $z++;
+                             }
+                             if($i<$c-1){
+                                 $this->sql .= " AND ";
+                             }
+                             $i++;
                          }
+                         
                     }
                     elseif(array_key_exists("using", $condition)){
                          $this->sql .= "USING (";
@@ -365,7 +424,8 @@
                          $this->sql.=") ";
                     }
                }
-
+              }
+              
                return($this);
           }
 
@@ -450,7 +510,7 @@
                                    $this->sql .= " AND ";
                               }
                               else if($this->method === "update"){
-                                   $this->sql .= ", ";
+                                   $this->sql .= " AND ";
                               }
                          }
                          $wI++;

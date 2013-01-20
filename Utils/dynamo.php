@@ -1,6 +1,7 @@
 <?php
      namespace PDOI\Utils;
-     use Exception, Iterator, JsonSerializable;
+     use BadMethodCallException, Exception, Iterator, JsonSerializable;
+
 class validationException extends Exception {
 
      public function __construct($message,$code, Exception $previous = null){
@@ -20,6 +21,7 @@ interface dynamoInterface extends Iterator, JsonSerializable {
  *
  */
 class dynamo implements dynamoInterface{
+    private $old = [];
      private $properties = [];
      private $meta = [];
 
@@ -46,11 +48,21 @@ class dynamo implements dynamoInterface{
                     $this->$name = $value->bindTo($this); //bindTo($this) grants the function access to $this
                }
                else {
+                   if(!array_key_exists($name, $this->properties)){
+                       $this->properties[$name] = null;
+                        $this->old[$name] = null;
+                   }
                     if(isset($this->meta[$name])){
                          if(!array_key_exists('fixed',$this->meta)){
                               if($this->meta[$name]['type'] ==="numeric"){
                                    if(abs($value)<=$this->meta[$name]['max'] && $value >= $this->meta[$name]['max'] * -1){
-                                        $this->properties[$name] = (float)$value;
+                                       if((float)$value !== $this->properties[$name]){
+                                            $this->old[$name]=$this->properties[$name];
+                                            $this->properties[$name] = (float)$value;
+                                            if(empty($this->old[$name])){
+                                                $this->old[$name]=$this->properties[$name];
+                                            }
+                                       }
                                    }
                                    else {
                                         throw new validationException("$value falls outside of $name available range (".($this->meta[$name]['max'] * -1)." to ".$this->meta[$name]['max'].")", 1);
@@ -60,7 +72,13 @@ class dynamo implements dynamoInterface{
                                    if(array_key_exists("length",$this->meta[$name])){
                                         $value = (string)$value;
                                         if(strlen($value) <= $this->meta[$name]['length']){
-                                             $this->properties[$name] = $value;
+                                            if($value !== $this->properties[$name]){
+                                                $this->old[$name]=$this->properties[$name];
+                                                 $this->properties[$name] = $value;
+                                                 if(empty($this->old[$name])){
+                                                    $this->old[$name]=$this->properties[$name];
+                                                }
+                                            }
                                         }
                                         else {
                                              throw new validationException("$value has too many characters for $name",2);
@@ -68,12 +86,24 @@ class dynamo implements dynamoInterface{
                                    }
                                    else {
                                         $value = (string)$value;
-                                        $this->properties[$name] = $value;
+                                        if($value !== $this->properties[$name]){
+                                            $this->old[$name]=$this->properties[$name];
+                                            $this->properties[$name] = $value;
+                                            if(empty($this->old[$name])){
+                                                $this->old[$name]=$this->properties[$name];
+                                            }
+                                        }
                                    }
                               }
                               elseif($this->meta[$name]['type'] === "boolean"){
                                    if(is_bool($value)){
-                                        $this->properties[$name] = $value;
+                                       if($value !== $this->properties[$name]){
+                                            $this->old[$name]=$this->properties[$name];
+                                             $this->properties[$name] = $value;
+                                             if(empty($this->old[$name])){
+                                                $this->old[$name]=$this->properties[$name];
+                                            }
+                                       }
                                    }
                                    else {
                                         throw new validationException("$name expectes boolean value; not $value",3);
@@ -84,7 +114,13 @@ class dynamo implements dynamoInterface{
                                         if(isset($this->meta[$name]['format'])){
                                              $value->format($this->meta[$name]['format']);
                                         }
-                                        $this->properties[$name] = $value;
+                                        if($value !== $this->properties[$name]){
+                                            $this->old[$name]=$this->properties[$name];
+                                            $this->properties[$name] = $value;
+                                            if(empty($this->old[$name])){
+                                                $this->old[$name]=$this->properties[$name];
+                                            }
+                                        }
                                    }
                                    else {
                                         throw new validationException("$value not a date for $name",4);
@@ -97,7 +133,13 @@ class dynamo implements dynamoInterface{
                          }
                     }
                     else {
-                         $this->properties[$name] = $value;
+                        if($value !== $this->properties[$name]){
+                            $this->old[$name]=$this->properties[$name];
+                             $this->properties[$name] = $value;
+                             if(empty($this->old[$name])){
+                                $this->old[$name]=$this->properties[$name];
+                            }
+                        }
                     }
                }
           }
@@ -306,6 +348,10 @@ class dynamo implements dynamoInterface{
       */
      public function unsetRules(){
           $this->meta = [];
+     }
+     
+     public function oldData($key){
+         return($this->old[$key]);
      }
 }
 ?>

@@ -139,22 +139,26 @@
                          }
                     }
                }
+               
+               
           }
 
           protected function prepJoin(&$args, &$join=[], &$jCond=[]){
                $cols = [];
-               $pTable="";
-               foreach($args['table'] as $tableName=>$columnList){
-                    if(empty($pTable)){
-                         $pTable = $tableName;
-                    }
-                    $c = count($columnList);
-                    for($i=0;$i<$c;$i++){
-                         array_push($cols, $tableName.".".$columnList[$i]);
-                    }
+               $tables = [];
+               foreach($args['table'] as $table){
+                   foreach($table as $tableName=>$columnList){
+                        array_push($tables, $tableName);
+                        $c = count($columnList);
+                        for($i=0;$i<$c;$i++){
+                            if(isset($columnList[$i])){
+                                array_push($cols, $tableName.".".$columnList[$i]);
+                            }
+                        }
+                   }
                }
-               $args['columns'] = $cols;
-               $args['table']=$pTable;
+               $args['table'] = $tables[0];
+               $args['columns']=$cols;
 
                if(array_key_exists("where", $args)){
                     foreach($args['where'] as $table=>$columnInfo){
@@ -183,7 +187,7 @@
                else if(array_key_exists("using", $args)){
                     $jCond["using"] = $args['using'];
                }
-
+               
           }
 
 
@@ -273,9 +277,11 @@
                //spin sql statement from options
                $sql = (new Utils\sqlSpinner())->SELECT($args)->JOIN($join, $jCond)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
                if($this->debug){ //if in debug mode
+                   echo "<pre>";
                     print_r($sql);
                     echo("<br />\n");
                     print_r($whereValues);
+                    echo "</pre>";
                }
                $this->ping(); // before running sql query, ensure the db is still 'there'
                try {
@@ -327,9 +333,11 @@
                 */
                $sql = (new Utils\sqlSpinner())->INSERT($args)->getSQL(); //spin sql statement from arguments
                if($this->debug){ //if in debug mode
+                    echo "<pre>";
                     print_r($sql);
                     echo("<br />\n");
                     print_r($args);
+                    echo "</pre>";
                }
                try {
                     $this->ping(); //verify db access
@@ -422,7 +430,7 @@
                     }
                     if(isset($args['set'])){  //set values for update (UPDATE table SET setColumn = setValue, etc)
                          foreach($args['set'] as $column=>$value){
-                              $prepCol = ":set".$column;
+                              $prepCol = ":set".str_replace(".","",$column);
                               $setValues[$prepCol] = $value;
                          }
                     }
@@ -444,20 +452,22 @@
                          $orderby = $args['orderby'];
                     }
                     $limit = null; //limit
-                    if(isset($args['limit'])){
+                    if(isset($args['limit']) && empty($join)){
                          $limit = $args['limit'];
                     }
 
                     //Spin sql from options
-                    $sql = (new Utils\sqlSpinner())->UPDATE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+                    $sql = (new Utils\sqlSpinner())->UPDATE($args)->JOIN($join, $jCond)->SET($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
 
                     if($this->debug){ //if debugging
+                        echo "<pre>";
                          print_r($sql);
                          echo("<br />\n");
                          print_r($setValues);
                          echo("<br />\n");
                          print_r($whereValues);
                          echo("<br />\n");
+                         echo "</pre>";
                     }
 
                     $this->ping(); //determine db access
@@ -523,10 +533,12 @@
                //spin sql from arguments
                $sql = (new Utils\sqlSpinner())->DELETE($args)->JOIN($join, $jCond)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
                if($this->debug){ //if debugging
+                         echo "<pre>";
                          print_r($sql);
                          echo("<br />\n");
                          print_r($whereValues);
                          echo("<br />\n");
+                         echo "</pre>";
                     }
                try {
                     $this->ping(); //ensure db access

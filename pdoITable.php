@@ -43,8 +43,47 @@
           protected $args = [];
 
 
-          protected function generateArguments(){
+          public function generateArguments(){
                //uses schema information to generate argument list
+               $a = [];
+               //if one table
+
+               $tables = $this->schema->getTables();
+
+               if(count($tables)===1){
+                    $a['table'] = $tables[0];
+                    $a['cols'] = $this->schema->getColumns($tables[0]);
+                    
+               }
+               elseif(count($tables)>1){ //if multiple tables
+                    $a['table'] = [];
+                    $a['join'] = [];
+                    $i=0;
+                    foreach($this->schema as $table=>$colData){
+                         array_push($a['table'],[$table=>$this->schema->getColumns($table)]);
+                         if($i > 0){
+                              array_push($a['join'],['inner join'=>$table]);
+                         }
+                         $i++;
+                    }
+                    $rels=[];
+                    foreach($this->schema->getForeignkeys() as $table=>$fKeys){
+                        //table1 = [0=>[table1Column=>[table2=>column2]]]
+                        //translate into [table1=>column1, table2=>column2]
+                        $table1 = $table;
+                        foreach($fKeys as $keys){
+                            foreach($keys as $column=>$keyData){
+                                foreach($keyData as $table2=>$connectingData){
+                                    $thisRel = [$table1=>$column, $table2=>$connectingData];
+                                    array_push($rels, $thisRel);
+                                }
+                            }
+                        }
+                    }
+                    $a['on'] = $rels;
+               }
+
+               return($a);
           }
 
 
@@ -55,6 +94,7 @@
           function __construct($config, $tables, $debug=false){
                parent::__construct($config, $debug);
                $this->schema = new schema([]);
+               $this->entity = new dynamo();
                $this->setTable($tables);
           }
 
@@ -74,52 +114,18 @@
            * Description:  Gets table schema from the db.  becomes aware of column names and validation requirements
            */
           function setColumns(){
-               foreach($this->schema as $table){
-               if(count($this->schema->$table)===0){
-
+               foreach($this->schema as $table=>$columns){
+               if(count($columns)===0){
                     $description = parent::describe($table);
                     $cols = [];
                     foreach($description as $row){  //for each column in table
                          $field = $row['Field'];
-                         $true = $table.".".$field;
+                         //$true = $table.".".$field;
                          array_push($cols, $field);
                          unset($row['Field']);
 
-                         array_push($this->schema[$table]['columns'],[$field=>""]);
-
-                         //get field length
-                         $sansType = preg_split("/int|decimal|double|float|double|real|bit|bool|serial|date|time|year|char|text|binary|blob|enum|set|geometrycollection|multipolygon|multilinestring|multipoint|polygon|linestring|point|geometry/",strtolower($row['Type']));
-                         if(isset($sansType[1])){
-                              $sansParens = preg_split("/\(|\)/",$sansType[1]);
-                              if(isset($sansParens[1])){
-                                   $this->columnMeta[$field]['length'] = intval($sansParens[1]);
-                              }
-                         }
-
-                         //get field data type
-                         $type = preg_filter("/\(|\d+|\)/","",strtolower($row['Type']));
-
-                         $this->columnMeta[$field]['type'] = $type;
-                         $this->columnMeta[$field]['default'] = $row['Default'];
-
-                         //if its a primary key
-                         if($row['Key'] === "PRI"){
-                              $this->columnMeta[$field]['primaryKey'] = true;
-                              $this->schema[$table]['primaryKey']=$field;
-
-                              //if its auto_incremented
-                              if($row['Extra'] === "auto_increment"){
-                                   $this->columnMeta[$field]['auto'] = true;
-                              }
-                         }
-
-                         if($row['Null'] === 'NO'){
-                              $this->columnMeta[$field]['required'] = true;
-                         }
-
-
                          //set default values to the columns
-                         switch($type){
+                         switch(preg_filter("/\(|\d+|\)/","",strtolower($row['Type']))){
                               case "int":
                               case "decimal":
                               case "double":
@@ -136,19 +142,24 @@
                               case "time":
                               case "year":
                                    $this->columns[$field]= (empty($row['Default'])) ? date("Y-m-d H:i:s") : strtotime($row['Default']);
-                                   $this->columnMeta[$field]['format'] = "Y-m-d H:i:s";
+                                   $row['Format'] = "Y-m-d H:i:s";
                                    break;
                               default:
                                    $this->columns[$field]= (empty($row['Default'])) ? "" : $row['Default'];
                                    break;
                          }
+
+                         $this->schema->setMeta($table,$field,$row);
+                         $this->columnMeta[$field] = $this->schema->getMeta($table, $field);
+                         $this->entity->$field = $this->columns[$field];
+
                     }
+
+                    $this->entity->setValidationRules($this->columnMeta); //sets validation rules on dynamic object based off validation information
                }
                }
 
-               $this->schema->addColumns($this->tableName, $cols);
-               $this->entity = new dynamo($this->columns); //generates new dynamic object to template rows from the table
-               $this->entity->setValidationRules($this->columnMeta); //sets validation rules on dynamic object based off validation information
+
 
                // Set up the schema
           }
@@ -157,10 +168,9 @@
            * Description:  Runs a select query on the table
            * Takes: options = [] (associative array of options.  Overrides currently stored arguments for the query)
            */
-          function select($options, $entity = null){
+          function select($options=[], $entity = null){
                $entity = ($entity !== null ? $entity : clone $this->entity); //if no object supplied to take values from select query, use dynamo
-               $a = $this->args;
-               //$a = $this->generateArguments();
+               $a = $this->generateArguments();
                foreach($options as $option=>$setting){ //supplied options override stored arguments
                     $a[$option]=$setting;
                }
@@ -224,6 +234,7 @@
                *'on'=>[['table'=>'column', 'table'=>'column'], ['table'=>'column', 'table'=>'column']]
                * || 'using' =>['columnName','columnName']
                 */
+              /*
                $opts = [];
                $opts["join"]=$join;
                $opts['table']=[];
@@ -312,6 +323,8 @@
                else { //if no where, return template for join
                     return($e);
                }
+               * 
+               */
           }
 
           /* Name: update
@@ -319,21 +332,36 @@
            * Takes: options = [] (associative array of options, overrides currently stored arguments for the query)
            */
           function update($options){
-               $a = $this->args;
-               //$a = $this->generateArguments();
-               //ensures auto_numbering primary key is not 'updated'
-               foreach($a['columns'] as $index=>$key){
-                    if(array_key_exists("primaryKey",$this->columnMeta[$key])){
-                         $removeIndex = $index;
+               //$a = $this->args;
+               $a = $this->generateArguments();
+               
+                //ensures auto_numbering primary key is not 'updated'
+               if(is_array($a['table'])){
+                    foreach($a['table'] as $tindex=>$tableData){
+                        foreach($tableData as $tableName=>$columns){
+                            foreach($columns as $cindex=>$column){
+                                if(array_key_exists("primaryKey",$this->schema->getMeta($tableName, $column))){
+                                   unset($a['table'][$tindex][$tableName][$cindex]);
+                                }
+                            }
+                        }
                     }
+               } elseif(is_string($a['table'])){
+                   $tableName = $a['table'];
+                   $colCount = count($a['cols']);
+                   for($i=0;$i<$colCount;$i++){
+                       if(array_key_exists("primaryKey",$this->schema->getMeta($tableName, $a['cols'][$i]))){
+                            unset($a['cols'][$i]);
+                        }
+                   }
+                   $a['cols'] = array_values($a['cols']);
                }
-               unset($a['columns'][$removeIndex]);
-               $a['columns'] = array_values($a['columns']);
 
                //override stored arguments
                foreach($options as $option=>$setting){
                     $a[$option]=$setting;
                }
+               
                return(parent::UPDATE($a)); //return PDOI->update result
           }
 
@@ -360,8 +388,14 @@
 
           // resets the columns to their default values
           function reset(){
-               foreach($this->columns as $key=>$value){
-                    $this->columns[$key] = $this->columnMeta[$key]['default'];
+               foreach($this->schema as $table=>$columns){
+
+                    $cols = array_keys($columns);
+
+                    foreach($cols as $col){
+                         $this->columns[$col] = $this->schema->getMeta($table,$col)['default'];
+                    }
+
                }
           }
 
@@ -392,26 +426,50 @@
                          }
                     }
 
-                    $t->insert($args);
+                    return $t->insert($args);
 
                };
 
                //dynamo update function, uses this pdoITable
                $e->update = function() use ($t){
                     $args = [];
+                    $args['set'] = [];
+                    $args['where'] = [];
+                    //t has schema information
+                    //use primary keys to create where
+                    //compare current values against defaults before adding to 'set'
 
-                    foreach($this as $key=>$value){
-                         if(!array_key_exists('fixed',$this->getRule($key))){
-                              $setKey = $key;
-                              $args['set'][$setKey]=$value;
-                         }
-                         else {
-                              $whereKey = $key;
-                              $args['where'][$whereKey] = $value;
-                         }
+                    $schema = $t->getSchema();
+                    $pkeys = $schema->getPrimaryKeys();
+                    $tCount = count($schema->getTables());
+                    foreach($schema as $tableName=>$column){
+                        foreach($column as $columnName=>$columnData){
+                            if(($this->$columnName !== $columnData['default']) && 
+                                    (!array_key_exists("primaryKey",$columnData) && 
+                                    ($this->$columnName !== $this->oldData($columnName)))){
+                                if($tCount > 1){
+                                    $args['set'][$tableName]=[$columnName=>$this->$columnName];
+                                }
+                                else {
+                                    $args['set'][$columnName]=$this->$columnName;
+                                }
+                            }
+                        }
                     }
+                    
+                    foreach($pkeys as $table=>$column){
+                        if($tCount > 1){
+                            $args['where'][$table] = [$column=>$this->$column];
+                        }
+                        else {
+                            $args['where'][$column]=$this->$column;
+                        }
+                        
+                    }
+                    
                     $args['limit']=1;
-                    $t->update($args);
+                    
+                    return $t->update($args);
                };
 
                //dynamo delete function, uses this pdoITable
@@ -422,18 +480,25 @@
                               $args['where'] = [$key=>$value];
                          }
                     }
-                    $t->delete($args);
+                    return $t->delete($args);
                };
 
                $this->reset();
                return($e); //returns the dynamo with access to the parent table
           }
 
-          function setRelationship($realtionship, $getValueList = false){
-               //attaches anothers table schema information to this pdoiTables schema
-               //relationship = [tableName=>columnName]
-               //if getValueList = true, loads a list of all the values in the table and sets them as the 'list' value in the schema
+          function setRelationship($relationships, $values = false){
+               foreach($relationships as $fKey=>$pKey){
+                   //add tables w/columns to schema
+                   $this->schema->addTable([explode(".",$pKey)[0]]);
+                   $this->setColumns();
+                   $this->schema->setForeignKey([$fKey=>$pKey]);
+               }
 
+          }
+          
+          function getSchema(){
+              return $this->schema;
           }
      }
 
