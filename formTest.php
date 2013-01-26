@@ -5,8 +5,7 @@
      $config = [
                'dbname'=>'pdoi_tester',
                'username'=>'pdoi_tester',
-               'password'=>'pdoi_pass',
-               'driver_options'=>[PDO::ATTR_PERSISTENT => true]
+               'password'=>'pdoi_pass'
           ];
 
      $persons = new pdoITable($config, 'persons', true);
@@ -257,16 +256,12 @@
           else if($_GET['action'] === 'worksWith'){
 
                //get shipid of person
-               $join = [['inner join'=>'manifest']];
-               $cond = ["on"=>[['manifest'=>'person_id'],['persons'=>'id']]];
-               $where = ['persons'=>['name'=>$_GET['name']]];
-               $entity = $persons->joinWith($join, $cond, $where);
+              $persons->setRelationship(['persons.id'=>'manifest.person_id', 'manifest.ship_id'=>'ships.ship_id'], false);
+              $where = ['persons'=>['name'=>$_GET['name']]];
+              $entity = $persons->select(['where'=>$where]);
 
-               $join2 = [['inner join'=>'manifest'], ['inner join'=>'persons']];
-               $cond2 = ['on'=>[['manifest'=>'ship_id'], ['ships'=>'ship_id'], ['manifest'=>'person_id'],['persons'=>'id']]];
-               $where2 = ['ships'=>['ship_id'=>$entity->ship_id]];
-
-               $entities = $ships->joinWith($join2,$cond2,$where2);
+              $entities = $persons->select(['where'=>['ships'=>['ship_id'=>$entity->ship_id]]]);
+              
                if(is_object($entities)){
                     echo($entities."<br/>");
                }

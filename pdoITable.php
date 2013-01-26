@@ -52,7 +52,7 @@
 
                if(count($tables)===1){
                     $a['table'] = $tables[0];
-                    $a['cols'] = $this->schema->getColumns($tables[0]);
+                    $a['columns'] = $this->schema->getColumns($tables[0]);
 
                }
                elseif(count($tables)>1){ //if multiple tables
@@ -189,8 +189,8 @@
            * Takes: options = [] (associative array of options, overrides currently stored arguments for the query)
            */
           function insert($options){
-               $a = $this->args;
-               //$a = $this->generateArguments();
+               //$a = $this->args;
+               $a = $this->generateArguments();
 
                //ensures that if the primary key is auto-numbering, no value will be sent
                foreach($a['columns'] as $index=>$key){
@@ -202,10 +202,13 @@
 
                //resets array indexes for columns in arguments
                $a['columns'] = array_values($a['columns']);
+               
+               
                if(!isset($options['values'])){ //if no values supplied, uses stored information for values
                     $a['values']=[];
                     foreach($this->columns as $column=>$value){
                          if(!array_key_exists("auto",$this->columnMeta[$column])){
+                             
                               $a['values'][$column]=$value;
                          }
                     }
@@ -214,6 +217,14 @@
                     $a[$option]=$setting;
                }
 
+               
+               foreach($a['columns'] as $index=>$column){
+                   if(!isset($a['values'][$column])){
+                       unset($a['columns'][$index]);
+                   }
+               }
+               $a['columns'] = array_values($a['columns']);
+               
                return(parent::INSERT($a)); //returns result of PDOI->insert
           }
 
@@ -348,13 +359,13 @@
                     }
                } elseif(is_string($a['table'])){
                    $tableName = $a['table'];
-                   $colCount = count($a['cols']);
+                   $colCount = count($a['columns']);
                    for($i=0;$i<$colCount;$i++){
-                       if(array_key_exists("primaryKey",$this->schema->getMeta($tableName, $a['cols'][$i]))){
-                            unset($a['cols'][$i]);
+                       if(array_key_exists("primaryKey",$this->schema->getMeta($tableName, $a['columns'][$i]))){
+                            unset($a['columns'][$i]);
                         }
                    }
-                   $a['cols'] = array_values($a['cols']);
+                   $a['columns'] = array_values($a['columns']);
                }
 
                //override stored arguments
@@ -420,7 +431,7 @@
                     foreach($this as $key=>$value){
                          $validation = $this->getRule($key);
                          if(!array_key_exists('fixed',$validation)){
-                              if($value !== $validation['default'] && $value !== null){
+                              if($value != $validation['default'] && $value !== null){
                                    $args['values'][$key]=$value;
                               }
                          }

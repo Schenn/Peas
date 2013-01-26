@@ -275,24 +275,14 @@
                $this->method = "update";
                try {
                     if(isset($args['table'])){
-                         $this->sql = "UPDATE ".$args['table']." SET ";
+                         $this->sql = "UPDATE ".$args['table']." ";
                     }
                     else {
                          throw new sqlSpunError("Invalid Arguments", 1);
                     }
-                    $i = 0;
                     if(!isset($args['set'])){
                          throw new sqlSpunError("Invalid Arguments", 2);
                     }
-                    $cCount = count($args['set']);
-                    foreach($args['set'] as $column=>$value){
-                         $this->sql .="$column = :set".$column;
-                         if($i !== $cCount-1){
-                              $this->sql.=", ";
-                         }
-                         $i++;
-                    }
-                    $this->sql .= " ";
                     return($this);
                }
                catch (sqlSpunError $e){
@@ -300,6 +290,21 @@
                }
           }
 
+          function SET($set){
+                $i = 0;
+                $cCount = count($set);
+                foreach($set as $column=>$value){
+                     $this->sql .="$column = :set".str_replace(".","",$column);
+                     if($i !== $cCount-1){
+                          $this->sql.=", ";
+                     }
+                     $i++;
+                }
+                $this->sql .= " ";
+
+                return $this;
+          }
+          
           /*
            * Name: DELETE
            * Takes: args = [
@@ -328,43 +333,81 @@
           }
 
           function JOIN($join = [], $condition = []){
-               if($join !== []){
-                    foreach($join as $tableMethod){
-                         foreach($tableMethod as $joinMethod=>$tableName){
-                              $this->sql .= strtoupper($joinMethod)." ".$tableName. " ";
-                         }
+              if($this->method === "select"){
+                if($join !== []){
+                     foreach($join as $tableMethod){
+                          foreach($tableMethod as $joinMethod=>$tableName){
+                               $this->sql .= strtoupper($joinMethod)." ".$tableName. " ";
+                          }
 
-                    }
-                    $this->sql .=" ";
+                     }
+                     $this->sql .=" ";
 
-                    if(array_key_exists("on", $condition)){
-                         $this->sql .= "ON ";
-                         $c = count($condition['on']);
-                         for($i=0; $i<$c; $i += 2){
-                              $match = $condition['on'];
-                              $pre = $match[$i];
-                              $post = $match[$i+1];
+                     if(array_key_exists("on", $condition)){
+                          $this->sql .= "ON ";
+                          $c = count($condition['on']);
+                          $match = $condition['on'];
+                          for($i=0; $i<$c; $i += 2){
+                               $pre = $match[$i];
+                               $post = $match[$i+1];
 
-                              foreach($pre as $tableName=>$column){
-                                   $this->sql .= $tableName.".".$column."=";
-                              }
-                              foreach($post as $tableName=>$column){
-                                   $this->sql .= $tableName.'.'.$column." ";
-                              }
+                               if(count($pre) ===1){
+                                 foreach($pre as $tableName=>$column){
+                                      $this->sql .= $tableName.".".$column."=";
+                                 }
+                                 foreach($post as $tableName=>$column){
+                                      $this->sql .= $tableName.'.'.$column." ";
+                                 }
+                                 if($i < $c-2){
+                                    $this->sql .= "AND ";
+                                 }
+                               } else {
+                                   $z=1;
+                                   foreach($pre as $tableName=>$column){
+                                       $this->sql .= $tableName.".".$column;
+                                       if($z===1){
+                                           $this->sql.= "=";
+                                       }
+                                       else {
+                                           $this->sql .=" AND ";
+                                       }
+                                       $z++;
+                                   }
 
-                              if($i < $c-2){
-                                   $this->sql .= "AND ";
-                              }
-                         }
-                    }
-                    elseif(array_key_exists("using", $condition)){
-                         $this->sql .= "USING (";
-                         $using = $condition['using'];
-                         $uC = count($using);
-                         $this->sql .= implode(",", $using);
-                         $this->sql.=") ";
-                    }
-               }
+                                   $z=1;
+                                   foreach($post as $tableName=>$column){
+                                       $this->sql .= $tableName.".".$column;
+                                       if($z===1){
+                                           $this->sql.= "=";
+                                       }
+                                       else {
+                                           if($z < count($post)){
+                                             $this->sql .=" AND ";
+                                           }
+                                           else {
+                                               $this->sql .= " ";
+                                           }
+                                       }
+                                       $z++;
+                                   }
+
+                               }
+
+
+                          }
+                     }
+                     elseif(array_key_exists("using", $condition)){
+                          $this->sql .= "USING (";
+                          $using = $condition['using'];
+                          $uC = count($using);
+                          $this->sql .= implode(",", $using);
+                          $this->sql.=") ";
+                     }
+                }
+              }
+              elseif($this->method==="update") {
+                  
+              }
 
                return($this);
           }

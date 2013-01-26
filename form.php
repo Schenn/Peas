@@ -9,8 +9,7 @@
      $config = [
                'dbname'=>'pdoi_tester',
                'username'=>'pdoi_tester',
-               'password'=>'pdoi_pass',
-               'driver_options'=>[PDO::ATTR_PERSISTENT => true]
+               'password'=>'pdoi_pass'
           ];
 
 

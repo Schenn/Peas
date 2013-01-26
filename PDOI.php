@@ -32,6 +32,11 @@
 
           function __construct($config){
                $config['dns'] = 'mysql:dbname='.$config['dbname'].';localhost';
+
+               if(!isset($config['driver_options'])){
+                    $config['driver_options'] = [PDO::ATTR_PERSISTENT => true];
+               }
+
                parent::__construct($config['dns'], $config['username'], $config['password'], $config['driver_options']);
                parent::setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
           }
@@ -371,7 +376,7 @@
                     else { //one row of values to insert
                          $values = [];
                          foreach($args['values'] as $column=>$value){
-                              if(!empty($value)){
+                              if(isset($value)){
                                    $prepCol = ":$column";
                                    $values[$prepCol] = $value;
                               }
@@ -409,6 +414,9 @@
            *                       if method is 'like' or 'not like' | 'notlike', appends % to beginning and end of value
            *                       See sqlSpinner.php - WHERE for more information on how it is parsed and how to specify 'method'
            *             OPTIONAL
+           *                  'join' = see SELECT JOIN
+           *                  'on' = see SELECT ON
+           *                  'using' = see SELECT USNG
            *                  'orderby'=>['column'=>'ASC' || 'DESC']
            *                  'limit'=> #
            *                       Sets the LIMIT value in the Select statemen
@@ -432,6 +440,7 @@
                          foreach($args['set'] as $column=>$value){
                               $prepCol = ":set".str_replace(".","",$column);
                               $setValues[$prepCol] = $value;
+                              
                          }
                     }
                     else { //no set values assigned, throw an error
@@ -457,7 +466,7 @@
                     }
 
                     //Spin sql from options
-                    $sql = (new Utils\sqlSpinner())->UPDATE($args)->JOIN($join, $jCond)->SET($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+                    $sql = (new Utils\sqlSpinner())->UPDATE($args)->JOIN($join, $jCond)->SET($args['set'])->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
 
                     if($this->debug){ //if debugging
                         echo "<pre>";
