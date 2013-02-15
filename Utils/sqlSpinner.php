@@ -38,7 +38,7 @@
       *        getSQL.  Call getSQL to retrieve the sql statement and end the chain.
       */
      class sqlSpinner {
-          protected $method;
+          public $method;
           protected $sql;
 
           /*
@@ -333,7 +333,7 @@
           }
 
           function JOIN($join = [], $condition = []){
-              if($this->method === "select"){
+              if($this->method == "select"){
                 if($join !== []){
                      foreach($join as $tableMethod){
                           foreach($tableMethod as $joinMethod=>$tableName){
@@ -404,9 +404,17 @@
                           $this->sql.=") ";
                      }
                 }
-              }
-              elseif($this->method==="update") {
-                  
+              } elseif($this->method == "update") {
+                  foreach($join as $tableMethod){
+                      foreach($tableMethod as $method=>$table){
+                          if(array_key_exists('on', $condition)){
+                              $on = $condition['on'];
+                              foreach($on as $relation){
+                                  var_dump($relation);
+                              }
+                          }
+                      }
+                  }
               }
 
                return($this);
