@@ -48,7 +48,7 @@
            * Description:  generates an aggregate mysql function
            */
 
-          protected function aggregate($aggMethod, $aggValues=[]){
+          protected function aggregate($aggMethod, $aggValues=[], $alias = ""){
                //if columnNames is empty, * is used
                $this->sql .= strtoupper($aggMethod)."(";
                $cNameCount = count($aggValues);
@@ -59,6 +59,13 @@
                     $this->sql .= implode(", ", $aggValues);
                }
                $this->sql.=")";
+               
+               if(!empty($alias)){
+                   $this->sql.= " AS ".$alias." ";
+               } else {
+                   $tmpAlias = $aggMethod.$aggValues[0];
+                   $this->sql.= " AS ".$tmpAlias." ";
+               }
           }
 
 
@@ -170,7 +177,7 @@
                     if(!empty($args['columns'])){
                          $i=0;
                          $cols = count($args['columns']);
-                         foreach($args['columns'] as $col){
+                         foreach($args['columns'] as $index=>$col){
                               if(!isset($col['agg'])){
                                    if($i !== $cols-1){
                                         $this->sql .="$col, ";
@@ -180,8 +187,12 @@
                                    }
                               }
                               else {
+                                  $alias = "";
+                                  if(is_string($index)){
+                                      $alias = $index;
+                                  }
                                    foreach($col['agg'] as $method=>$columnNames){
-                                        $this->aggregate($method, $columnNames);
+                                        $this->aggregate($method, $columnNames, $alias);
                                    }
                               }
                               $i++;

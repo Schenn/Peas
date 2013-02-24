@@ -371,7 +371,7 @@
                     else { //one row of values to insert
                          $values = [];
                          foreach($args['values'] as $column=>$value){
-                              if(!empty($value)){
+                              if(isset($value)){
                                    $prepCol = ":$column";
                                    $values[$prepCol] = $value;
                               }

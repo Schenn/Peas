@@ -14,6 +14,7 @@ class schema implements schemaInterface {
      private $map = [];
      private $primaryKeys = [];
      private $foreignKeys = [];
+     private $masterKey = [];
 
      public function __construct($maps = []){
           foreach($maps as $table=>$columns){
@@ -24,6 +25,9 @@ class schema implements schemaInterface {
                $this->primaryKeys[$table] = [];
                $this->foreignKeys[$table] = [];
           }
+          if(count($maps)===1){
+              $this->masterKey = [array_keys($maps)[0]=>""];
+          }
      }
 
      public function __set($table, $columnList){
@@ -33,6 +37,7 @@ class schema implements schemaInterface {
           }
           $this->primaryKeys[$table] = [];
           $this->foreignKeys[$table] = [];
+
      }
 
      public function __get($table){
@@ -136,6 +141,16 @@ class schema implements schemaInterface {
           unset($this->primaryKeys[$table]);
           unset($this->foreignKeys[$table]);
 
+          foreach($this->foreignKeys as $fkTable){
+                foreach($fkTable as $column=>$fkRel){
+                    $seekTable = array_keys($fkRel)[0];
+                    
+                    if($seekTable === $table){
+                        unset($this->foreignKeys[$fkTable][$column]);
+                    }
+                }
+            }
+          
      }
 
      public function addColumns($table, $cols){
@@ -156,20 +171,27 @@ class schema implements schemaInterface {
           }
           elseif(is_string($tables)){
                $this->map[$tables]=[];
+               if(count($this->masterKey)===0){
+                   $this->masterKey = [$tables=>""];
+               }
           }
 
      }
-
+     
      public function getTables(){
           return(array_keys($this->map));
      }
 
      public function setPrimaryKey($table, $key){
           $this->primaryKeys[$table]=$key;
+          if(array_key_exists($this->masterKey, $table)){
+              $this->masterKey[$table]=$key;
+          }
      }
 
      public function addColumn($table, $field){
           $this->map[$table]=[$field=>[]];
+          
      }
 
      public function setMeta($table,$field,$meta=[]){
@@ -228,5 +250,15 @@ class schema implements schemaInterface {
      public function getPrimaryKeys(){
          return $this->primaryKeys;
      }
+     
+     public function getMasterKey(){
+         return $this->masterKey;
+     }
+     
+     public function setMasterKey($mk){
+         //tablename->fieldname
+         $this->masterKey = $mk;
+     }
+     
 }
 ?>

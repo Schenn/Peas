@@ -19,7 +19,9 @@
                     $entity->$column = $_POST[$column];
                }
           }
-          $entity->insert();
+          if($entity->insert()){
+              echo "Insert Successful!";
+          }
      }
 
      function update($pdoit){
@@ -97,8 +99,14 @@
           $opts['columns'] = (trim($_GET['cols'])!=="") ? explode(",",trim($_GET['cols'])): [];
 
           if(isset($_GET['aggSolar'])){
-               $opts['columns']['solar_years'] = [];
-               $opts['columns']['solar_years']['agg'] = [$_GET['aggregateMethod']=>['solar_years']];
+              //check which agg function    
+              //set this up to not care about what column but to use the column provided in the select box.
+              if(count($opts['columns'])==1){
+                  $index = $_GET['aggregateMethod'].$opts['columns'][0];
+                  $opts['columns'][$index] = [];
+                  $opts['columns'][$index]['agg'] = [$_GET['aggregateMethod']=>[$opts['columns'][0]]];
+                  unset($opts['columns'][0]);
+              }
           }
 
           //Where
@@ -162,11 +170,10 @@
      }
 
      function selectjoin1($where,$persons, $ret = null) {
-          $shipmanifest = clone $persons;
-          $shipmanifest->setRelationship(['persons.id'=>'manifest.person_id', 'manifest.ship_id'=>'ships.ship_id'], false);
-          
-          $entities = $shipmanifest->select(['where'=>$where]);
-
+          $persons->setRelationship(['persons.id'=>'manifest.person_id', 'manifest.ship_id'=>'ships.ship_id'], false);
+          $entities = $persons->select(['where'=>$where]);
+          $persons->endRelationship();
+            
           if(is_object($entities)){
                if($ret !== null){
                     return($entities);
@@ -186,6 +193,8 @@
           }
      }
 
+     ///WHERE POST DATA IS PROCESSED
+     
      if(isset($_POST['action'])){
           if($_POST['action']==="insert"){
                $person = $persons->Offshoot();
@@ -197,13 +206,7 @@
           }
           elseif($_POST['action']==="manifestAdd"){
                $crew = $manifest->Offshoot();
-               foreach($crew as $key=>$value){
-                    if(!array_key_exists("fixed", $crew->getRule($key))){
-                         $crew->$key = $_POST[$key];
-                    }
-               }
-               $crew->insert();
-
+               insert($crew);
           }
           else if($_POST['action'] === 'update'){
                update($persons);
@@ -223,8 +226,10 @@
                //run update on everyone
                //add 1 to ship mission count
                $crew = selectjoin1(['ships'=>['ship_name'=>$_POST['ship_name']]], $persons, true);
+               if(is_object($crew)){
+                   $crew = [$crew];
+               }
                $years = (int)$_POST['mission_years'];
-               $success = false;
                $crewTemplate = $persons->Offshoot();
 
                foreach($crew as $index=>$crewman){
@@ -233,7 +238,6 @@
                     }
                     $crewTemplate->solar_years += $years;
                     $crewTemplate->experience_points += $years * 100;
-                    $success = $crewTemplate->update();
                }
 
                $opts = ['where'=>["ship_id"=>$crew[0]->ship_id]];
@@ -243,7 +247,7 @@
                foreach($sTemp as $key=>$val){
                     $sTemp->$key = $ship->$key;
                }
-               $sTemp->ship_mission_count = intval($ship->ship_mission_count) + 1;
+               $sTemp->ship_mission_count = $ship->ship_mission_count + 1;
 
                $sTemp->update();
                
@@ -255,25 +259,28 @@
                selectjoin1(['ships'=>['ship_name'=>$_GET['ship_name']]], $persons);
           }
           else if($_GET['action'] === 'worksWith'){
+              $persons->setRelationship(['persons.id'=>'manifest.person_id', 'manifest.ship_id'=>'ships.ship_id']);
+              $entity = $persons->select(['limit'=>1,'where'=>['persons'=>['name'=>$_GET['name']]]]);
+              //get shipid of person
+              
+              $entities = $persons->select(['where'=>['ships'=>['ship_id'=>$entity->ship_id]]]);
 
-               //get shipid of person
-               $join = [['inner join'=>'manifest']];
-               $cond = ["on"=>[['manifest'=>'person_id'],['persons'=>'id']]];
-               $where = ['persons'=>['name'=>$_GET['name']]];
-               $entity = $persons->joinWith($join, $cond, $where);
-
-               $join2 = [['inner join'=>'manifest'], ['inner join'=>'persons']];
-               $cond2 = ['on'=>[['manifest'=>'ship_id'], ['ships'=>'ship_id'], ['manifest'=>'person_id'],['persons'=>'id']]];
-               $where2 = ['ships'=>['ship_id'=>$entity->ship_id]];
-
-               $entities = $ships->joinWith($join2,$cond2,$where2);
+              echo "Displaying list of individuals who work with ".$entity->name;
+              
+              $persons->endRelationship([],$entities);
+              
                if(is_object($entities)){
                     echo($entities."<br/>");
                }
                elseif(is_array($entities)){
-                    foreach($entities as $index=>$result){
-                         echo($result."<br/>");
-                    }
+                   if(count($entities)>0){
+                        foreach($entities as $index=>$result){
+                             echo($result."<br/>");
+                        }
+                   }
+                   else {
+                       echo "<br />Select returned no results.";
+                   }
                }
                else {
                     echo "<br />Select Failed";

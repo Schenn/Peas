@@ -14,6 +14,8 @@ interface dynamoInterface extends Iterator, JsonSerializable {
 }
 
 
+
+
 /*
  * Name: dynamo
  * Description: Dynamic object.  Can take anonymous functions as methods with access to $this.
@@ -24,16 +26,18 @@ class dynamo implements dynamoInterface{
     private $old = [];
      private $properties = [];
      private $meta = [];
+     private $useMeta = true;
 
      /*
       * Name: __construct
       * Description:  Constructor for dynamo
       * Takes: values = ['property'=>'value']
       */
-     public function __construct($values = []){
+     public function __construct($values = [], $meta = []){
           foreach($values as $name=>$value){
                $this->properties[$name]=$value;
           }
+          $this->setValidationRules($meta);
      }
 
      /*
@@ -52,14 +56,14 @@ class dynamo implements dynamoInterface{
                        $this->properties[$name] = null;
                         $this->old[$name] = null;
                    }
-                    if(isset($this->meta[$name])){
+                    if(($this->useMeta) && (isset($this->meta[$name]))){
                          if(!array_key_exists('fixed',$this->meta)){
                               if($this->meta[$name]['type'] ==="numeric"){
                                    if(abs($value)<=$this->meta[$name]['max'] && $value >= $this->meta[$name]['max'] * -1){
                                        if((float)$value !== $this->properties[$name]){
                                             $this->old[$name]=$this->properties[$name];
                                             $this->properties[$name] = (float)$value;
-                                            if(empty($this->old[$name])){
+                                            if($this->old[$name] === null){
                                                 $this->old[$name]=$this->properties[$name];
                                             }
                                        }
@@ -350,8 +354,18 @@ class dynamo implements dynamoInterface{
           $this->meta = [];
      }
      
+     public function stopValidation(){
+         $this->useMeta = false;
+     }
+     
+     public function startValidation(){
+         $this->useMeta = true;
+     }
+     
      public function oldData($key){
          return($this->old[$key]);
      }
+     
+     
 }
 ?>
