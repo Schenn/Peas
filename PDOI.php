@@ -32,6 +32,9 @@
 
           function __construct($config){
                $config['dns'] = 'mysql:dbname='.$config['dbname'].';localhost';
+               if(!isset($config['driver_options'])){
+                    $config['driver_options'] = [PDO::ATTR_PERSISTENT => true];
+               }
                parent::__construct($config['dns'], $config['username'], $config['password'], $config['driver_options']);
                parent::setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
           }
@@ -139,8 +142,8 @@
                          }
                     }
                }
-               
-               
+
+
           }
 
           protected function prepJoin(&$args, &$join=[], &$jCond=[]){
@@ -187,7 +190,7 @@
                else if(array_key_exists("using", $args)){
                     $jCond["using"] = $args['using'];
                }
-               
+
           }
 
 

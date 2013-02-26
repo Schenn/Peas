@@ -257,7 +257,7 @@ class dynamo implements dynamoInterface{
      }
 
      public function jsonSerialize(){
-          return(json_encode($this->properties));
+          return($this->properties);
      }
 
      /* Name: valid
@@ -353,19 +353,19 @@ class dynamo implements dynamoInterface{
      public function unsetRules(){
           $this->meta = [];
      }
-     
+
      public function stopValidation(){
          $this->useMeta = false;
      }
-     
+
      public function startValidation(){
          $this->useMeta = true;
      }
-     
+
      public function oldData($key){
          return($this->old[$key]);
      }
-     
-     
+
+
 }
 ?>
