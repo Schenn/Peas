@@ -40,7 +40,39 @@
      class sqlSpinner {
           protected $method;
           protected $sql;
-
+          protected $typeBasics = [
+              'primary_key'=>'int',
+              'ai'=>true,
+              'bit'=>1,
+              'tinyint'=>4,
+              'smallint'=>6,
+              'mediumint'=>9,
+              'int'=>11,
+              'bigint'=>20,
+              'decimal'=>'(10,0)',
+              'float'=>'',
+              'double'=>'',
+              'boolean'=>['tinyint'=>1],
+              'date'=>'',
+              'datetime',
+              'timestamp'=>'',
+              'time'=>'',
+              'year'=>4,
+              'char'=>1,
+              'varchar'=>255,
+              'binary'=>8,
+              'varbinary'=>16,
+              'tinyblob'=>255,
+              'tinytext'=>255,
+              'blob'=>'',
+              'text'=>'',
+              'mediumblob'=>'',
+              'mediumtext'=>'',
+              'longblob'=>'',
+              'longtext'=>'',
+              'enum'=>'',
+              'set'=>''
+          ];
           /*
            * Name: aggregate
            * Takes: aggMethod = "" (sum, avg, count, min, max)
@@ -177,27 +209,32 @@
                     if(!empty($args['columns'])){
                          $i=0;
                          $cols = count($args['columns']);
-                         foreach($args['columns'] as $index=>$col){
-                              if(!isset($col['agg'])){
-                                   if($i !== $cols-1){
-                                        $this->sql .="$col, ";
-                                   }
-                                   else {
-                                        $this->sql .= $col . ' ';
-                                   }
-                              }
-                              else {
-                                  $alias = "";
-                                  if(is_string($index)){
-                                      $alias = $index;
-                                  }
-                                   foreach($col['agg'] as $method=>$columnNames){
-                                        $this->aggregate($method, $columnNames, $alias);
-                                   }
-                              }
-                              $i++;
+                         if(is_array($args['columns'])){
+                            foreach($args['columns'] as $index=>$col){
+                                 if(!isset($col['agg'])){
+                                      if($i !== $cols-1){
+                                           $this->sql .="$col, ";
+                                      }
+                                      else {
+                                           $this->sql .= $col . ' ';
+                                      }
+                                 }
+                                 else {
+                                     $alias = "";
+                                     if(is_string($index)){
+                                         $alias = $index;
+                                     }
+                                      foreach($col['agg'] as $method=>$columnNames){
+                                           $this->aggregate($method, $columnNames, $alias);
+                                      }
+                                 }
+                                 $i++;
 
+                            }
                          }
+                        else if(is_string($args['columns']))  {
+                            $this->sql .= "$col ";
+                        }
                     }
                     else {
                          $this->sql .= " * ";
@@ -324,7 +361,7 @@
            *             REQUIRED
            *                  'table'=>      'tableName'  if missing, sqlSpinner throws sqlSpunError
                          ]
-               Description: this->sql = INSERT INTO tableName (columnName, columName) VALUES (:columnName, :columnName)
+               Description: this->sql = DELETE FROM tableName
                          sql statement uses placeholders for pdo.  Be sure to match your value array appropriately.
            *
            */
@@ -344,6 +381,82 @@
                }
 
           }
+          
+          /*
+           * Name: CREATE
+           * Takes: args = 
+           *             'table'=>      'tableName'  if missing, sqlSpinner throws sqlSpunError
+                         'props'=>['primary_key_name'=>['type','length','noai','null'], ['field_name'=>['type','length','notnull',default],...]
+               Description: this->sql = CREATE TABLE tablename IF NOT EXISTS ( prop details, prop details, PRIMARY KEY (primary key));
+           *            Defaults exist for most of the info
+                         sql statement uses placeholders for pdo.  Be sure to match your value array appropriately.
+           */
+          function CREATE($tablename, $props){
+              $this->method = 'create';
+              if(!empty($tablename)){
+                  $this->sql = "CREATE TABLE IF NOT EXISTS ".$tablename." (";
+                  $primarykey = "";
+                  $i=0;
+                  foreach($props as $field=>$prop){
+                      $this->sql .= $field.' ';
+                      $isPrimary = false;
+                      if($i===0){
+                          $isPrimary = true;
+                          $type = (isset($prop['type'])) ? $prop['type'] : $this->typeBasics['primary_key'];
+                      } else {
+                          $type = $prop['type'];
+                      }
+                      $length = (isset($prop['length'])) ? $prop['length'] : $this->typeBasics[$type];
+                      $this->sql .= $type . '(' . $length . ') ';
+                      
+                      if($isPrimary){
+                          $this->sql .= "PRIMARY KEY ";
+                      }
+                      
+                      if(!isset($prop['null'])){
+                          $this->sql .= "NOT NULL ";
+                      }
+                      
+                      if($isPrimary && !isset($prop['noai'])){
+                          $this->sql .= "AUTO_INCREMENT ";
+                      }
+                      
+                      if($type==="timestamp"){
+                          $prop['default'] = 'CURRENT_TIMESTAMP ';
+                          
+                      }
+                      
+                      if(!$isPrimary && isset($prop['default'])){
+                          $this->sql .= " DEFAULT = ".$prop['default'].' ';
+                      }
+                      
+                      if($type==="timestamp"){
+                          if(isset($prop['update'])){
+                            $this->sql .= "ON UPDATE CURRENT_TIMESTAMP ";
+                          }
+                      }
+                      if($i < count($props)-1){
+                          $this->sql .= ", ";
+                      } else {
+                          $this->sql .= ")";
+                      }
+                      $i++;
+                      
+                  }
+                  
+              }
+              return($this);
+          }
+          
+          /*
+           * Name: JOIN
+           * Takes: args = 
+           *             'join'=> [tablenames]  if missing, sqlSpinner throws sqlSpunError
+                         'condition'=>['on'=>['table1.foreignkey'=>'table2.primarykey',..]] || ['using'=>['col1', 'col2', 'col3']]
+               Description: this->sql .= .. JOIN ON table1.foreignkey = table2.primarykey, ...
+           *                this->sql .= .. JOIN USING col1, col2, col3 ...
+                            Generates the join segment of an sql statement
+           */
 
           function JOIN($join = [], $condition = []){
               if($this->method=='update'){
@@ -388,7 +501,6 @@
                     elseif(array_key_exists("using", $condition)){
                          $this->sql .= "USING (";
                          $using = $condition['using'];
-                         $uC = count($using);
                          $this->sql .= implode(",", $using);
                          $this->sql.=") ";
                     }

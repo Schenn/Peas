@@ -35,6 +35,7 @@
                if(!isset($config['driver_options'])){
                     $config['driver_options'] = [PDO::ATTR_PERSISTENT => true];
                }
+               $this->hasActiveTransaction = false;
                parent::__construct($config['dns'], $config['username'], $config['password'], $config['driver_options']);
                parent::setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
           }
@@ -77,7 +78,7 @@
 
           /* Method Name: __construct
            * Takes:  $config = [
-                         'dns'=>'mysql:dbname=pdoi_tester;localhost',
+                         'dbname'=>'pdoi_database',
                          'username'=>'pdoi_tester',
                          'password'=>'pdoi_pass',
                          'driver_options'=>[PDO::ATTR_PERSISTENT => true]
@@ -563,6 +564,75 @@
 
           }
 
+          /* CREATE
+           * Description: Creates a table
+           * Takes: table name, properties
+           */
+          
+          function CREATE($table, $props){
+              
+              try {
+                  
+                  $this->pdo->beginTransaction();
+                    $tableExists = (gettype($this->pdo->exec("SELECT count(*) FROM $table")) == "integer")?true:false;
+                    if(!$tableExists){
+                        $sql = (new Utils\sqlSpinner())->CREATE($table,$props)->getSQL();
+                        if($this->debug){
+                            echo "<pre>";
+                            print_r($sql);
+                            echo "<br />";
+                            print_r($table);
+                            echo "<br />";
+                            print_r(json_encode($props));
+                        }
+                        try {
+                            $this->ping();
+                            $this->pdo->beginTransaction();
+                            $stmt = $this->pdo->prepare($sql);
+                            $stmt->execute();
+                            return($this->pdo->commit());
+                        }
+                        catch(PDOException $pe){
+                              $this->pdo->rollBack();
+                              echo "Create Failed: ".$pe->getMessage();
+                              return(false);
+                        }
+                        catch(Exception $e){
+                              $this->pdo->rollBack();
+                              echo "Create Failed: ".$e->getMessage();
+                              return(false);
+                        }
+                    }
+              } catch (PDOException $e) {
+                    $sql = (new Utils\sqlSpinner())->CREATE($table,$props)->getSQL();
+                    if($this->debug){
+                        echo "<pre>";
+                        print_r($sql);
+                        echo "<br />";
+                        print_r($table);
+                        echo "<br />";
+                        print_r(json_encode($props));
+                    }
+                    try {
+                        $this->ping();
+                        $this->pdo->beginTransaction();
+                        $stmt = $this->pdo->prepare($sql);
+                        $stmt->execute();
+                        return($this->pdo->commit());
+                    }
+                    catch(PDOException $pe){
+                          $this->pdo->rollBack();
+                          echo "Create Failed: ".$pe->getMessage();
+                          return(false);
+                    }
+                    catch(Exception $e){
+                          $this->pdo->rollBack();
+                          echo "Create Failed: ".$e->getMessage();
+                          return(false);
+                    }
+              }
+          }
+          
           /* Name: describe
            * Description:  Returns table schema information about a table
            * Takes: table name

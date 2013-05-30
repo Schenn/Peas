@@ -184,9 +184,14 @@ class schema implements schemaInterface {
 
      public function setPrimaryKey($table, $key){
           $this->primaryKeys[$table]=$key;
-          if(array_key_exists($this->masterKey, $table)){
+          if(array_key_exists($table, $this->masterKey)){
               $this->masterKey[$table]=$key;
           }
+     }
+     
+     public function getPrimaryKey($table){
+         $pk = (array_key_exists($table, $this->primaryKeys)) ? $this->primaryKeys[$table] : false;
+         return $pk;
      }
 
      public function addColumn($table, $field){
@@ -216,7 +221,8 @@ class schema implements schemaInterface {
                $metaTranslate[$field]['default'] = $meta['Default'];
 
                if(!empty($meta['Key'])){
-                    $this->primaryKeys[$table] = $field;
+                   $this->setPrimaryKey($table, $field);
+                    //$this->primaryKeys[$table] = $field;
                     $metaTranslate[$field]['primaryKey'] = true;
 
                     if($meta['Extra'] === "auto_increment"){

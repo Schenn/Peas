@@ -162,11 +162,18 @@
           function select($options=[], $entity = null){ 
               //if no object supplied to take values from select query, use dynamo
                $entity = ($entity !== null ? $entity : $this->Offshoot()); 
-               $a = $this->generateArguments();
-               foreach($options as $option=>$setting){ //supplied options override stored arguments
-                    $a[$option]=$setting;
+               if(array_key_exists('table', $options) && array_key_exists('columns', $options)) {
+                   $a = $options;
+               } else {
+                    $a = $this->generateArguments();
+                    foreach($options as $option=>$setting){ //supplied options override stored arguments
+                         $a[$option]=$setting;
+                    }
+                    if(count($a['table'])==1){
+                        unset($a['join']);
+                        unset($a['on']);
+                    }
                }
-
                return(parent::SELECT($a, $entity)); //return PDOI select result
           }
 
@@ -182,7 +189,11 @@
            */
           function insert($options){
                //$a = $this->args;
-               $a = $this->generateArguments();
+              if(!isset($options['columns'])){
+                $a = $this->generateArguments();
+              } else {
+                  $a = $options;
+              }
 
                //ensures that if the primary key is auto-numbering, no value will be sent
                foreach($a['columns'] as $index=>$key){
@@ -307,7 +318,7 @@
 
           /* Name: Offshoot
            * Description:  Returns the current entity with the ability to contact its parent table for insert, update and delete commands
-           *
+           * @return dynamo
            */
           function Offshoot(){
 
@@ -321,6 +332,90 @@
                     $args['values'] = [];
 
                     $schema = $t->getSchema();
+                    $fkeys = array_reverse($schema->getForeignKeys());
+                    
+                    if($t->debug){     
+                        print_r($fkeys);
+                    }
+                    if($fkeys){
+                        foreach($fkeys as $tableName=>$relationships){
+                            foreach($relationships as $index=>$relationship){
+                                foreach($relationship as $pcolumn=>$fk){
+                                    foreach($fk as $ftable=>$fcolumn){
+                                        $fcols = $schema->getColumns($ftable);
+                                        $values = [];
+                                        
+                                        foreach($fcols as $column){
+                                            $cmeta = $schema->getMeta($ftable, $column);
+                                            if(!array_key_exists('primaryKey', $cmeta) && !array_key_exists('auto', $cmeta)){
+                                                if(isset($this->$column)){
+                                                    $values[$column]=$this->$column;
+                                                }
+                                            } else {
+                                                if(($key = array_search($column, $fcols)) !== false) {
+                                                   unset($fcols[$key]);  
+                                                   $fcols = array_values($fcols);
+                                                }
+                                            }
+                                        }
+                                        var_dump($ftable);
+                                        var_dump($fcols);
+                                        var_dump($values);
+                                        
+                                        $t->insert(['table'=>$ftable,'columns'=>$fcols,'values'=>$values]);
+
+                                        $pk= $schema->getPrimaryKey($ftable);
+                                        
+                                        $selectopts = ['where'=>$values, 
+                                            'columns'=>[$pk],
+                                            'table'=>$ftable, 
+                                            'orderby'=>[$pk=>'DESC'],
+                                            'limit'=>1
+                                        ];
+                                        
+                                        $row = $t->select($selectopts);
+                                        
+                                        $this->$fcolumn = $row->$fcolumn;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        
+                        $mk = $schema->getMasterKey();
+                        //get master table
+                        foreach($mk as $mt=>$pk){
+                            //get columns from master table
+                            //unset primary key from columns
+                            $cols = $schema->getColumns($mt);
+                            if (($key = array_search($pk, $cols)) !== false) {
+                                unset($cols[$key]); 
+                                $cols = array_values($cols);  
+                            }
+                            $vals = [];
+                            //get master table column values from $this
+                            foreach($cols as $col){
+                                $vals[$col] = $this->$col;
+                            }
+                            $t->insert(['table'=>$mt, 'columns'=>$cols, 'values'=>$vals]);
+                            
+                            $select = ['where'=>$vals,
+                                'columns'=>[$pk],
+                                'table'=>$mt,
+                                'orderby'=>[$pk=>'DESC'],
+                                'limit'=>1
+                            ];
+                            //run an insert on the master
+                            $row = $t->select($select);
+                            //get the user_id and return it
+                            $this->$pk = $row->$pk;
+                        }
+                        
+                        if($t->debug) echo $this;
+
+                    }
+                    else {
+                    /*
                     foreach($schema as $tableName=>$columns){
                         $args['table'] = $tableName;
                         foreach($columns as $columnName=>$columnData){
@@ -339,7 +434,8 @@
                         }
                         $args['values'] = [];
                     }
-
+                    */
+                    }
                     return true;
                 };
             
@@ -417,12 +513,33 @@
 
                 $e->delete = function() use($t){
                     $args = [];
-                    foreach($this as $key=>$value){
-                         if(array_key_exists('fixed',$this->getRule($key))){
-                              $args['where'] = [$key=>$value];
-                         }
+                    $schema = $t->getSchema();
+                    $fkeys = $schema->getForeignKeys();
+                    if(is_array($fkeys)){
+                        foreach($fkeys as $tableName=>$relationships){
+                                foreach($relationships as $index=>$relationship){
+                                    foreach($relationship as $pcolumn=>$fk){
+                                        foreach($fk as $ftable=>$fcolumn){
+                                            $args = ['table'=>$ftable,
+                                                'where'=>[$fcolumn=>$this->$fcolumn]];
+                                            $t->delete($args);
+                                        }
+                                    }
+                                }
+                        }
+                        $mk = $schema->getMasterKey();
+                        foreach($mk as $table=>$column){
+                            $args = ['where'=>[$column=>$this->$column]];
+                            return($t->delete($args));
+                        }
+                    } else {
+                        foreach($this as $key=>$value){
+                             if(array_key_exists('fixed',$this->getRule($key))){
+                                  $args['where'] = [$key=>$value];
+                             }
+                        }
+                        return $t->delete($args);
                     }
-                    return $t->delete($args);
                 };
                
                return($e); //returns the dynamo with access to the parent table
@@ -467,6 +584,42 @@
                 }
           }
           
+          
+          function saltAndPepper($password) {
+              $salt = "";
+                for($i=0; $i<17; $i++){
+                    $rnd = rand(0,11);
+                    $chrs= ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
+                    if($rnd <= 3){
+                        $cdig = rand(0,9);
+                        $c = $cdig;
+                    } elseif($rnd > 3 && $rnd <= 7){
+                        $cdig = rand(0,25);
+                        $c = $chrs[$cdig];
+                    } else {
+                        $cdig = rand(0,25);
+                        $c = ucfirst($chrs[$cdig]);
+                    }
+                    $salt .= $c;
+                }
+                $newsalt = hash('sha256', $salt);
+                $hash = hash('sha256', $password.$newsalt);
+                $max = rand(10, 16785);
+                for ($i=0; $i<$max; $i++){
+                   $hash = hash('sha256', $hash . $newsalt);
+                }
+                return(['salt'=>$newsalt,'rounds'=>$max,'hash'=>$hash]);
+          }
+          
+          function checkPassword($pass, $hash, $salt, $rounds){
+              $hashcheck = hash('sha256', $pass.$salt);
+              for ($i=0; $i<$rounds; $i++){
+                  $hashcheck = hash('sha256', $hashcheck.$salt);
+              }
+              return($hashcheck === $hash);
+              
+          }
+          
           function getSchema(){
               return $this->schema;
           }
@@ -474,4 +627,98 @@
           
      }
 
+     
+     class userTable {
+         protected $config;
+         protected $debug;
+         protected $conn;
+         
+         public function __construct($config, $debug){
+             $this->config = $config;
+             $this->debug = $debug;
+            
+         }
+         
+         public function init(){
+            $this->conn = new PDOI($this->config, $this->debug);
+            
+            echo $this->conn->create('users',['user_id'=>[], 
+                               'username'=>['type'=>'varchar','length'=>50],
+                               'hash_id'=>['type'=>'int']]);
+            $this->conn->create('hashwords',['hash_id'=>[],
+                               'hash'=>['type'=>'varchar','length'=>350],
+                               'salt_id'=>['type'=>'int']]);
+            $this->conn->create('salts',['salt_id'=>[],
+                               'salt'=>['type'=>'varchar','length'=>350],
+                               'round_id'=>['type'=>'int']]);
+            $this->conn->create('rounds',['round_id'=>[],
+                               'rounds'=>['type'=>'int']]);
+            return true;
+         }
+         
+         public function createUser($user, $pass){
+             $this->conn = new pdoITable($this->config, 'users', $this->debug);
+             $userExists = ['where'=>[
+                 'username'=>$user
+             ], 'limit'=>1];
+             if(!$this->conn->select($userExists)) {
+                $this->conn->setRelationship([
+                    'users.hash_id'=>'hashwords.hash_id',
+                    'hashwords.salt_id'=>'salts.salt_id',
+                    'salts.round_id'=>'rounds.round_id']);
+
+                $newuser = $this->conn->Offshoot();
+                $hash = $this->conn->saltAndPepper($pass);
+
+                $newuser->username = $user;
+                $newuser->hash = $hash['hash'];
+                $newuser->salt = $hash['salt'];
+                $newuser->rounds = $hash['rounds'];
+
+                $newuser->insert();
+                return($newuser);
+             } else {
+                 return false;
+             }
+         }
+         
+         public function deleteUser($username){
+             $this->conn = new pdoITable($this->config, 'users', $this->debug);
+             $this->conn->setRelationship([
+                    'users.hash_id'=>'hashwords.hash_id',
+                    'hashwords.salt_id'=>'salts.salt_id',
+                    'salts.round_id'=>'rounds.round_id']);
+             $userExists = ['where'=>['users'=>['username'=>$username]
+             ], 'limit'=>1];
+             if($user = $this->conn->select($userExists)) {
+                 $user->delete();
+                 return true;
+             } else {
+                 return false;
+             }
+         }
+         
+         public function login($username, $pass){
+             $this->conn = new pdoITable($this->config, 'users', $this->debug);
+             $this->conn->setRelationship([
+                    'users.hash_id'=>'hashwords.hash_id',
+                    'hashwords.salt_id'=>'salts.salt_id',
+                    'salts.round_id'=>'rounds.round_id']);
+             $userExists = ['where'=>['users'=>['username'=>$username]
+                ], 'limit'=>1];
+             if($user = $this->conn->select($userExists)) {               
+                 if($this->conn->checkPassword($pass, $user->hash, $user->salt, $user->rounds)) {
+                     unset ($user->hash);
+                     unset ($user->salt);
+                     unset ($user->rounds);
+                    return $user;
+                 } else {
+                    return false;
+                 }
+             } else {
+                 return false;
+             }
+         }
+         
+     }
 ?>
