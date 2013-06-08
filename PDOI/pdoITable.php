@@ -300,7 +300,7 @@
                return(parent::DELETE($a));
           }
           
-          function drop(){
+          function drop($table){
               if(is_array($this->tableName)){
                   foreach($this->tableName as $table){
                       parent::DROP($table);
