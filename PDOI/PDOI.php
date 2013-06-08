@@ -574,8 +574,8 @@
               try {
                   
                   $this->pdo->beginTransaction();
-                    $tableExists = (gettype($this->pdo->exec("SELECT count(*) FROM $table")) == "integer")?true:false;
-                    if(!$tableExists){
+                    $exists = $this->run("SELECT 1 FROM {$table}");
+                    if($exists){
                         $sql = (new Utils\sqlSpinner())->CREATE($table,$props)->getSQL();
                         if($this->debug){
                             echo "<pre>";
@@ -630,6 +630,26 @@
                           echo "Create Failed: ".$e->getMessage();
                           return(false);
                     }
+              }
+          }
+          
+          function DROP($table){
+              $sql = (new Utils\sqlSpinner())->DROP($table)->getSQL();
+              try {
+                  $this->ping();
+                  $this->pdo->beginTransaction();
+                  $stmt = $this->pdo->prepare($sql);
+                  $stmt->execute();
+                  return($this->pdo->commit());
+              } catch(PDOException $pe){
+                    $this->pdo->rollBack();
+                    echo "Drop Failed: ".$pe->getMessage();
+                    return(false);
+              }
+              catch(Exception $e){
+                    $this->pdo->rollBack();
+                    echo "Drop Failed: ".$e->getMessage();
+                    return(false);
               }
           }
           

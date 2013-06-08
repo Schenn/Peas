@@ -299,6 +299,16 @@
                unset($a['columns']); //no columns in DELETE command
                return(parent::DELETE($a));
           }
+          
+          function drop(){
+              if(is_array($this->tableName)){
+                  foreach($this->tableName as $table){
+                      parent::DROP($table);
+                  }
+              } else if(is_string($this->tableName)){
+                  parent::DROP($this->tableName);
+              }
+          }
 
           // resets the columns to their default values
           function reset(){

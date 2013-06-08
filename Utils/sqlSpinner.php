@@ -394,7 +394,7 @@
           function CREATE($tablename, $props){
               $this->method = 'create';
               if(!empty($tablename)){
-                  $this->sql = "CREATE TABLE IF NOT EXISTS ".$tablename." (";
+                  $this->sql .= "DROP TABLE IF EXISTS {$tablename};CREATE TABLE IF NOT EXISTS ".$tablename." (";
                   $primarykey = "";
                   $i=0;
                   foreach($props as $field=>$prop){
@@ -445,6 +445,11 @@
                   }
                   
               }
+              return($this);
+          }
+          
+          function DROP($tablename){
+              $this->sql = "DROP TABLE IF EXISTS {$tablename}";
               return($this);
           }
           
