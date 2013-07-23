@@ -133,7 +133,7 @@ class dynamo implements dynamoInterface{
                          }
                          else {
                               throw new validationException("$name is fixed and cannot be changed to $value",5);
-                              a:
+                              dynamo_continue:
                          }
                     }
                     else {
@@ -149,7 +149,7 @@ class dynamo implements dynamoInterface{
           }
           catch (validationException $e){
                echo $e->getMessage();
-               goto a;
+               goto dynamo_continue;
           }
      }
 

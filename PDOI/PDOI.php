@@ -574,7 +574,6 @@
               try {
                   
                   $this->pdo->beginTransaction();
-                    $exists = $this->run("SELECT 1 FROM {$table}");
                     if($exists){
                         $sql = (new Utils\sqlSpinner())->CREATE($table,$props)->getSQL();
                         if($this->debug){
