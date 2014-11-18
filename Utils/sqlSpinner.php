@@ -634,10 +634,7 @@
                               }
                          }
                          if($wI !== $whereCount - 1){
-                              if(($this->method === "select") || ($this->method === "delete")){
-                                   $this->sql .= " AND ";
-                              }
-                              else if($this->method === "update"){
+                              if(($this->method === "select") || ($this->method === "delete") || ($this->method === "update")){
                                    $this->sql .= " AND ";
                               }
                          }
