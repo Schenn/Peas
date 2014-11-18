@@ -154,8 +154,6 @@
                          }
                     }
                }
-
-
           }
 
           protected function prepJoin(&$args, &$join=[], &$jCond=[]){
