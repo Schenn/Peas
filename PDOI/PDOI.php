@@ -20,7 +20,8 @@
       * Description:  PDO which throws exceptions
       * takes associative array of configuration options
       *    $config = [
-               'dns'=>'mysql:dbname=pdoi_tester;localhost',
+               'dns'=>'mysql:dbname=pdoi_tester;',
+               'host'=>'127.0.0.1',
                'username'=>'pdoi_tester',
                'password'=>'pdoi_pass',
                'driver_options'=>[PDO::ATTR_PERSISTENT => true]
@@ -32,7 +33,12 @@
           protected $hasActiveTransaction = false;
 
           function __construct($config){
-               $config['dns'] = 'mysql:dbname='.$config['dbname'].';localhost';
+               $config['dns'] = 'mysql:dbname='.$config['dbname'].';';
+               if(isset($config['host'])){
+                    $config['dns'] .= $config['host'];
+               } else {
+                    $config['dns'] .= '127.0.0.1';
+               }
                if(!isset($config['driver_options'])){
                     $config['driver_options'] = [PDO::ATTR_PERSISTENT => true];
                }
