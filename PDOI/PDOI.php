@@ -3,6 +3,7 @@
      require_once("Utils/sqlSpinner.php");
      use PDOI\Utils\sqlSpinner as sqlSpinner;
      use PDO;
+     use PDOException;
      /*
       *   Author: Steven Chennault
       *   Email: schenn@gmail.com
@@ -658,12 +659,19 @@
            */
 
           function describe($table){
+               try {
+                    
+               
                $sql = (new Utils\sqlSpinner())->DESCRIBE($table)->getSQL(); //instantiate sql
                $this->ping(); //ensure db access
                $stmt = $this->pdo->prepare($sql); //prepare statement
                $stmt->execute(); //execute statement
                $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC); //return assocative array of table schema
                return($chunk);
+               } catch(PDOException $p){
+                    echo "Describe Failed: ".$pe->getMessage();
+                    return(false);
+               }
           }
 
           /* Name: queue
@@ -706,16 +714,16 @@
 
           /* Name: run
            * Takes: sql = '' Sql statement already containing placeholders
-           *        values = []  associative array of placeholder=>values
-           * Description:  Runs a custom sql statement and executes it with the placeholder array, returning the result.  Doesn't work with select statements.
+           *        values = []  associative array of placeholder=>values  (Values must be escaped!)
+           * Description:  Runs a custom sql statement and executes it with the placeholder array, returning the result. 
            */
 
           function run($sql="", $values=[]){
                if($sql !==""){
                     try{
                          $this->pdo->beginTransaction();
-                         $this->pdo->prepare($sql);
-                         $this->pdo->execute($values);
+                         $stmt = $this->pdo->prepare($sql);
+                         $stmt->execute($values);
                          return($this->pdo->commit());
                     }
                     catch (Exception $e){
