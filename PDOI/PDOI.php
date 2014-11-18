@@ -134,7 +134,11 @@
                                    $c = ":where".str_replace(".","",$column);
                                    $m = str_replace(" ","",$method);
                                    if($m === "like" || $m === "notlike"){
-                                        $compareValue = "%".$compareValue."%";
+                                        if( is_string($compareValue)){
+                                             $compareValue = "%".addcslashes($compareValue, "%_")."%";
+                                        } else {
+                                             $compareValue = "%".$compareValue."%";
+                                        }
                                    }
                                    $whereValues[$c] = $compareValue;
                                    $where[$column] = [$method=>$compareValue];
