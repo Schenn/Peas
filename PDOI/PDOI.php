@@ -246,7 +246,7 @@
            *        Converts where values into unique placeholders and values for pdo->prepare(sql) and pdo->execute(values)
            *        Sends values through the sqlSpinner to generate an sql query string which is ready to be used in pdo->prepare.
            *        if debug is set to true, prints the sql and the prepared value array
-           *        if query succeeds, returns result as an array of associative array, else returns false
+           *        if query succeeds, returns result as a single object or as an array, else returns null
            */
 
           function SELECT($args, $obj = null){
@@ -319,7 +319,7 @@
                          }
                     }
                     else {
-                         return(false); //no results
+                         return(NULL); //no results
                     }
                }
                catch (PDOException $e){ //pdo failure
@@ -429,7 +429,7 @@
            *        Converts set and where values into unique placeholders and values for pdo->prepare(sql) and pdo->execute(values)
            *        Sends values through the sqlSpinner to generate an sql query string which is ready to be used in pdo->prepare.
            *        if debug is set to true, prints the sql and the prepared value array
-           *        if query succeeds, returns true, else returns false
+           *        if query succeeds, returns true, else returns NULL
            */
 
           function UPDATE($args){
