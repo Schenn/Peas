@@ -1,8 +1,5 @@
 <?php
      namespace PDOI;
-     require_once("PDOI.php");
-     require_once("Utils/dynamo.php");
-     require_once("Utils/schema.php");
      use PDOI\PDOI as PDOI;
      use PDOI\Utils\dynamo as dynamo;
      use PDOI\Utils\schema as schema;
@@ -368,9 +365,11 @@
                                                 }
                                             }
                                         }
-                                        var_dump($ftable);
-                                        var_dump($fcols);
-                                        var_dump($values);
+                                        if($t->debug) {
+                                             var_dump($ftable);
+                                             var_dump($fcols);
+                                             var_dump($values);
+                                        }
                                         
                                         $t->insert(['table'=>$ftable,'columns'=>$fcols,'values'=>$values]);
 

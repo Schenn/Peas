@@ -1,5 +1,4 @@
 <?php
-require_once("PDOI/pdoiTable.php");
 use PDOI\PDOI as PDOI;
 use PDOI\pdoITable as pdoITable;
 

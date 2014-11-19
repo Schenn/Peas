@@ -1,12 +1,11 @@
 <?php
      namespace PDOI;
-     require_once("Utils/sqlSpinner.php");
      use PDOI\Utils\sqlSpinner as sqlSpinner;
      use PDO;
      use PDOException;
      /*
       *   Author: Steven Chennault
-      *   Email: schenn@gmail.com
+      *   Email: schenn@mash.is
       *   Github: https://github.com/Schenn/PDOI
       *   Name: PDOI.php
       *   Description:  PDOI is a class which can be used to greatly simplify the dynamic needs of a webmaster.

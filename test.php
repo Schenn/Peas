@@ -1,5 +1,5 @@
 <?php
-require_once("userTable.php");
+require_once("autoload.php");
 $config = [
         'dbname'=>'pdoi_test',
         'username'=>'pdoi_test',
