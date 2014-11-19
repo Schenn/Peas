@@ -197,15 +197,15 @@
      
      if(isset($_POST['action'])){
           if($_POST['action']==="insert"){
-               $person = $persons->Offshoot();
+               $person = $persons->asDynamo();
                insert($person);
           }
           elseif($_POST['action']==="insertShip"){
-               $ship = $ships->Offshoot();
+               $ship = $ships->asDynamo();
                insert($ship);
           }
           elseif($_POST['action']==="manifestAdd"){
-               $crew = $manifest->Offshoot();
+               $crew = $manifest->asDynamo();
                insert($crew);
           }
           else if($_POST['action'] === 'update'){
@@ -230,7 +230,7 @@
                    $crew = [$crew];
                }
                $years = (int)$_POST['mission_years'];
-               $crewTemplate = $persons->Offshoot();
+               $crewTemplate = $persons->asDynamo();
 
                foreach($crew as $index=>$crewman){
                     foreach($crewTemplate as $key=>$val){
@@ -243,7 +243,7 @@
                $opts = ['where'=>["ship_id"=>$crew[0]->ship_id]];
                $ship = $ships->select($opts);
 
-               $sTemp = $ships->Offshoot();
+               $sTemp = $ships->asDynamo();
                foreach($sTemp as $key=>$val){
                     $sTemp->$key = $ship->$key;
                }

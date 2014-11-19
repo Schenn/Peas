@@ -111,8 +111,8 @@
      $ships = new pdoITable($config, "ships");
 
 
-     $person = $persons->Offshoot();
-     $ship = $ships->Offshoot();
+     $person = $persons->asDynamo();
+     $ship = $ships->asDynamo();
 
      $genInsertForm = function(){
           $html = "";

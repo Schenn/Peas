@@ -158,7 +158,7 @@
            */
           function select($options=[], $entity = null){ 
               //if no object supplied to take values from select query, use dynamo
-               $entity = ($entity !== null ? $entity : $this->Offshoot()); 
+               $entity = ($entity !== null ? $entity : $this->asDynamo());
                if(array_key_exists('table', $options) && array_key_exists('columns', $options)) {
                    $a = $options;
                } else {
@@ -175,7 +175,7 @@
           }
 
           function selectAll(){
-               $entity = $this->Offshoot();
+               $entity = $this->asDynamo();
                $a = $this->generateArguments();
                return(parent::SELECT($a, $entity));
           }
@@ -320,14 +320,14 @@
 
           //displays the current dynamo
           function display(){
-               echo($this->Offshoot());
+               echo($this->asDynamo());
           }
 
-          /* Name: Offshoot
+          /* Name: asDynamo
            * Description:  Returns the current entity with the ability to contact its parent table for insert, update and delete commands
            * @return dynamo
            */
-          function Offshoot(){
+          function asDynamo(){
 
                //dynamo insert function, uses this pdoITable
                $e = new dynamo($this->columns, $this->columnMeta);

@@ -43,7 +43,7 @@ class userTable {
                'hashwords.salt_id'=>'salts.salt_id',
                'salts.round_id'=>'rounds.round_id']);
 
-           $newuser = $this->conn->Offshoot();
+           $newuser = $this->conn->asDynamo();
            $hash = $this->conn->saltAndPepper($pass);
 
            $newuser->username = $user;
