@@ -287,7 +287,7 @@
                }
 
                //spin sql statement from options
-               $sql = (new Utils\sqlSpinner())->SELECT($args)->JOIN($join, $jCond)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+               $sql = (new sqlSpinner())->SELECT($args)->JOIN($join, $jCond)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
                if($this->debug){ //if in debug mode
                    echo "<pre>";
                     print_r($sql);
@@ -343,7 +343,7 @@
                /*
                 * $args = [table=>'',columns=>[], values = ["column"=>"value"] || [["column"=>"value","column"=>"value"], ["column"=>"value","column"=>"value"]]]
                 */
-               $sql = (new Utils\sqlSpinner())->INSERT($args)->getSQL(); //spin sql statement from arguments
+               $sql = (new sqlSpinner())->INSERT($args)->getSQL(); //spin sql statement from arguments
                if($this->debug){ //if in debug mode
                     echo "<pre>";
                     print_r($sql);
