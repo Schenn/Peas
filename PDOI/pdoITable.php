@@ -322,6 +322,14 @@
                echo($this->asDynamo());
           }
 
+         function setSchema($schema){
+             if( is_a($schema, "PDOI\Utils\Schema" )){
+                 $this->schema = $schema;
+             }
+         }
+
+
+
           /* Name: asDynamo
            * Description:  Returns the current entity with the ability to contact its parent table for insert, update and delete commands
            * @return dynamo
