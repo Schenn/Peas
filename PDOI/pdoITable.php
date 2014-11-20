@@ -3,45 +3,53 @@
      use PDOI\PDOI as PDOI;
      use PDOI\Utils\dynamo as dynamo;
      use PDOI\Utils\schema as schema;
-     /*
-      *   Author: Steven Chennault
-      *   Email: schenn@mash.is
-      *   Github: https://github.com/Schenn/PDOI
-      *   Name: pdoITable.php
-      *   Description:  pdoITable is a front end for the PDOI system which acts a front end for the tables themselves.
-      *   They have the ability to perform more complex actions and maintain table data itself.  You can setCol the various
-      *   columns and run pdoITable->insert() or update() without needing to construct most of the arguments. In addition,
-      *   the results from select queries are stored in an object which outputs as json by default.
-      *
+
+     /**
+      * @author Steven Chennault schenn@mash.is
+      * @link: https://github.com/Schenn/PDOI Repository
       */
 
-      /*
-       * tableName = name of the table this pdoITable is primarily working with
-       * columns = current listing of columns and default values, joins merge those columns into this array in table.columnName format
-       * columnMeta = table data rules retrieved and parsed from the DESCRIBE mysql method
-       * !!!!
-       * args = pre-constructed list which the parent PDOI uses to process basic commands.
-       *       REMOVE THIS.  Arguments should be generated at request time from the schema and values, not stored
-       * !!!!
-       * entity = dynamo class object which represents a row or potential row in a table.
-       *       A joinWith function call creates a similar entity but includes the additional column data from the other tables.
-       *       For this reason, using non-conflicting names is a good idea if the table will be joined.
-       *
-       * schema = current relational schema.  Used to generate arguments, maintains relational (and non relational) data between tables.
-       *
-       */
+     /**
+      * Class pdoITable
+      *
+      * pdoITable acts as a wrapper over a relationship of tables. The relationship could be of a single table or more.
+      * It acts as a facilitator for retrieving, updating or removing data from the wrapped tables. When you create and
+      * assign tables to the pdoITable, it loads the metadata about those tables into a Schema. If you request data from
+      * a pdoITable and don't provide an object, it will use a dynamo to hold onto the data.
+      *
+      * pdoITable can create dynamo's upon request. The dynamos will have the same structure as the table relationship
+      * schema that has been created for pdoITable. The dynamos are given the capacity to save themselves when they are
+      * created by a pdoITable.
+      *
+      * @uses PDOI\Utils\schema
+      * @uses PDOI\Utils\dynamo
+      * @uses PDOI\Utils\sqlSpinner
+      *
+      * @package PDOI
+      * @todo Should we be holding on to args or can that be removed?
+      */
+
      class pdoITable extends PDOI {
+         /** @var string|array $tableName name or names of the table(s) this pdoITable is currently working with */
           protected $tableName;
+         /** @var array $columns The columns for the tables. [columnName =>value, columnName=>value, ..] */
           protected $columns=[];
+         /** @var array $columnMeta The column meta data for the columns */
           protected $columnMeta=[];
+         /** @var schema $schema The schema object */
           protected $schema;
+         /** @var array arguments Used to generate the SQL queries through sqlSpinner */
           protected $args = [];
 
-
-          /* Name: __construct
-           * Description:  Controls new pdoITable creation
-           * Takes: config = db configuration information, table = "" (table name), debug = false
-           */
+         /**
+          * Create a new pdoITable
+          *
+          * @param array $config Dictionary of database configuration data
+          * @param string|array $tables The tableName(s) to assign to the pdoITable
+          * @param bool $debug Whether or not to log debug information
+          *
+          * @throws \Exception
+          */
           function __construct($config, $tables, $debug=false){
                parent::__construct($config, $debug);
                $this->schema = new schema();
@@ -49,10 +57,14 @@
           }
 
 
-          /* Name: setTable
-           * Description:  sets the tablename, calls setcolumns
-           * Takes: table = "" (table name)
-           */
+         /**
+          * Sets the table(s) for the pdoITable.
+          *
+          * Runs setColumns after the tables are set. Sets the table argument.
+          *
+          * @see pdoITable::setColumns
+          * @param string|array $tables The table name(s) to add
+          */
           function setTable($tables){
                $this->schema->addTable($tables);
                $this->tableName = $tables;
@@ -60,21 +72,30 @@
                $this->setColumns();
           }
 
-          /* Name: setColumns
-           * Description:  Gets table schema from the db.  becomes aware of column names and validation requirements
-           */
+
+         /**
+          * Sets and initializes the columns that a table should have
+          *
+          * Adds the column name to the columns dictionary and assigns it a default value
+          *
+          * @uses PDOI\Describe
+          * @internal
+          *
+          * @todo Remove unused variable $cols
+          */
           function setColumns(){
                foreach($this->schema as $table=>$columns){
                if(count($columns)===0){
                     $description = parent::describe($table);
                     $cols = [];
-                    foreach($description as $row){  //for each column in table
+                   //for each column in table
+                    foreach($description as $row){
                          $field = $row['Field'];
                          //$true = $table.".".$field;
                          array_push($cols, $field);
                          unset($row['Field']);
 
-                         //set default values to the columns
+                         //set the column default value
                          switch(preg_filter("/\(|\d+|\)/","",strtolower($row['Type']))){
                               case "int":
                               case "decimal":
@@ -108,13 +129,24 @@
                // Set up the schema
           }
 
+         /**
+          * Generate the relationship arguments for the sqlSpinner
+          *
+          * Prepare the relationship arguments for the sqlSpinner. Such as table, columns, join and on arguments
+          *
+          * @see PDOI\Utils\sqlSpinner
+          *
+          * @return array The table relationships as a dictionary the sqlSpinner can parse.
+          *
+          * @internal
+          */
          public function generateArguments(){
              //uses schema information to generate argument list
              $arguments = [];
-             //if one table
 
              $tables = $this->schema->getTables();
 
+             //if one table
              if(count($tables)===1){
                  $arguments['table'] = $tables[0];
                  $arguments['columns'] = $this->schema->getColumns($tables[0]);
@@ -150,11 +182,21 @@
              return($arguments);
          }
 
-
-          /* Name: select
-           * Description:  Runs a select query on the table
-           * Takes: options = [] (associative array of options.  Overrides currently stored arguments for the query)
-           */
+         /**
+          * Retrieve data from the wrapped table relationships
+          *
+          * Creates a new dynamo and passes it and the relationship information as a dictionary to PDOI::Select
+          *
+          * @uses PDOI::SELECT
+          *
+          * @param array $options see PDO::SELECT for more information on options
+          * @param null|object $entity The object to assign the data from the query to. Passed by reference so the
+          *     object will be mutated without having to do something with the return value
+          *
+          * @return array|dynamo|bool|null
+          *
+          * @api
+          */
           function select($options=[], &$entity = null){
               //if no object supplied to take values from select query, use dynamo
                $entity = ($entity !== null ? $entity : $this->asDynamo());
@@ -162,7 +204,8 @@
                    $a = $options;
                } else {
                     $a = $this->generateArguments();
-                    foreach($options as $option=>$setting){ //supplied options override stored arguments
+                   //supplied options override stored arguments
+                    foreach($options as $option=>$setting){
                          $a[$option]=$setting;
                     }
                     if(count($a['table'])==1){
@@ -173,119 +216,163 @@
                return(parent::SELECT($a, $entity)); //return PDOI select result
           }
 
+         /**
+          * Get all records from the wrapped table relationships
+          *
+          * Constructs the arguments to select all records and uses a dynamo to hold the data
+          *
+          * @uses PDOI\Utils\dynamo
+          * @return array|bool|null
+          *
+          * @api
+          */
           function selectAll(){
                $entity = $this->asDynamo();
                $a = $this->generateArguments();
                return(parent::SELECT($a, $entity));
           }
 
-          /* Name: insert
-           * Description:  Runs an insert query into the table
-           * Takes: options = [] (associative array of options, overrides currently stored arguments for the query)
-           */
+
+         /**
+          * Insert data into the wrapped table relationship
+          *
+          * Validates the values and generates the arguments to insert data into the wrapped tables.
+          *
+          * @param array $options (associative array of options, overrides currently stored arguments for the query)
+          * @todo Go over this method. Pretty sure this can be cleaned up a fair bit
+          *
+          * @api
+          */
           function insert($options){
                //$a = $this->args;
               if(!isset($options['columns'])){
-                $a = $this->generateArguments();
+                $arguments = $this->generateArguments();
               } else {
-                  $a = $options;
+                  $arguments = $options;
               }
 
                //ensures that if the primary key is auto-numbering, no value will be sent
-               foreach($a['columns'] as $index=>$key){
-                   $meta = $this->schema->getMeta($a['table'], $key);
+               foreach($arguments['columns'] as $index=>$key){
+                   $meta = $this->schema->getMeta($arguments['table'], $key);
                    
                     if(array_key_exists("auto",$meta)){
-                         unset($a['columns'][$index]);
+                         unset($arguments['columns'][$index]);
                     }
                     
-                    if(isset($a['columns'][$index]))
+                    if(isset($arguments['columns'][$index]))
                     {
                         if(isset($options['values'][$key])){
                             if($options['values'][$key] === $meta['default']){
-                                unset($a['columns'][$index]);
+                                unset($arguments['columns'][$index]);
                             }
                         }
                         else {
-                            unset($a['columns'][$index]);
+                            unset($arguments['columns'][$index]);
                         }
                     }
                }
                //resets array indexes for columns in arguments
-               $a['columns'] = array_values($a['columns']);
+               $arguments['columns'] = array_values($arguments['columns']);
                $meta = null;
-               if(!isset($options['values'])){ //if no values supplied, uses stored information for values
-                    $a['values']=[];
+              //if no values supplied, uses stored information for values
+               if(!isset($options['values'])){
+                    $arguments['values']=[];
                     foreach($this->columns as $column=>$value){
-                        $meta = $this->schema->getMeta($a['table'], $column);
+                        $meta = $this->schema->getMeta($arguments['table'], $column);
                          if(!array_key_exists("auto",$meta[$column])){
-                             if($a['values'][$column] !== $meta[$column]['default']){
-                                $a['values'][$column]=$value;
+                             if($arguments['values'][$column] !== $meta[$column]['default']){
+                                $arguments['values'][$column]=$value;
                              }
                          }
                     }
                }
-               foreach($options as $option=>$setting){ //overrides the arguments, adds in extra info not stored
-                    $a[$option]=$setting;
+              //overrides the arguments, adds in extra info not stored
+               foreach($options as $option=>$setting){
+                    $arguments[$option]=$setting;
                     
                }
 
-               return(parent::INSERT($a)); //returns result of PDOI->insert
+               return(parent::INSERT($arguments)); //returns result of PDOI->insert
           }
 
-          //sets a column to a value
+         /**
+          * Sets a column to a value
+          *
+          * @param string $col The columnName to set
+          * @param mixed $val The value to assign to the columnName
+          *
+          * @api
+          */
           function setCol($col,$val){
                //Validate?
                $this->columns[$col]=$val;
           }
 
-          //gets a column value
+         /**
+          * Gets a column value
+          *
+          * @param string $col The columnName to get
+          * @return mixed the value of the column
+          *
+          * @api
+          */
           function getCol($col){
                return($this->columns[$col]);
           }
 
-          /* Name: update
-           * Description:  Runs an update query on the table
-           * Takes: options = [] (associative array of options, overrides currently stored arguments for the query)
-           */
+         /**
+          * Updates data in the wrapped relationships
+          *
+          * Generates the relationship arguments for the sqlSpinner to use when it generates the UPDATE query
+          *
+          * @param array $options Dictionary of options. See PDOI::UPDATE for more information on available options
+          * @return bool success
+          *
+          * @api
+          */
           function update($options){
-               //$a = $this->args;
-               $a = $this->generateArguments();
+               $arguments = $this->generateArguments();
                
                 //ensures auto_numbering primary key is not 'updated'
-               if(is_array($a['table'])){
-                    foreach($a['table'] as $tindex=>$tableData){
+               if(is_array($arguments['table'])){
+                    foreach($arguments['table'] as $tableIndex=>$tableData){
                         foreach($tableData as $tableName=>$columns){
-                            foreach($columns as $cindex=>$column){
+                            foreach($columns as $columnIndex=>$column){
                                 if(array_key_exists("primaryKey",$this->schema->getMeta($tableName, $column))){
-                                   unset($a['table'][$tindex][$tableName][$cindex]);
+                                   unset($arguments['table'][$tableIndex][$tableName][$columnIndex]);
                                 }
                             }
                         }
                     }
-               } elseif(is_string($a['table'])){
-                   $tableName = $a['table'];
-                   $colCount = count($a['columns']);
+               } elseif(is_string($arguments['table'])){
+                   $tableName = $arguments['table'];
+                   $colCount = count($arguments['columns']);
                    for($i=0;$i<$colCount;$i++){
-                       if(array_key_exists("primaryKey",$this->schema->getMeta($tableName, $a['columns'][$i]))){
-                            unset($a['columns'][$i]);
+                       if(array_key_exists("primaryKey",$this->schema->getMeta($tableName, $arguments['columns'][$i]))){
+                            unset($arguments['columns'][$i]);
                         }
                    }
-                   $a['columns'] = array_values($a['columns']);
+                   $arguments['columns'] = array_values($arguments['columns']);
                }
 
                //override stored arguments
                foreach($options as $option=>$setting){
-                    $a[$option]=$setting;
+                    $arguments[$option]=$setting;
                }
                
-               return(parent::UPDATE($a)); //return PDOI->update result
+               return(parent::UPDATE($arguments)); //return PDOI->update result
           }
 
-          /* Name: delete
-           * Description:  Runs a delete query on the table
-           * Takes: options = [] (associative array of options, overrides currently stored arguments for the query)
-           */
+         /**
+          * Deletes data from the wrapped relationships
+          *
+          * Uses the wrapped relationships to generate arguments for sqlSpinner to delete data.
+          *
+          * @param array $options See PDOI::DELETE for more information on what options are available
+          * @return bool success
+          *
+          * @api
+          */
           function delete($options){
                $a = $this->args;
                //$a = $this->generateArguments();
@@ -295,8 +382,15 @@
                unset($a['columns']); //no columns in DELETE command
                return(parent::DELETE($a));
           }
-          
-          function drop($table){
+
+         /**
+          * Drop the wrapped tables from the database
+          *
+          * @return bool success
+          *
+          * @api
+          */
+          function drop(){
               if(is_array($this->tableName)){
                   foreach($this->tableName as $table){
                       parent::DROP($table);
@@ -306,7 +400,11 @@
               }
           }
 
-          // resets the columns to their default values
+         /**
+          * resets the columns to their default values
+          *
+          * @api
+          */
           function reset(){
                foreach($this->schema as $table=>$columns){
                     $cols = array_keys($columns);
@@ -317,23 +415,41 @@
                }
           }
 
-          //displays the current dynamo
+         /**
+          * echo the current dynamo
+          */
           function display(){
                echo($this->asDynamo());
           }
 
+         /**
+          * Use a given schema
+          *
+          * When a dynamo needs to interact with its pdoITable, the pdoITable's schema may have changed.
+          *
+          * @param schema $schema The schema to use
+          * @todo Error Catching, also is this necessary since dynamo's hold onto their origin schema now?
+          *
+          * @internal
+          */
          function setSchema($schema){
              if( is_a($schema, "PDOI\Utils\Schema" )){
                  $this->schema = $schema;
              }
          }
 
-
-
-          /* Name: asDynamo
-           * Description:  Returns the current entity with the ability to contact its parent table for insert, update and delete commands
-           * @return dynamo
-           */
+         /**
+          * Create a Dynamo based off the current wrapped table relationship schema
+          *
+          * Creates a dynamo and gives the dynamo access to the pdoITable's insert, update, delete and select methods
+          *
+          * @uses PDOI\Utils\dynamo
+          * @uses PDOI\Utils\schema
+          *
+          * @return dynamo
+          *
+          * @api
+          */
           function asDynamo(){
 
                //dynamo insert function, uses this pdoITable
@@ -342,35 +458,36 @@
               // Give the object a reference to the table schema.
               // The table schema may have relationships added or removed by the time we go into the database
                 $dynamo->TableSchema = $this->getSchema();
-              $pdoITable = $this;
+                $pdoITable = $this;
 
-              $dynamo->insert = function() use($pdoITable){
-                  $pdoITable->insertDynamo($this);
-              };
+              /** @var dynamo->insert Gives the dynamo access to inserting itself into the database */
+                $dynamo->insert = function() use(&$pdoITable){
+                    $pdoITable->insertDynamo($this);
+                };
 
-                $dynamo->load = function($pKey = null) use($pdoITable){
+              /** @var dynamo->load Gives the dynamo access to filling itself with data from the database */
+                $dynamo->load = function($pKey = null) use(&$pdoITable){
                     // set the pdoITable schema to the dynamo schema
                     $oldSchema = $pdoITable->getSchema();
                     $pdoITable->setSchema($this->TableSchema);
 
                     // run a select off the table using the provided pKey
 
-
-                        //this function takes the pKey provided and prepares a properly formatted select call based off the current schema using the pkey as the where value
-                       $args = [];
-                       $args['limit']=1;
-                       $schema = $pdoITable->getSchema();
-                       $mk = $schema->getMasterKey();
-                       foreach($mk as $table=>$key){
-                            if($pKey === null){
-                                $pKey = $this->$key;
-                            }
-                            if(count($schema->getTables())===1){
-                                $args['where'] = [$key=>$pKey];
-                            } else {
-                                $args['where'] = [$table=>[$key=>$pKey]];
-                            }
-                       }
+                    //this function takes the pKey provided and prepares a properly formatted select call based off the current schema using the pkey as the where value
+                    $args = [];
+                    $args['limit']=1;
+                    $schema = $pdoITable->getSchema();
+                    $mk = $schema->getMasterKey();
+                    foreach($mk as $table=>$key){
+                        if($pKey === null){
+                            $pKey = $this->$key;
+                        }
+                        if(count($schema->getTables())===1){
+                            $args['where'] = [$key=>$pKey];
+                        } else {
+                            $args['where'] = [$table=>[$key=>$pKey]];
+                        }
+                    }
 
                     // assign the return dynamo values to this
                        $this->stopValidation();
@@ -387,8 +504,8 @@
 
                        return($this);
                 };
-
-                $dynamo->update= function() use($pdoITable){
+              /** @var dynamo->load Gives the dynamo access to updating it's data in the database */
+                $dynamo->update= function() use(&$pdoITable){
                     $args = [];
                     $args['set'] = [];
                     $args['where'] = [];
@@ -428,9 +545,9 @@
 
                     return $pdoITable->update($args);
                 };
-                
 
-                $dynamo->delete = function() use($pdoITable){
+              /** @var dynamo->load Gives the dynamo access to remove itself from the database */
+                $dynamo->delete = function() use(&$pdoITable){
                     $args = [];
                     $schema = $pdoITable->getSchema();
                     $fkeys = $schema->getForeignKeys();
@@ -464,8 +581,14 @@
                return($dynamo); //returns the dynamo with access to the parent table
           }
 
-         // Insert a Dynamo
-         // Dynamos are spawned from a pdoITable use their creator to insert, update or delete themselves
+         /**
+          * Insert a dynamo into the database
+          *
+          * Using the schema from the dynamo, insert it's data into the database
+          * @param dynamo $dynamo
+          *
+          * @api
+          */
          function insertDynamo($dynamo)
          {
              $args = [];
@@ -561,10 +684,25 @@
              }
          }
 
+         /**
+          * Using the schema of a given dynamo, fill it with it's related data
+          *
+          * @param dynamo $dynamo The dynamo to fill with data
+          * @api
+          */
          function loadDynamo($dynamo){
 
          }
 
+         /**
+          * Create a relationship in the schema
+          *
+          * Set's up relationship data in the schema
+          *
+          * @param array $relationships The relationship to create [tableName.foreignKey => foreignTableName.primaryKey]
+          * @param bool $values
+          * @api
+          */
           function setRelationship($relationships, $values = false){
                foreach($relationships as $fKey=>$pKey){
                    //add tables w/columns to schema
@@ -573,7 +711,17 @@
                    $this->schema->setForeignKey([$fKey=>$pKey]);
                }
           }
-          
+
+         /**
+          * Terminates a relationship
+          *
+          * Destroys the relationship data which the tables are based on. If given an object which was mapped to that data,
+          *     it will remove that data from the object.
+          *
+          * @param array $tables List of table names
+          * @param dynamo|null $entity A class which has been mapped to the data that the relationship was based on.
+          * @api
+          */
           function endRelationship($tables=[], &$entity = null){
               //properly end the fkey=>pkey relationships provided (or all relationships) and 
               //remove the table(s) information from the schema. Be sure to leave the original schema unaffected.
@@ -603,8 +751,14 @@
                     $entity = $entity[0];
                 }
           }
-          
-          
+
+         /**
+          * Salt and pepper a password
+          *
+          * @param string $password The password to encode
+          * @return array describing the password's validation information
+          * @api
+          */
           function saltAndPepper($password) {
               $salt = "";
                 for($i=0; $i<17; $i++){
@@ -630,7 +784,17 @@
                 }
                 return(['salt'=>$newsalt,'rounds'=>$max,'hash'=>$hash]);
           }
-          
+
+         /**
+          * Validate a password against the salt and pepper method
+          *
+          * @param string $pass
+          * @param string $hash
+          * @param string $salt
+          * @param int $rounds
+          * @return bool success
+          * @api
+          */
           function checkPassword($pass, $hash, $salt, $rounds){
               $hashcheck = hash('sha256', $pass.$salt);
               for ($i=0; $i<$rounds; $i++){
@@ -639,7 +803,13 @@
               return($hashcheck === $hash);
               
           }
-          
+
+         /**
+          * Retrieve the current working schema
+          *
+          * @return schema
+          * @api
+          */
           function getSchema(){
               return $this->schema;
           }
