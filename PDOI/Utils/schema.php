@@ -31,6 +31,7 @@ interface schemaInterface extends Iterator, JsonSerializable {
  * Class schema
  *
  * Schema maintains table relationship and column information in a manner which allows other classes to iterate over that information
+ * In addition, Schema maintains the meta data for the table columns so that values can be validated before attempting to store them
  *
  * @package PDOI\Utils
  */
