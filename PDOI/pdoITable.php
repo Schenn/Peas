@@ -38,57 +38,13 @@
           protected $args = [];
 
 
-          public function generateArguments(){
-               //uses schema information to generate argument list
-               $a = [];
-               //if one table
-
-               $tables = $this->schema->getTables();
-
-               if(count($tables)===1){
-                    $a['table'] = $tables[0];
-                    $a['columns'] = $this->schema->getColumns($tables[0]);
-                    
-               }
-               elseif(count($tables)>1){ //if multiple tables
-                    $a['table'] = [];
-                    $a['join'] = [];
-                    $i=0;
-                    foreach($this->schema as $table=>$colData){
-                         array_push($a['table'],[$table=>$this->schema->getColumns($table)]);
-                         if($i > 0){
-                              array_push($a['join'],['inner join'=>$table]);
-                         }
-                         $i++;
-                    }
-                    $rels=[];
-                    foreach($this->schema->getForeignkeys() as $table=>$fKeys){
-                        //table1 = [0=>[table1Column=>[table2=>column2]]]
-                        //translate into [table1=>column1, table2=>column2]
-                        $table1 = $table;
-                        foreach($fKeys as $keys){
-                            foreach($keys as $column=>$keyData){
-                                foreach($keyData as $table2=>$connectingData){
-                                    $thisRel = [$table1=>$column, $table2=>$connectingData];
-                                    array_push($rels, $thisRel);
-                                }
-                            }
-                        }
-                    }
-                    $a['on'] = $rels;
-               }
-
-               return($a);
-          }
-
-
           /* Name: __construct
            * Description:  Controls new pdoITable creation
            * Takes: config = db configuration information, table = "" (table name), debug = false
            */
           function __construct($config, $tables, $debug=false){
                parent::__construct($config, $debug);
-               $this->schema = new schema([]);
+               $this->schema = new schema();
                $this->setTable($tables);
           }
 
@@ -152,11 +108,54 @@
                // Set up the schema
           }
 
+         public function generateArguments(){
+             //uses schema information to generate argument list
+             $arguments = [];
+             //if one table
+
+             $tables = $this->schema->getTables();
+
+             if(count($tables)===1){
+                 $arguments['table'] = $tables[0];
+                 $arguments['columns'] = $this->schema->getColumns($tables[0]);
+
+             }
+             elseif(count($tables)>1){
+                 //if multiple tables
+                 $arguments['table'] = [];
+                 $arguments['join'] = [];
+                 $i=0;
+                 foreach($this->schema as $table=>$colData){
+                     array_push($arguments['table'],[$table=>$this->schema->getColumns($table)]);
+                     if($i > 0){
+                         array_push($arguments['join'],['inner join'=>$table]);
+                     }
+                     $i++;
+                 }
+                 $relationships=[];
+                 foreach($this->schema->getForeignkeys() as $table=>$foreignKeys){
+                     $tablePrimary = $table;
+                     foreach($foreignKeys as $keys){
+                         foreach($keys as $column=>$keyData){
+                             foreach($keyData as $tableForeign=>$connectingData){
+                                 $thisRel = [$tablePrimary=>$column, $tableForeign=>$connectingData];
+                                 array_push($relationships, $thisRel);
+                             }
+                         }
+                     }
+                 }
+                 $arguments['on'] = $relationships;
+             }
+
+             return($arguments);
+         }
+
+
           /* Name: select
            * Description:  Runs a select query on the table
            * Takes: options = [] (associative array of options.  Overrides currently stored arguments for the query)
            */
-          function select($options=[], $entity = null){ 
+          function select($options=[], &$entity = null){
               //if no object supplied to take values from select query, use dynamo
                $entity = ($entity !== null ? $entity : $this->asDynamo());
                if(array_key_exists('table', $options) && array_key_exists('columns', $options)) {
