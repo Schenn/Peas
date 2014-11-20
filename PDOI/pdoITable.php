@@ -337,131 +337,30 @@
           function asDynamo(){
 
                //dynamo insert function, uses this pdoITable
-               $e = new dynamo($this->columns, $this->columnMeta);
+               $dynamo = new dynamo($this->columns, $this->columnMeta);
                $this->reset();
-               
-               $t = $this;
-               $e->insert = function() use($t){
-                    $args = [];
-                    $args['values'] = [];
+              // Give the object a reference to the table schema.
+              // The table schema may have relationships added or removed by the time we go into the database
+                $dynamo->TableSchema = $this->getSchema();
+              $pdoITable = $this;
 
-                    $schema = $t->getSchema();
-                    $fkeys = array_reverse($schema->getForeignKeys());
-                    
-                    if($t->debug){     
-                        print_r($fkeys);
-                    }
-                    if($fkeys){
-                        foreach($fkeys as $tableName=>$relationships){
-                            foreach($relationships as $index=>$relationship){
-                                foreach($relationship as $pcolumn=>$fk){
-                                    foreach($fk as $ftable=>$fcolumn){
-                                        $fcols = $schema->getColumns($ftable);
-                                        $values = [];
-                                        
-                                        foreach($fcols as $column){
-                                            $cmeta = $schema->getMeta($ftable, $column);
-                                            if(!array_key_exists('primaryKey', $cmeta) && !array_key_exists('auto', $cmeta)){
-                                                if(isset($this->$column)){
-                                                    $values[$column]=$this->$column;
-                                                }
-                                            } else {
-                                                if(($key = array_search($column, $fcols)) !== false) {
-                                                   unset($fcols[$key]);  
-                                                   $fcols = array_values($fcols);
-                                                }
-                                            }
-                                        }
-                                        if($t->debug) {
-                                             var_dump($ftable);
-                                             var_dump($fcols);
-                                             var_dump($values);
-                                        }
-                                        
-                                        $t->insert(['table'=>$ftable,'columns'=>$fcols,'values'=>$values]);
+              $dynamo->insert = function() use($pdoITable){
+                  $pdoITable->insertDynamo($this);
+              };
 
-                                        $pk= $schema->getPrimaryKey($ftable);
-                                        
-                                        $selectopts = ['where'=>$values, 
-                                            'columns'=>[$pk],
-                                            'table'=>$ftable, 
-                                            'orderby'=>[$pk=>'DESC'],
-                                            'limit'=>1
-                                        ];
-                                        
-                                        $row = $t->select($selectopts);
-                                        
-                                        $this->$fcolumn = $row->$fcolumn;
-                                    }
-                                }
-                            }
-                        }
-                        
-                        
-                        $mk = $schema->getMasterKey();
-                        //get master table
-                        foreach($mk as $mt=>$pk){
-                            //get columns from master table
-                            //unset primary key from columns
-                            $cols = $schema->getColumns($mt);
-                            if (($key = array_search($pk, $cols)) !== false) {
-                                unset($cols[$key]); 
-                                $cols = array_values($cols);  
-                            }
-                            $vals = [];
-                            //get master table column values from $this
-                            foreach($cols as $col){
-                                $vals[$col] = $this->$col;
-                            }
-                            $t->insert(['table'=>$mt, 'columns'=>$cols, 'values'=>$vals]);
-                            
-                            $select = ['where'=>$vals,
-                                'columns'=>[$pk],
-                                'table'=>$mt,
-                                'orderby'=>[$pk=>'DESC'],
-                                'limit'=>1
-                            ];
-                            //run an insert on the master
-                            $row = $t->select($select);
-                            //get the user_id and return it
-                            $this->$pk = $row->$pk;
-                        }
-                        
-                        if($t->debug) echo $this;
+                $dynamo->load = function($pKey = null) use($pdoITable){
+                    // set the pdoITable schema to the dynamo schema
+                    $oldSchema = $pdoITable->getSchema();
+                    $pdoITable->setSchema($this->TableSchema);
 
-                    }
-                    else {
-                    /*
-                    foreach($schema as $tableName=>$columns){
-                        $args['table'] = $tableName;
-                        foreach($columns as $columnName=>$columnData){
-                            if(!array_key_exists('fixed', $columnData)){
-                                if(isset($this->$columnName)){
-                                    if($this->$columnName != $columnData['default'] && $this->$columnName !== null){
-                                        $args['values'][$columnName] = $this->$columnName;
-                                    }
-                                }
-                            }
-                        }
+                    // run a select off the table using the provided pKey
 
-                        if(!$t->insert($args)){
-                            return false;
-                            break;
-                        }
-                        $args['values'] = [];
-                    }
-                    */
-                    }
-                    return true;
-                };
-            
-                $e->load = function($pkey = null) use($t){
+
                         //this function takes the pKey provided and prepares a properly formatted select call based off the current schema using the pkey as the where value
                        $args = [];
                        $args['limit']=1;
-                       $schema = $t->getSchema();
+                       $schema = $pdoITable->getSchema();
                        $mk = $schema->getMasterKey();
-                       $field = "";
                        foreach($mk as $table=>$key){
                             if($pKey === null){
                                 $pKey = $this->$key;
@@ -471,21 +370,25 @@
                             } else {
                                 $args['where'] = [$table=>[$key=>$pKey]];
                             }
-                            $field = $key;
                        }
 
+                    // assign the return dynamo values to this
                        $this->stopValidation();
-                       $newMe = $this->t->select($args,$this);
-                       foreach($newMe as $key=>$val){
-                           $this->$key = $val;
-                       }
-                       
+                       // pdo fetch_into should be assigning the values to 'this'. We shouldn't need to copy the values out of the return into this
+                       //$newMe = $pdoITable->select($args,$this);
+                       //foreach($newMe as $key=>$val){
+                       //    $this->$key = $val;
+                       //}
+                        $pdoITable->select($args,$this);
                        $this->startValidation();
+
+                    // Return pdoITable to its original schema
+                        $pdoITable->setSchema($oldSchema);
 
                        return($this);
                 };
 
-                $e->update= function() use($t){
+                $dynamo->update= function() use($pdoITable){
                     $args = [];
                     $args['set'] = [];
                     $args['where'] = [];
@@ -493,7 +396,7 @@
                     //use primary keys to create where
                     //compare current values against defaults before adding to 'set'
 
-                    $schema = $t->getSchema();
+                    $schema = $pdoITable->getSchema();
                     $pkeys = $schema->getPrimaryKeys();
                     $tCount = count($schema->getTables());
                     foreach($schema as $tableName=>$column){
@@ -523,13 +426,13 @@
 
                     $args['limit']=1;
 
-                    return $t->update($args);
+                    return $pdoITable->update($args);
                 };
                 
 
-                $e->delete = function() use($t){
+                $dynamo->delete = function() use($pdoITable){
                     $args = [];
-                    $schema = $t->getSchema();
+                    $schema = $pdoITable->getSchema();
                     $fkeys = $schema->getForeignKeys();
                     if(is_array($fkeys)){
                         foreach($fkeys as $tableName=>$relationships){
@@ -538,7 +441,7 @@
                                         foreach($fk as $ftable=>$fcolumn){
                                             $args = ['table'=>$ftable,
                                                 'where'=>[$fcolumn=>$this->$fcolumn]];
-                                            $t->delete($args);
+                                            $pdoITable->delete($args);
                                         }
                                     }
                                 }
@@ -546,7 +449,7 @@
                         $mk = $schema->getMasterKey();
                         foreach($mk as $table=>$column){
                             $args = ['where'=>[$column=>$this->$column]];
-                            return($t->delete($args));
+                            return($pdoITable->delete($args));
                         }
                     } else {
                         foreach($this as $key=>$value){
@@ -554,12 +457,113 @@
                                   $args['where'] = [$key=>$value];
                              }
                         }
-                        return $t->delete($args);
+                        return $pdoITable->delete($args);
                     }
                 };
                
-               return($e); //returns the dynamo with access to the parent table
+               return($dynamo); //returns the dynamo with access to the parent table
           }
+
+         // Insert a Dynamo
+         // Dynamos are spawned from a pdoITable use their creator to insert, update or delete themselves
+         function insertDynamo($dynamo)
+         {
+             $args = [];
+             $args['values'] = [];
+
+             // The pdoITable schema may have changed after the dynamo was spawned. Use the schema which was assigned to
+             // the dynamo at its creation
+             $schema = $dynamo->TableSchema;
+             $foreignKeys = array_reverse($schema->getForeignKeys());
+
+             if ($this->debug) {
+                 print_r($foreignKeys);
+             }
+             if ($foreignKeys) {
+                 foreach ($foreignKeys as $tableName => $relationships) {
+                     foreach ($relationships as $index => $relationship) {
+                         foreach ($relationship as $primaryColumn => $foreignKey) {
+                             foreach ($foreignKey as $foreignTable => $foreignColumn) {
+                                 $foreignCols = $schema->getColumns($foreignTable);
+                                 $values = [];
+
+                                 foreach ($foreignCols as $column) {
+                                     $columnMeta = $schema->getMeta($foreignTable, $column);
+                                     if (!array_key_exists('primaryKey', $columnMeta) && !array_key_exists('auto', $columnMeta)) {
+                                         if (isset($dynamo->$column)) {
+                                             $values[$column] = $dynamo->$column;
+                                         }
+                                     } else {
+                                         if (($key = array_search($column, $foreignCols)) !== false) {
+                                             unset($foreignCols[$key]);
+                                             $foreignCols = array_values($foreignCols);
+                                         }
+                                     }
+                                 }
+                                 if ($this->debug) {
+                                     var_dump($foreignTable);
+                                     var_dump($foreignCols);
+                                     var_dump($values);
+                                 }
+
+                                 // Insert foreign table data
+                                 $this->insert(['table' => $foreignTable, 'columns' => $foreignCols, 'values' => $values]);
+
+                                 $primaryKey = $schema->getPrimaryKey($foreignTable);
+
+                                 $selectOptions = ['where' => $values,
+                                     'columns' => [$primaryKey],
+                                     'table' => $foreignTable,
+                                     'orderby' => [$primaryKey => 'DESC'],
+                                     'limit' => 1
+                                 ];
+
+                                 $row = $this->select($selectOptions);
+
+                                 $this->$foreignColumn = $row->$foreignColumn;
+                             }
+                         }
+                     }
+                 }
+
+
+                 $masterKey = $schema->getMasterKey();
+                 //get master table
+                 foreach ($masterKey as $masterTable => $primaryKey) {
+                     //get columns from master table
+                     //unset primary key from columns
+                     $cols = $schema->getColumns($masterTable);
+                     if (($key = array_search($primaryKey, $cols)) !== false) {
+                         unset($cols[$key]);
+                         $cols = array_values($cols);
+                     }
+                     $values = [];
+                     //get master table column values from $this
+                     foreach ($cols as $col) {
+                         $values[$col] = $dynamo->$col;
+                     }
+                     $this->insert(['table' => $masterTable, 'columns' => $cols, 'values' => $values]);
+
+                     $select = ['where' => $values,
+                         'columns' => [$primaryKey],
+                         'table' => $masterTable,
+                         'orderby' => [$primaryKey => 'DESC'],
+                         'limit' => 1
+                     ];
+                     //run an insert on the master
+                     $row = $this->select($select);
+                     //get the user_id and return it
+                     $dynamo->$primaryKey = $row->$primaryKey;
+                 }
+
+                 if ($this->debug) echo $dynamo;
+
+             }
+         }
+
+         function loadDynamo($dynamo){
+
+         }
 
           function setRelationship($relationships, $values = false){
                foreach($relationships as $fKey=>$pKey){
