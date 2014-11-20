@@ -5,7 +5,7 @@
      use PDOI\Utils\schema as schema;
      /*
       *   Author: Steven Chennault
-      *   Email: schenn@gmail.com
+      *   Email: schenn@mash.is
       *   Github: https://github.com/Schenn/PDOI
       *   Name: pdoITable.php
       *   Description:  pdoITable is a front end for the PDOI system which acts a front end for the tables themselves.
@@ -20,7 +20,7 @@
        * columns = current listing of columns and default values, joins merge those columns into this array in table.columnName format
        * columnMeta = table data rules retrieved and parsed from the DESCRIBE mysql method
        * !!!!
-       * args = preconstructed list which the parent PDOI uses to process basic commands.
+       * args = pre-constructed list which the parent PDOI uses to process basic commands.
        *       REMOVE THIS.  Arguments should be generated at request time from the schema and values, not stored
        * !!!!
        * entity = dynamo class object which represents a row or potential row in a table.
