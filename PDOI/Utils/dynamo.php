@@ -110,7 +110,7 @@ class dynamo implements dynamoInterface{
                                        }
                                    }
                                    else {
-                                        throw new validationException("$name expectes boolean value; not $value",3);
+                                        throw new validationException("$name expects boolean value; not $value",3);
                                    }
                               }
                               elseif($this->meta[$name]['type'] === "date"){
