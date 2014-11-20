@@ -248,7 +248,7 @@
            *        if query succeeds, returns result as a single object or as an array, else returns null
            */
 
-          function SELECT($args, $obj = null){
+          function SELECT($args, &$obj = null){
                $join = [];
                $jCond = [];
                if(array_key_exists("join", $args)){ // if select query involves a join
