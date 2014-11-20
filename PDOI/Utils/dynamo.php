@@ -75,6 +75,24 @@ class dynamo implements dynamoInterface{
      }
 
     /**
+     * Actually set the property
+     *
+     * @param string $name The name of the property to set
+     * @param mixed $value The value to assign to the property
+     *
+     * @internal
+     */
+    private function setProperty($name, $value){
+        if($value !== $this->properties[$name]) {
+            $this->old[$name] = $this->properties[$name];
+            $this->properties[$name] = (float)$value;
+            if ($this->old[$name] === null) {
+                $this->old[$name] = $this->properties[$name];
+            }
+        }
+    }
+
+    /**
      * Set a value on a property
      *
      * Sets a property on the dynamo.  Verifies the incoming value against the table validation rules which
@@ -95,7 +113,6 @@ class dynamo implements dynamoInterface{
      *
      * @throws validationException If a value fails validation.
      * @todo If the value is fixed, it should throw. Currently, the whole thing is in a big ol' if and throws which isn't required
-     * @todo repeat code should be squashed
      * @todo errors shouldn't be echoed, they should be logged
      */
     public function __set($name, $value){
@@ -118,13 +135,7 @@ class dynamo implements dynamoInterface{
                         // If the value is numeric and is within the min and max values of the type
                         if($this->meta[$name]['type'] ==="numeric"){
                             if(abs($value)<=$this->meta[$name]['max'] && $value >= $this->meta[$name]['max'] * -1){
-                                if((float)$value !== $this->properties[$name]){
-                                    $this->old[$name]=$this->properties[$name];
-                                    $this->properties[$name] = (float)$value;
-                                    if($this->old[$name] === null){
-                                        $this->old[$name]=$this->properties[$name];
-                                    }
-                                }
+                                $this->setProperty($name, (float)$value);
                             }
                             else {
                                 throw new validationException("$value falls outside of $name available range (".($this->meta[$name]['max'] * -1)." to ".$this->meta[$name]['max'].")", 1);
@@ -137,13 +148,7 @@ class dynamo implements dynamoInterface{
                                 $value = (string)$value;
                                 // If the string is less than the max length
                                 if(strlen($value) <= $this->meta[$name]['length']){
-                                    if($value !== $this->properties[$name]){
-                                        $this->old[$name]=$this->properties[$name];
-                                        $this->properties[$name] = $value;
-                                        if(empty($this->old[$name])){
-                                            $this->old[$name]=$this->properties[$name];
-                                        }
-                                    }
+                                    $this->setProperty($name, $value);
                                 }
                                 else {
                                     throw new validationException("$value has too many characters for $name",2);
@@ -152,25 +157,13 @@ class dynamo implements dynamoInterface{
                             // No maximum length
                             else {
                                 $value = (string)$value;
-                                if($value !== $this->properties[$name]){
-                                    $this->old[$name]=$this->properties[$name];
-                                    $this->properties[$name] = $value;
-                                    if(empty($this->old[$name])){
-                                        $this->old[$name]=$this->properties[$name];
-                                    }
-                                }
+                                $this->setProperty($name, $value);
                             }
                         }
                         // If type is a boolean
                         elseif($this->meta[$name]['type'] === "boolean"){
                             if(is_bool($value)){
-                                if($value !== $this->properties[$name]){
-                                    $this->old[$name]=$this->properties[$name];
-                                    $this->properties[$name] = $value;
-                                    if(empty($this->old[$name])){
-                                        $this->old[$name]=$this->properties[$name];
-                                    }
-                                }
+                                $this->setProperty($name, $value);
                             }
                             else {
                                 throw new validationException("$name expects boolean value; not $value",3);
@@ -182,13 +175,7 @@ class dynamo implements dynamoInterface{
                                 if(isset($this->meta[$name]['format'])){
                                     $value->format($this->meta[$name]['format']);
                                 }
-                                if($value !== $this->properties[$name]){
-                                    $this->old[$name]=$this->properties[$name];
-                                    $this->properties[$name] = $value;
-                                    if(empty($this->old[$name])){
-                                        $this->old[$name]=$this->properties[$name];
-                                    }
-                                }
+                                $this->setProperty($name, $value);
                             }
                             else {
                                 throw new validationException("$value not a date for $name",4);
@@ -202,13 +189,7 @@ class dynamo implements dynamoInterface{
                 }
                 // No validation is being done, just assign it
                 else {
-                    if($value !== $this->properties[$name]){
-                        $this->old[$name]=$this->properties[$name];
-                        $this->properties[$name] = $value;
-                        if(empty($this->old[$name])){
-                            $this->old[$name]=$this->properties[$name];
-                        }
-                    }
+                    $this->setProperty($name, $value);
                 }
             }
         }
