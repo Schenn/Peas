@@ -2,19 +2,16 @@
      namespace PDOI\Utils;
      use Exception;
      /*
-      *   Author: Steven Chennault
-      *   Email: schenn@gmail.com
-      *   Github: https://github.com/Schenn/PDOI
-      *   Name: sqlSpinner.php
-      *   Description:  sqlSpinner is a chainable class which generates an sql string based off
-      *             an associative array of arguments.  This allows applications to ensure that
-      *             their sql statements are prepared properly.
-      *
+      * @author:  Steven Chennault schenn@mash.is
+      * @link: https://github.com/Schenn/PDOI Repository
       */
 
      /*
-      * Name: sqlSpunError
-      * Description:  Error exception for sqlSpinner
+      * Error Exception for sqlSpinner
+      *
+      * When sql is malformed or missing data, an sqlSpunError is thrown
+      *
+      * @category Exceptions
       */
 
      class sqlSpunError extends Exception {
@@ -32,14 +29,23 @@
      }
 
      /*
-      * Name: sqlSpinner
-      * Description: generates sql statements from an argument array
-      *        It is chainable, returning the object with every function except
-      *        getSQL.  Call getSQL to retrieve the sql statement and end the chain.
+      * sqlSpinner generates sql from an argument dictionary
+      *
+      * It's methods can be chained together until getSQL is called.
+      *
+      * @see sqlSpinner::getSQL
+      * @todo Improve error handling
+      * @todo Remove unused variables, clean up and format
       */
      class sqlSpinner {
+         /** @var string some methods need to know what type of query is being constructed to guide their flow
+          *  @see sqlSpinner::WHERE
+          */
           protected $method;
+         /** @var  string the working sql string */
           protected $sql;
+         /** @var array list of mysql types and their default values.
+          *     primary_key is a special marker that tells the spinner what type the primary key should be */
           protected $typeBasics = [
               'primary_key'=>'int',
               'ai'=>true,
@@ -73,16 +79,25 @@
               'enum'=>'',
               'set'=>''
           ];
+
           /*
-           * Name: aggregate
-           * Takes: aggMethod = "" (sum, avg, count, min, max)
-           *        aggValues = ['columnName']
-           * Description:  generates an aggregate mysql function
+           * Constructs an aggregate function
+           *
+           * Some sql requires summing or counting or getting the min or max values. This method constructs that segment
+           * of the sql query. This method does not return the spinner as it is not part of the api
+           *
+           * @param string aggMethod "" | (sum | avg | count | min | max)
+           * @param array aggValues a list of column names
+           *
+           * @see sqlSpinner::SELECT
+           *
+           * @internal
            */
 
           protected function aggregate($aggMethod, $aggValues=[], $alias = ""){
-               //if columnNames is empty, * is used
                $this->sql .= strtoupper($aggMethod)."(";
+
+              //if 'columnNames' is empty, * is used as the column
                $cNameCount = count($aggValues);
                if($cNameCount === 0){
                     $this->sql .= "*";
@@ -91,16 +106,27 @@
                     $this->sql .= implode(", ", $aggValues);
                }
                $this->sql.=")";
-               
+
+              // alias allows mysql to give a name to the value of the function result
                if(!empty($alias)){
                    $this->sql.= " AS ".$alias." ";
                } else {
-                   $tmpAlias = $aggMethod.$aggValues[0];
+                   // Use the first column name or the method being used if no columns are given
+                   $tmpAlias = ($cNameCount > 0) ? $aggMethod.$aggValues[0] : $aggMethod;
                    $this->sql.= " AS ".$tmpAlias." ";
                }
           }
 
 
+         /**
+          * Transforms the developer friendly comparison method argument into an sql friendly comparison string
+          *
+          * @param string $method the intended sql comparison method in developer friendly syntax
+          * @return string the sql friendly comparison operator
+          *
+          * @see sqlSpinner::WHERE
+          * @internal
+          */
           protected function methodSpin($method){
                switch(strtolower(str_replace(" ", "",$method))){
                     case "!=":
@@ -136,24 +162,42 @@
           }
 
           /*
-           * Name: SELECT
-           * Takes: args = [
-           *             REQUIRED
-           *                  'table'=>      'tableName' | ['tableName', 'tableName']  if table is missing, sqlSpinner throws sqlSpunError
-           *             OPTIONAL
-           *                  'columns'=>    ['columnName', (agg=>['method'=>'values'])]  agg represents aggregate method. If columns omitted, SELECT * is used instead
-           *             VERY OPTIONAL
-                              'distinct'=>   'distinct' | 'distinctrow'
-                              'result'=>     'big' | 'small' (sql_big_result | sql_small_result) Requires either args['distinct'] or args['groupby']
-                              'priority'=>   true (HIGH_PRIORITY) unsets args['union']
-                              'buffer'=>     true (SQL_BUFFER_RESULT)
-                              'cache'=>      true | false (SQL_CACHE | SQL_NO_CACHE)
-                         ]
-           * Description: Sets this->sql to a SELECT statement up to the tablename.  Also sets this->method to select as where clause relies on how statement began
+           * Begins constructing the sql for a select query
+           *
+           * SELECT columns FROM table
+           *
+           * @param array args list of arguments
+           *    REQUIRED
+           *        'table'=>      'tableName' | ['tableName', 'tableName']
+           *    OPTIONAL
+           *        'columns'=>    ['columnName', (aggregateMethod=>['method'=>'values'])]
+           *            If columns omitted, SELECT * is used instead
+           *    VERY OPTIONAL
+           *        'union'=>     true (UNION) Can be used in a subsequent call to select
+           *             (e.g. spinner->SELECT($args)->SELECT($argsWithUnion)->getSQL)
+           *             (ignored if priority is set -- per mysql docs: HIGH_PRIORITY cannot be used with SELECT statements that are part of a UNION. )
+           *        'distinct'=>   'distinct' | 'distinctrow'
+           *        'result'=>     'big' | 'small' (sql_big_result | sql_small_result)
+           *             Requires either args['distinct'] or args['groupby'] to have value
+           *        'priority'=>   true (HIGH_PRIORITY)
+           *        'buffer'=>     true (SQL_BUFFER_RESULT)
+           *        'cache'=>      true | false (SQL_CACHE | SQL_NO_CACHE)
+           *
+           * @throws sqlSpunError if no table information is given
+           * @return sqlSpinner this
+           *
+           * @todo Throw sqlSpunError if the provided arguments have invalid values or are being used in invalid ways
+           *
+           * @api
            */
           function SELECT($args){
                $this->method = 'select';
-               $this->sql = "SELECT ";
+              // union is used to join multiple select statements into a single return value
+              if(isset($args['union']) && !empty($this->sql) && substr($this->sql,0,6) == "SELECT"){
+                  $this->sql .= " UNION SELECT ";
+              } else {
+                  $this->sql = "SELECT ";
+              }
 
                try {
 
@@ -185,10 +229,7 @@
                          }
                     }
 
-                    if(isset($args['priority'])){
-                         if(isset($args['union'])){
-                              unset($args['union']);
-                         }
+                    if(isset($args['priority']) && !isset($args['union'])){
                          $this->sql .= " HIGH_PRIORITY ";
                     }
 
@@ -233,7 +274,7 @@
                             }
                          }
                         else if(is_string($args['columns']))  {
-                            $this->sql .= "$col ";
+                            $this->sql .= $args['columns'] . " ";
                         }
                     }
                     else {
@@ -260,23 +301,26 @@
                return($this);
           }
 
-          /*
-           * Name: INSERT
-           * Takes: args = [
-           *             REQUIRED
-           *                  'table'=>      'tableName'  if missing, sqlSpinner throws sqlSpunError
-           *                  'columns'=>    ['columnName', 'columnName']  if missing, sqlSpinner throws sqlSpunError
-                         ]
-               Description: this->sql = INSERT INTO tableName (columnName, columName) VALUES (:columnName, :columnName)
-                         sql statement uses placeholders for pdo.  Be sure to match your value array appropriately.
-           *
-           */
-          function INSERT($args){
+       /*
+        * Begins constructing the sql as an INSERT query
+        *
+        * INSERT INTO table (columnName, columnName,...) VALUES (:columnName, :columnName, ...)
+        *
+        * @param array args
+        *             REQUIRED
+        *                  'table'=>      'tableName'  if missing, sqlSpinner throws sqlSpunError
+        *                  'columns'=>    ['columnName', 'columnName']  if missing, sqlSpinner throws sqlSpunError
+        *
+        * @throws sqlSpunError if no table or columns provided
+        *
+        * @return sqlSpinner this
+        */
+         function INSERT($args){
                $this->method = 'insert';
 
                try {
                     if(isset($args['table'])){
-                         $this->sql = "INSERT INTO ".$args['table'];
+                         $this->sql = "INSERT INTO"." ".$args['table'];
                     }
                     else {
                          throw new sqlSpunError("Invalid Arguments", 1);
@@ -302,22 +346,28 @@
                     }
                     $this->sql .=")";
 
-                    return($this);
+
                } catch(sqlSpunError $e){
                     echo $e->getMessage();
                }
+             return($this);
           }
 
           /*
-           * Name: UPDATE
-           * Takes: args = [
+           * Begins constructing an UPDATE mysql query
+           *
+           * UPDATE table
+           * sql statement uses placeholders for pdo.  Be sure to match your value array appropriately.
+           *
+           * @param array args
            *             REQUIRED
            *                  'table'=>      'tableName'  if missing, sqlSpinner throws sqlSpunError
            *                  'set'=>    ['columnName'=>'value']  if missing, sqlSpinner throws sqlSpunError
-                         ]
-               Description: this->sql = UPDATE tableName SET columnName = :setColumnName
-                         sql statement uses placeholders for pdo.  Be sure to match your value array appropriately.
            *
+           * @throws sqlSpunError if no table or set argument provided
+           * @return sqlSpinner this
+           *
+           * @api
            */
           function UPDATE($args){
                $this->method = "update";
@@ -332,70 +382,94 @@
                          throw new sqlSpunError("Invalid Arguments", 2);
                     }
                     
-                    return($this);
+
                }
                catch (sqlSpunError $e){
                     echo $e->getMessage();
                }
+              return($this);
           }
           
-          // Set Function for update query
+         /**
+          * Adds the SET segment to an UPDATE query
+          *
+          * Appends the SET segment to the UPDATE query. Creates placeholders for pdo to bind a value to
+          * UPDATE table SET column = :setColumn, column = :setColumn, ...
+          *
+          * @param array $args
+          *         REQUIRED
+          *             'set'=> ['columnName'=>value, 'columnName'=>value,...]]
+          * @return sqlSpinner this
+          * @api
+          * @todo Error Catching
+          */
           function SET($args){
-              $this->sql .= "SET ";
-              $i = 0;
-              $cCount = count($args['set']);
-                foreach($args['set'] as $column=>$value){
-                     $this->sql .="$column = :set".str_replace(".","",$column);
-                     if($i !== $cCount-1){
-                          $this->sql.=", ";
-                     }
-                     $i++;
-                }
-                $this->sql .= " ";
-                return($this);
+              if($this->method == "update") {
+                  $this->sql .= "SET ";
+                  $i = 0;
+                  $cCount = count($args['set']);
+                  foreach ($args['set'] as $column => $value) {
+                      $this->sql .= "$column = :set" . str_replace(".", "", $column);
+                      if ($i !== $cCount - 1) {
+                          $this->sql .= ", ";
+                      }
+                      $i++;
+                  }
+                  $this->sql .= " ";
+              }
+              return($this);
           }
 
           /*
-           * Name: DELETE
-           * Takes: args = [
+           * Begins constructing the sql as a DELETE query
+           *
+           * DELETE FROM table
+           *
+           * @param array args
            *             REQUIRED
            *                  'table'=>      'tableName'  if missing, sqlSpinner throws sqlSpunError
-                         ]
-               Description: this->sql = DELETE FROM tableName
-                         sql statement uses placeholders for pdo.  Be sure to match your value array appropriately.
-           *
+           * @throws sqlSpunError if no table provided
+           * @return sqlSpinner this
+           * @api
            */
           function DELETE($args){
                $this->method = "delete";
                try {
                     if(isset($args['table'])){
-                         $this->sql = "DELETE FROM ".$args['table']." ";
+                         $this->sql = "DELETE FROM"." ".$args['table']." ";
                     }
                     else {
                          throw new sqlSpunError("Invalid Arguments",1);
                     }
-                    return($this);
+
                }
                catch (sqlSpunError $e){
                     echo $e->getMessage();
                }
-
+              return($this);
           }
           
           /*
-           * Name: CREATE
-           * Takes: args = 
-           *             'table'=>      'tableName'  if missing, sqlSpinner throws sqlSpunError
-                         'props'=>['primary_key_name'=>['type','length','noai','null'], ['field_name'=>['type','length','notnull',default],...]
-               Description: this->sql = CREATE TABLE tablename IF NOT EXISTS ( prop details, prop details, PRIMARY KEY (primary key));
-           *            Defaults exist for most of the info
-                         sql statement uses placeholders for pdo.  Be sure to match your value array appropriately.
+           * Begins constructing the sql as a CREATE statement
+           *
+           * CREATE TABLE tableName IF NOT EXISTS (prop details, prop details, .., PRIMARY KEY (primary key));
+           * Most of the properties have default types or lengths which can be found in this typeBasics
+           *
+           * @see sqlSpinner::typeBasics
+           *
+           * @param string tableName name of the table to create
+           * @param array props
+           *              'props'=>['primary_key_name'=>['type','length','noai','null'], ['field_name'=>['type','length','notnull',default],...]
+           *              The first provided property is assigned as the primary key
+           * @return sqlSpinner this
+           * @api
+           *
+           * @todo Error Catching
            */
-          function CREATE($tablename, $props){
+          function CREATE($tableName, $props){
               $this->method = 'create';
-              if(!empty($tablename)){
-                  $this->sql .= "DROP TABLE IF EXISTS {$tablename};CREATE TABLE IF NOT EXISTS ".$tablename." (";
-                  $primarykey = "";
+              if(!empty($tableName)){
+                  $this->sql .= "DROP TABLE IF EXISTS {$tableName};CREATE TABLE IF NOT EXISTS ".$tableName." (";
                   $i=0;
                   foreach($props as $field=>$prop){
                       $this->sql .= $field.' ';
@@ -447,70 +521,88 @@
               }
               return($this);
           }
-          
-          function DROP($tablename){
-              $this->sql = "DROP TABLE IF EXISTS {$tablename}";
+
+         /**
+          * Constructs the sql as a DROP table query
+          *
+          * DROP TABLE IF EXISTS tableName
+
+          * @param string $tableName Name of the table to drop
+          * @return sqlSpinner this
+          *
+          * @api
+          * @todo Error catching
+          */
+          function DROP($tableName){
+              $this->sql = "DROP TABLE IF EXISTS {$tableName}";
               return($this);
           }
-          
-          /*
-           * Name: JOIN
-           * Takes: args = 
-           *             'join'=> [tablenames]  if missing, sqlSpinner throws sqlSpunError
-                         'condition'=>['on'=>['table1.foreignkey'=>'table2.primarykey',..]] || ['using'=>['col1', 'col2', 'col3']]
-               Description: this->sql .= .. JOIN ON table1.foreignkey = table2.primarykey, ...
-           *                this->sql .= .. JOIN USING col1, col2, col3 ...
-                            Generates the join segment of an sql statement
-           */
+
+
+         /**
+          * Generates the join segment of an sql query
+          *
+          * Generates one of the following
+          *  .. JOIN ON table1.foreignKey = table2.primaryKey, ...
+          *  .. JOIN USING col1, col2, col3 ...
+          *
+          * @param array $join [tableName, tableName]
+          * @param array $condition ['on'=>['table1.foreignKey'=>'table2.primaryKey',..]] || ['using'=>['col1', 'col2', 'col3']]
+          * @throws sqlSpunError if no join information provided
+          *
+          * @return sqlSpinner this
+          *
+          * @api
+          */
 
           function JOIN($join = [], $condition = []){
               if($this->method=='update'){
-              if(!empty($join)){
-                  $block = [];
-                  $i=0;
-                  foreach($join as $tableMethod){
-                         foreach($tableMethod as $joinMethod=>$tableName){
-                             $block[$i] = strtoupper($joinMethod)." ".$tableName;
-                             $i++;
-                              //$this->sql .= strtoupper($joinMethod)." ".$tableName;
-                         }
-
-                    }
-                    
-                    if(array_key_exists("on", $condition)){
-                         //$this->sql .= "ON ";
-                         $c = count($condition['on']);
-                         $i=0;
-                         foreach($condition['on'] as $rel){
-                             $z = 0;
-                             foreach($rel as $table=>$column){
-                                 if(isset($block[$i])){
-                                        if($z===0){
-                                           $this->sql.= $block[$i]." ON ".$table.".".$column."=";
-                                           $z++;
-                                        }
-                                        else {
-                                            $this->sql .= $table.'.'.$column." ";
-                                            $z=0;
-                                        }
-                                 }
-                                 else {
-                                     break;
-                                 }
+                  if(!empty($join)){
+                      $block = [];
+                      $i=0;
+                      foreach($join as $tableMethod){
+                             foreach($tableMethod as $joinMethod=>$tableName){
+                                 $block[$i] = strtoupper($joinMethod)." ".$tableName;
+                                 $i++;
+                                  //$this->sql .= strtoupper($joinMethod)." ".$tableName;
                              }
-                             $i++;
-                             //$this->sql.= $block[$i]." ON ".$rel[0]."=".$rel[1];
-                         }
 
-                    }
-                    elseif(array_key_exists("using", $condition)){
-                         $this->sql .= "USING (";
-                         $using = $condition['using'];
-                         $this->sql .= implode(",", $using);
-                         $this->sql.=") ";
-                    }
-                    
-              }
+                        }
+
+                        if(array_key_exists("on", $condition)){
+                             //$this->sql .= "ON ";
+                             $c = count($condition['on']);
+                             $i=0;
+                             foreach($condition['on'] as $rel){
+                                 $z = 0;
+                                 foreach($rel as $table=>$column){
+                                     if(isset($block[$i])){
+                                            if($z===0){
+                                               $this->sql.= $block[$i]." ON ".$table.".".$column."=";
+                                               $z++;
+                                            }
+                                            else {
+                                                $this->sql .= $table.'.'.$column." ";
+                                                $z=0;
+                                            }
+                                     }
+                                     else {
+                                         break;
+                                     }
+                                 }
+                                 $i++;
+                                 //$this->sql.= $block[$i]." ON ".$rel[0]."=".$rel[1];
+                             }
+
+                        }
+                        elseif(array_key_exists("using", $condition)){
+                             $this->sql .= "USING (";
+                             $using = $condition['using'];
+                             $this->sql .= implode(",", $using);
+                             $this->sql.=") ";
+                        }
+
+                  }
               } else{
                if($join !== []){
                     foreach($join as $tableMethod){
@@ -557,21 +649,27 @@
                return($this);
           }
 
-          /*
-           * Name: WHERE
-           * Takes: where = [
-           *                  columnName=>columnValue ||    columnName = :columnName
-           *                  columnName=>[method=>columnValue] ||
-           *                      = columnName . (this->methodSpin(method)) . :where.columnName
+          /**
+           * Appends the WHERE clause to the current sql query
            *
-           *                  columnName=>[method=>columnValues]
+           * Generates the WHERE segment of the sql query
+           *
+           * @param array $where
+           *                  columnName=>columnValue   generates
+           *                       columnName = :columnName
+           *                  columnName=>[method=>columnValue]     generates
+           *                       columnName . (this->methodSpin(method)) . :where.columnName
+           *                  columnName=>[method=>columnValues]    generates
            *                       method = 'between' = columnName BETWEEN :where.columnName.0 AND :where.columnName.1 (AND :where.columnName.2)
            *                       method = 'or' = columnName = :where.columnName.0 OR :where.columnName.1 (OR :where.columnName.2)
            *                       method = 'in' = columnName IN (:where.columnName.0, :where.columnName.1(,:where.columnName.2))
            *                       method = 'not in' = columnName NOT IN (:where.columnName.0, :where.columnName.1(,:where.columnName.2))
-                         ]
-               Description: Appends WHERE clause to current sql statement with pdo placeholders
            *
+           * @return sqlSpinner this
+           *
+           * @api
+           *
+           * @todo Error Catching
            */
           function WHERE($where){
 
@@ -600,7 +698,7 @@
                                                        }
                                                   }
                                                   break;
-                                             case "or":
+                                            case "or":
                                                   $this->sql .=$column." =";
                                                   for($vI=0;$vI<$vCount;$vI++){
                                                        $this->sql .= ":where".str_replace(".","",$column).$vI;
@@ -609,9 +707,9 @@
                                                        }
                                                   }
                                                   break;
-                                             case "in":
+                                            case "in":
                                                   $this->sql .= $column." IN (";
-                                                  for($vI=0;$vI<$vCount;$v++){
+                                                  for($vI=0;$vI<$vCount;$vI++){
                                                        $this->sql .= ":where".str_replace(".","",$column).$vI;
                                                        if($vI !== $vCount-1){
                                                             $this->sql .= ", ";
@@ -619,9 +717,9 @@
                                                   }
                                                   $this->sql .=")";
                                                   break;
-                                             case "notin":
+                                            case "notin":
                                                   $this->sql .= $column." NOT IN (";
-                                                  for($vI=0;$vI<$vCount;$v++){
+                                                  for($vI=0;$vI<$vCount;$vI++){
                                                        $this->sql .=":where".str_replace(".","",$column).$vI;
                                                        if($vI !== $vCount-1){
                                                             $this->sql .= ", ";
@@ -646,39 +744,50 @@
           }
 
 
-          /*
-           * Name: DELETE
-           * Takes: groupby = [columnName, columnName]
-               Description: Appends GROUP BY columnName(, columnname) to SQL statement
+          /**
+           * Generates the GROUPBY segment of the sql query
            *
+           * GROUP BY columnName, columnName, ..
+           * @param array $groupBy
+           *         [columnName, columnName]
+           * @return sqlSpinner this
+           * @api
            */
-          function GROUPBY($groupby = []){
+          function GROUPBY($groupBy = []){
 
-               if(!empty($groupby)){
+               if(!empty($groupBy)){
                     $this->sql.="GROUP BY ";
-                    $this->sql .= implode(", ",$groupby)." ";
+                    $this->sql .= implode(", ",$groupBy)." ";
                }
 
                return($this);
           }
 
-          /*
-           * Name: HAVING
-           * Takes: having = [
+          /**
+           * Appends HAVING clause to the sql statement.
+           *
+           * Must use aggregate method in HAVING.  DO NOT use HAVING to replace a WHERE clause.
+           * Where does not handle sql aggregate functions.
+           *
+           * @param array $having
            *             aggMethod=>    aggregate method (see this->aggregate())
            *             'columns'=>    ['columnName', 'columnName']
            *             'comparison'=> [
            *                            'method'=>(see this->methodSpin())
            *                            'value'=>value to compare aggregate result to
            *                            ]
-           *            ]
-               Description: Appends HAVING clause to the sql statement.  Must use aggregate in having.
-               DO NOT use HAVING to replace a WHERE clause.  Where does not handle sql aggregate functions.
+           *
+           * @see sqlSpinner::methodSpin
+           *
+           * @return sqlSpinner this;
+           *
+           * @api
+           * @todo Error Catching
            *
            */
           function HAVING($having=[]){
 
-               //having = [aggmethod=>[columnNames]]
+               //having = [aggMethod=>[columnNames]]
                //DO NOT USE HAVING TO REPLACE A WHERE
                //Having should only use group by columns for accuracy
 
@@ -697,11 +806,27 @@
                return($this);
           }
 
-          /*
-           * Name: ORDERBY
-           * Takes: sort = ['columnName'=>method (asc | desc) | [columnName=>method (asc | desc), columnName=>method (asc | desc)] | 'NULL' | null
-               Description: Appends ORDER BY columnName(, columnname) to SQL statement
-               you want to set sort to a column, array of columns or NULL for speed sake if groupby was appended to sql statement
+          /**
+           * Appends Order By sql clause to query
+           *
+           * you want to set sort to a column, array of columns or NULL for speed sake if groupby was appended to sql statement
+           *
+           * Sorting by NULL prevents mysql from attempting to sort a group by result set. This increases the performance of the query
+           * @see http://dev.mysql.com/doc/refman/5.0/en/order-by-optimization.html
+           *
+           * ORDER BY columnName(, columnName)
+           *
+           * @param array|string $sort
+           *    ['columnName'=>method (asc | desc)] |
+           *    [[columnName=>method (asc | desc)], [columnName=>method (asc | desc)], ..] |
+           *    'NULL' |
+           *    null (the value)
+           *
+           * @return sqlSpinner this
+           *
+           * @api
+           *
+           * @todo Error Catching
            *
            */
           function ORDERBY($sort = []){
@@ -734,11 +859,14 @@
                return($this);
           }
 
-          /*
-           * Name: LIMIT
-           * Takes: limit = int
-               Description: Appends LIMIT clause to sql statement.
+          /**
+           * Appends LIMIT clause to sql statement.
            *
+           * LIMIT n
+           * @param int $limit the limit value
+           *
+           * @return sqlSpinner this
+           * @api
            */
           function LIMIT($limit = null){
                if($limit !== null){
@@ -747,14 +875,20 @@
                return($this);
           }
 
-          /*
-           * Name: DESCRIBE
-           *  Takes: REQUIRED
-           *             table = 'tableName'
-           *        OPTIONAL
-           *             column = 'columnName'
-               Description: Generates DESC table || DESC table columnname statement which is used to get information on the schema of a table
+          /**
+           * Generates a DESC sql query
            *
+           * DESC is used to determine information about a table's schema.
+           * DESC table to get schema information on the whole table
+           * DESC table column to get schema information on a column
+           *
+           * @param string $table the tableName
+           * @param string $column the columnName
+           *
+           * @return sqlSpinner this
+           * @api
+           *
+           * @todo Error Catching
            */
           function DESCRIBE($table, $column = ""){
                $this->sql = "DESC ".$table;
@@ -764,9 +898,13 @@
                return($this);
           }
 
-          /*
-           * Name: getSQL
-           * Description: returns the sql statement and resets this->sql to an empty string
+          /**
+           * Returns the constructed sql query
+           *
+           * Stops generating the sql query and returns the constructed value of $this->sql
+           *
+           * @return string $this->sql
+           * @api
            */
           function getSQL(){
                $sql = $this->sql;
