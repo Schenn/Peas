@@ -582,7 +582,7 @@
               try {
                   
                   $this->pdo->beginTransaction();
-                    if(!$this->table_exists($table)){
+                    if(!$this->tableExists($table)){
                         $sql = (new Utils\sqlSpinner())->CREATE($table,$props)->getSQL();
                         if($this->debug){
                             echo "<pre>";
@@ -740,8 +740,9 @@
                     }
                }
           }
-          
-          function table_exists($table){
+
+         // Determine if the table exsits
+          function tableExists($table){
                try {
                     $this->pdo->query("Select 1 from {$table}");
                     return true;
