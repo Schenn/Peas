@@ -491,10 +491,7 @@
                                    $values[$prepCol] = $value;
                               }
                          }
-                         if($this->debug){ //if debugging
-                              echo("Values: ");
-                              print_r($values);
-                         }
+                        $this->debug ("Values: ", $values);
                         //executes with parameter array, if fails throws exception
                          if(!($stmt->execute($values))){
                               throw new Exception("Insert Failed");
@@ -677,7 +674,7 @@
                $sql = (new sqlSpinner())->DELETE($args)->JOIN($join, $joinCondition)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
                 $this->debug($sql, $whereValues);
                try {
-                    $this->ping(); //ensure db access
+                    $this->ping(); //ensure db available
                     $this->pdo->beginTransaction(); //begin transaction
                     $stmt = $this->pdo->prepare($sql); //prepare statement
                     $stmt->execute($whereValues); //execute with value array
@@ -790,33 +787,6 @@
                     return(false);
                }
           }
-
-         /**
-          * Process a queue of pdo instructions
-          *
-          * Executes through a set of pdo operations and arguments and wait until the end to commit
-          *
-          * @param array $instructions [methodName=>methodArguments]
-          * @return bool success
-          *
-          * @todo Pretty sure we should just remove this.
-          */
-          function queue($instructions = []){
-               try {
-                    $this->pdo->beginTransaction();
-                    foreach($instructions as $method->$args){
-                         $M = strtoupper($method);
-                         $this->$M[$args];
-                    }
-                    return($this->pdo->commit());
-               }
-               catch (Exception $e){
-                    $this->pdo->rollBack();
-                    echo "Failed: ".$e->getMessage();
-                    return(false);
-               }
-          }
-
 
          /**
           * Ensure that we are still connected to the database
