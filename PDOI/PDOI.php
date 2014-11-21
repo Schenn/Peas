@@ -87,7 +87,7 @@
       * @param array $args The dictionary
       * @internal
       */
-     private function debug($sql, $args){
+     protected function debug($sql, $args){
          if($this->debug) {
              echo "<pre>";
              print_r($sql);
