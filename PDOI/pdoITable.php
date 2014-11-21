@@ -523,14 +523,14 @@
             $dynamo->delete = function() use(&$pdoITable){
                 $args = [];
                 $schema = $pdoITable->getSchema();
-                $fkeys = $schema->getForeignKeys();
-                if(is_array($fkeys)){
-                    foreach($fkeys as $tableName=>$relationships){
+                $foreignKeys = $schema->getForeignKeys();
+                if(is_array($foreignKeys)){
+                    foreach($foreignKeys as $tableName=>$relationships){
                             foreach($relationships as $index=>$relationship){
-                                foreach($relationship as $pcolumn=>$fk){
-                                    foreach($fk as $ftable=>$fcolumn){
-                                        $args = ['table'=>$ftable,
-                                            'where'=>[$fcolumn=>$this->$fcolumn]];
+                                foreach($relationship as $primaryColumn=>$fk){
+                                    foreach($fk as $foreignTable=>$foreignColumn){
+                                        $args = ['table'=>$foreignTable,
+                                            'where'=>[$foreignColumn=>$this->$foreignColumn]];
                                         $pdoITable->delete($args);
                                     }
                                 }
