@@ -258,10 +258,11 @@
                     if(array_key_exists("auto",$meta)){
                          unset($arguments['columns'][$index]);
                     }
-                    
+
                     if(isset($arguments['columns'][$index]))
                     {
                         if(isset($options['values'][$key])){
+                            // Strip out default values
                             if($options['values'][$key] === $meta['default']){
                                 unset($arguments['columns'][$index]);
                             }
@@ -333,7 +334,7 @@
           function update($options){
                $arguments = $this->generateArguments();
                
-                //ensures auto_numbering primary key is not 'updated'
+                //ensures each auto_numbering primary key is not 'updated' to prevent errors
                if(is_array($arguments['table'])){
                     foreach($arguments['table'] as $tableIndex=>$tableData){
                         foreach($tableData as $tableName=>$columns){
