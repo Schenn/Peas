@@ -720,66 +720,39 @@
           * @uses PDOI\Utils\sqlSpinner::CREATE
           * @return bool success
           * @api
-          * @todo Remove repeat attempt from error catch
           */
           function CREATE($table, $props){
-              try {
-                  $this->pdo->beginTransaction();
-                    if(!$this->tableExists($table)){
-                        $sql = (new sqlSpinner())->CREATE($table,$props)->getSQL();
-                        if($this->debug){
-                            echo "<pre>";
-                            print_r($sql);
-                            echo "<br />";
-                            print_r($table);
-                            echo "<br />";
-                            print_r(json_encode($props));
-                        }
-                        try {
-                            $this->ping();
-                            $this->pdo->beginTransaction();
-                            $stmt = $this->pdo->prepare($sql);
-                            $stmt->execute();
-                            return($this->pdo->commit());
-                        }
-                        catch(PDOException $pe){
-                              $this->pdo->rollBack();
-                              echo "Create Failed: ".$pe->getMessage();
-                              return(false);
-                        }
-                        catch(Exception $e){
-                              $this->pdo->rollBack();
-                              echo "Create Failed: ".$e->getMessage();
-                              return(false);
-                        }
-                    }
-              } catch (PDOException $e) {
-                    $sql = (new Utils\sqlSpinner())->CREATE($table,$props)->getSQL();
-                    if($this->debug){
-                        echo "<pre>";
-                        print_r($sql);
-                        echo "<br />";
-                        print_r($table);
-                        echo "<br />";
-                        print_r(json_encode($props));
-                    }
-                    try {
-                        $this->ping();
-                        $this->pdo->beginTransaction();
-                        $stmt = $this->pdo->prepare($sql);
-                        $stmt->execute();
-                        return($this->pdo->commit());
-                    }
-                    catch(PDOException $pe){
-                          $this->pdo->rollBack();
-                          echo "Create Failed: ".$pe->getMessage();
-                          return(false);
-                    }
-                    catch(Exception $e){
-                          $this->pdo->rollBack();
-                          echo "Create Failed: ".$e->getMessage();
-                          return(false);
-                    }
+              $this->pdo->beginTransaction();
+              if(!$this->tableExists($table)){
+                  $sql = (new sqlSpinner())->CREATE($table,$props)->getSQL();
+                  if($this->debug){
+                      echo "<pre>";
+                      print_r($sql);
+                      echo "<br />";
+                      print_r($table);
+                      echo "<br />";
+                      print_r(json_encode($props));
+                  }
+                  try {
+                      $this->ping();
+                      $this->pdo->beginTransaction();
+                      $stmt = $this->pdo->prepare($sql);
+                      $stmt->execute();
+                      return($this->pdo->commit());
+                  }
+                  catch(PDOException $pe){
+                      $this->pdo->rollBack();
+                      echo "Create Failed: ".$pe->getMessage();
+                      return(false);
+                  }
+                  catch(Exception $e){
+                      $this->pdo->rollBack();
+                      echo "Create Failed: ".$e->getMessage();
+                      return(false);
+                  }
+              } else {
+                  // Table already exists
+                  throw new Exception("Table already exists: ".$table);
               }
           }
 
