@@ -460,16 +460,22 @@
                 $dynamo->TableSchema = $this->getSchema();
                 $pdoITable = $this;
 
-              /** @method dynamo::insert Gives the dynamo access to inserting itself into the database */
+              /** @method PDOI\Utils\dynamo::insert
+               * Gives the dynamo access to inserting itself into the database
+               */
                 $dynamo->insert = function() use(&$pdoITable){
                     $pdoITable->insertDynamo($this);
                 };
 
-              /** @method dynamo::load Gives the dynamo access to filling itself with data from the database */
+              /** @method PDOI\Utils\dynamo::load
+               * Gives the dynamo access to filling itself with data from the database
+               */
                 $dynamo->load = function($pKey = null) use(&$pdoITable){
                     $pdoITable->loadDynamo($this, $pKey);
                 };
-              /** @method dynamo::update Gives the dynamo access to updating it's data in the database */
+              /** @method PDOI\Utils\dynamo::update
+               * Gives the dynamo access to updating it's data in the database
+               */
                 $dynamo->update= function() use(&$pdoITable){
                     $args = [];
                     $args['set'] = [];
@@ -479,7 +485,7 @@
                     //compare current values against defaults before adding to 'set'
 
                     $schema = $pdoITable->getSchema();
-                    $pkeys = $schema->getPrimaryKeys();
+                    $primaryKeys = $schema->getPrimaryKeys();
                     $tCount = count($schema->getTables());
                     foreach($schema as $tableName=>$column){
                         foreach($column as $columnName=>$columnData){
@@ -496,7 +502,7 @@
                         }
                     }
 
-                    foreach($pkeys as $table=>$column){
+                    foreach($primaryKeys as $table=>$column){
                         if($tCount > 1){
                             $args['where'][$table] = [$column=>$this->$column];
                         }
@@ -653,6 +659,7 @@
           * Using the schema of a given dynamo, fill it with it's related data
           *
           * @param dynamo $dynamo The dynamo to fill with data
+          * @param mixed $pKey The primary key to load from
           * @api
           */
          function loadDynamo(&$dynamo, $pKey = null){
@@ -748,58 +755,6 @@
                 if(count($entity)===1){
                     $entity = $entity[0];
                 }
-          }
-
-         /**
-          * Salt and pepper a password
-          *
-          * @param string $password The password to encode
-          * @return array describing the password's validation information
-          * @api
-          */
-          function saltAndPepper($password) {
-              $salt = "";
-                for($i=0; $i<17; $i++){
-                    $rnd = rand(0,11);
-                    $chrs= ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
-                    if($rnd <= 3){
-                        $cdig = rand(0,9);
-                        $c = $cdig;
-                    } elseif($rnd > 3 && $rnd <= 7){
-                        $cdig = rand(0,25);
-                        $c = $chrs[$cdig];
-                    } else {
-                        $cdig = rand(0,25);
-                        $c = ucfirst($chrs[$cdig]);
-                    }
-                    $salt .= $c;
-                }
-                $newsalt = hash('sha256', $salt);
-                $hash = hash('sha256', $password.$newsalt);
-                $max = rand(10, 16785);
-                for ($i=0; $i<$max; $i++){
-                   $hash = hash('sha256', $hash . $newsalt);
-                }
-                return(['salt'=>$newsalt,'rounds'=>$max,'hash'=>$hash]);
-          }
-
-         /**
-          * Validate a password against the salt and pepper method
-          *
-          * @param string $pass
-          * @param string $hash
-          * @param string $salt
-          * @param int $rounds
-          * @return bool success
-          * @api
-          */
-          function checkPassword($pass, $hash, $salt, $rounds){
-              $hashcheck = hash('sha256', $pass.$salt);
-              for ($i=0; $i<$rounds; $i++){
-                  $hashcheck = hash('sha256', $hashcheck.$salt);
-              }
-              return($hashcheck === $hash);
-              
           }
 
          /**

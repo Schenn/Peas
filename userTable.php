@@ -44,7 +44,7 @@ class userTable {
                'salts.round_id'=>'rounds.round_id']);
 
            $newuser = $this->conn->asDynamo();
-           $hash = $this->conn->saltAndPepper($pass);
+           $hash = $this->saltAndPepper($pass);
 
            $newuser->username = $user;
            $newuser->hash = $hash['hash'];
@@ -83,7 +83,7 @@ class userTable {
         $userExists = ['where'=>['users'=>['username'=>$username]
            ], 'limit'=>1];
         if($user = $this->conn->select($userExists)) {               
-            if($this->conn->checkPassword($pass, $user->hash, $user->salt, $user->rounds)) {
+            if($this->checkPassword($pass, $user->hash, $user->salt, $user->rounds)) {
                 unset ($user->hash);
                 unset ($user->salt);
                 unset ($user->rounds);
@@ -95,6 +95,58 @@ class userTable {
             return false;
         }
     }
-        
+
+    /**
+     * Salt and pepper a password
+     *
+     * @param string $password The password to encode
+     * @return array describing the password's validation information
+     * @api
+     */
+    function saltAndPepper($password) {
+        $salt = "";
+        for($i=0; $i<17; $i++){
+            $rnd = rand(0,11);
+            $chrs= ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
+            if($rnd <= 3){
+                $cdig = rand(0,9);
+                $c = $cdig;
+            } elseif($rnd > 3 && $rnd <= 7){
+                $cdig = rand(0,25);
+                $c = $chrs[$cdig];
+            } else {
+                $cdig = rand(0,25);
+                $c = ucfirst($chrs[$cdig]);
+            }
+            $salt .= $c;
+        }
+        $newsalt = hash('sha256', $salt);
+        $hash = hash('sha256', $password.$newsalt);
+        $max = rand(10, 16785);
+        for ($i=0; $i<$max; $i++){
+            $hash = hash('sha256', $hash . $newsalt);
+        }
+        return(['salt'=>$newsalt,'rounds'=>$max,'hash'=>$hash]);
     }
+
+    /**
+     * Validate a password against the salt and pepper method
+     *
+     * @param string $pass
+     * @param string $hash
+     * @param string $salt
+     * @param int $rounds
+     * @return bool success
+     * @api
+     */
+    function checkPassword($pass, $hash, $salt, $rounds){
+        $hashcheck = hash('sha256', $pass.$salt);
+        for ($i=0; $i<$rounds; $i++){
+            $hashcheck = hash('sha256', $hashcheck.$salt);
+        }
+        return($hashcheck === $hash);
+
+    }
+        
+}
 ?>
