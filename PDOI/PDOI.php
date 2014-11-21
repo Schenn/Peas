@@ -259,7 +259,7 @@
       * @todo fetch_obj instead of fetch_assoc for when an object isn't provided. Then we'll always return an object or array of objects. Only the object will be a very limited anonymous object.
       * @todo should we return null on failure or false?
       */
-      function SELECT($args, &$obj = null){
+      function SELECT($args, $obj = null){
           // Prepare Join arguments first
             // because Where arguments need to be given table names if there's a join.
            $join = [];

@@ -197,7 +197,7 @@
           *
           * @api
           */
-          function select($options=[], &$entity = null){
+          function select($options=[], $entity = null){
               //if no object supplied to take values from select query, use dynamo
                $entity = ($entity !== null ? $entity : $this->asDynamo());
                if(array_key_exists('table', $options) && array_key_exists('columns', $options)) {
@@ -460,51 +460,16 @@
                 $dynamo->TableSchema = $this->getSchema();
                 $pdoITable = $this;
 
-              /** @var dynamo->insert Gives the dynamo access to inserting itself into the database */
+              /** @method dynamo::insert Gives the dynamo access to inserting itself into the database */
                 $dynamo->insert = function() use(&$pdoITable){
                     $pdoITable->insertDynamo($this);
                 };
 
-              /** @var dynamo->load Gives the dynamo access to filling itself with data from the database */
+              /** @method dynamo::load Gives the dynamo access to filling itself with data from the database */
                 $dynamo->load = function($pKey = null) use(&$pdoITable){
-                    // set the pdoITable schema to the dynamo schema
-                    $oldSchema = $pdoITable->getSchema();
-                    $pdoITable->setSchema($this->TableSchema);
-
-                    // run a select off the table using the provided pKey
-
-                    //this function takes the pKey provided and prepares a properly formatted select call based off the current schema using the pkey as the where value
-                    $args = [];
-                    $args['limit']=1;
-                    $schema = $pdoITable->getSchema();
-                    $mk = $schema->getMasterKey();
-                    foreach($mk as $table=>$key){
-                        if($pKey === null){
-                            $pKey = $this->$key;
-                        }
-                        if(count($schema->getTables())===1){
-                            $args['where'] = [$key=>$pKey];
-                        } else {
-                            $args['where'] = [$table=>[$key=>$pKey]];
-                        }
-                    }
-
-                    // assign the return dynamo values to this
-                       $this->stopValidation();
-                       // pdo fetch_into should be assigning the values to 'this'. We shouldn't need to copy the values out of the return into this
-                       //$newMe = $pdoITable->select($args,$this);
-                       //foreach($newMe as $key=>$val){
-                       //    $this->$key = $val;
-                       //}
-                        $pdoITable->select($args,$this);
-                       $this->startValidation();
-
-                    // Return pdoITable to its original schema
-                        $pdoITable->setSchema($oldSchema);
-
-                       return($this);
+                    $pdoITable->loadDynamo($this, $pKey);
                 };
-              /** @var dynamo->load Gives the dynamo access to updating it's data in the database */
+              /** @method dynamo::update Gives the dynamo access to updating it's data in the database */
                 $dynamo->update= function() use(&$pdoITable){
                     $args = [];
                     $args['set'] = [];
@@ -690,8 +655,41 @@
           * @param dynamo $dynamo The dynamo to fill with data
           * @api
           */
-         function loadDynamo($dynamo){
+         function loadDynamo(&$dynamo, $pKey = null){
+             // set the pdoITable schema to the dynamo schema
+             $oldSchema = $this->getSchema();
+             $this->setSchema($dynamo->TableSchema);
 
+             // run a select off the table using the provided pKey
+
+             //this function takes the pKey provided and prepares a properly formatted select call based off the current schema using the pkey as the where value
+             $args = [];
+             $args['limit']=1;
+             $schema = $this->getSchema();
+             $mk = $schema->getMasterKey();
+             foreach($mk as $table=>$key){
+                 if($pKey === null){
+                     $pKey = $this->$key;
+                 }
+                 if(count($schema->getTables())===1){
+                     $args['where'] = [$key=>$pKey];
+                 } else {
+                     $args['where'] = [$table=>[$key=>$pKey]];
+                 }
+             }
+
+             // assign the return dynamo values to this
+             $dynamo->stopValidation();
+             // pdo fetch_into should be assigning the values to 'this'. We shouldn't need to copy the values out of the return into this
+             $newMe = $this->select($args,$this);
+             foreach($newMe as $key=>$val){
+                 $this->$key = $val;
+             }
+
+             $dynamo->startValidation();
+
+             // Return pdoITable to its original schema
+             $this->setSchema($oldSchema);
          }
 
          /**
