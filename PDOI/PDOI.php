@@ -833,6 +833,8 @@
                          echo("Failed: ").$e->getMessage();
                          return(false);
                     }
+               } else {
+                   throw new Exception("No sql provided to run method");
                }
           }
 
