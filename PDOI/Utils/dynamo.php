@@ -85,7 +85,7 @@ class dynamo implements dynamoInterface{
     private function setProperty($name, $value){
         if($value !== $this->properties[$name]) {
             $this->old[$name] = $this->properties[$name];
-            $this->properties[$name] = (float)$value;
+            $this->properties[$name] =$value;
             if ($this->old[$name] === null) {
                 $this->old[$name] = $this->properties[$name];
             }

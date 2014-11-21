@@ -36,17 +36,17 @@
       *
       */
       function __construct($config){
-           $config['dns'] = 'mysql:dbname='.$config['dbname'].';';
+           $dns = 'mysql:dbname='.$config['dbname'].';';
            if(isset($config['host'])){
-                $config['dns'] .= $config['host'];
+                $dns .= $config['host'];
            } else {
-                $config['dns'] .= '127.0.0.1';
+                $dns .= '127.0.0.1';
            }
            if(!isset($config['driver_options'])){
                 $config['driver_options'] = [PDO::ATTR_PERSISTENT => true];
            }
            $this->hasActiveTransaction = false;
-           parent::__construct($config['dns'], $config['username'], $config['password'], $config['driver_options']);
+           parent::__construct($dns, $config['username'], $config['password'], $config['driver_options']);
            parent::setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
       }
 
@@ -184,6 +184,8 @@
       * @param array $where The dictionary of columns and placeholder names
       * @param array $whereValues The dictionary of placeholder names and column values
       * @internal
+      *
+      * @todo Decide how we want to handle the like special chars
       */
       protected function prepWhere($args, &$where =[], &$whereValues = []){
            foreach($args as $column=>$value){
@@ -734,7 +736,6 @@
       function run($sql, $values=[]){
            if($sql !==""){
                $method = substr($sql,0, strpos($sql, " ") );
-               $this->debug($sql, $method);
                $this->debug($sql, $values);
                 try{
                     $this->ping();
