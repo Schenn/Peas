@@ -63,9 +63,9 @@ class dynamo implements dynamoInterface{
      * The parameters are optional, a dynamo can be built from nothing up
      *
      * @param array $values [columnName=>value, ..]
-     * @param array $meta column meta data from a schema object
+     * @param array $meta column meta data from the pdoITable
      *
-     * @see PDOI\Utils\schema
+     * @see PDOI\pdoITable
      */
     public function __construct($values = [], $meta = []){
           foreach($values as $name=>$value){
