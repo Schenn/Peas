@@ -155,6 +155,12 @@
                }
           }
 
+         /**
+          * echo special values in a readable format
+          * @param string $sql The sql string
+          * @param array $args The dictionary
+          * @internal
+          */
          private function debug($sql, $args){
              if($this->debug) {
                  echo "<pre>";
