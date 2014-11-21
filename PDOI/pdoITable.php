@@ -137,6 +137,7 @@
       * @see PDOI\Utils\sqlSpinner
       *
       * @return array The table relationships as a dictionary the sqlSpinner can parse.
+      * @todo This could be moved to the Schema class as all of its data comes from the schema
       *
       * @internal
       */
@@ -228,8 +229,8 @@
       */
       function selectAll(){
            $entity = $this->asDynamo();
-           $a = $this->generateArguments();
-           return(parent::SELECT($a, $entity));
+           $arguments = $this->generateArguments();
+           return(parent::SELECT($arguments, $entity));
       }
 
 
