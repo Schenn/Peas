@@ -821,7 +821,11 @@
                     try{
                          $this->pdo->beginTransaction();
                          $stmt = $this->pdo->prepare($sql);
-                         $stmt->execute($values);
+                        if(!empty($values)) {
+                            $stmt->execute($values);
+                        } else {
+                            $stmt->execute();
+                        }
                          return($this->pdo->commit());
                     }
                     catch (Exception $e){
