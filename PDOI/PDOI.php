@@ -4,6 +4,7 @@
  use PDOI\Utils\sqlSpinner as sqlSpinner;
  use PDO;
  use PDOException;
+ use PDOStatement;
 
  /**
   * @author Steven Chennault schenn@mash.is
@@ -93,9 +94,12 @@
  /**
   * Class PDOI - PDO - Improved
   *
-  * Takes a dictionary of arguments which sqlSpinner uses to generate a sql query which
-  * is prepared as a pdo statement, the values are escaped as needed and bound to the statement which is executed
-  * with error catching.
+  * Provides a safe pdo environment with automatic rollbacks on errors, reconnects on timeouts, and provides
+  * convenience methods for the most frequently used types of queries.
+  *
+  * Handles binding values to a prepared statement and executing them. If you use the convenience method, the query
+  * will be built for you with placeholder names and run against your provided arguments without you having to do anything
+  * to them. .
   *
   * PDOI is only known to be compatible with MySql.
   *
@@ -379,54 +383,45 @@
            //spin sql statement from options
            $sql = (new sqlSpinner())->SELECT($args)->JOIN($join, $joinCondition)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
           // If we're debugging, display the sql and where values
-           $this->debug($sql, $whereValues);
-          // before running sql query, ensure the db is still 'there'
-           $this->ping();
-           try {
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute($whereValues);
-               //if plugging results into an object
-                if(is_object($obj)){
-                     $stmt->setFetchMode(PDO::FETCH_INTO, $obj);
-                     $chunk = [];
-                    //for each result, put representative object into an array
-                     while($object = $stmt->fetch()){
-                          array_push($chunk, clone $object);
-                     }
-                }
-                else {
-                    //returns an array of associative arrays of result(s)
-                     $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                }
-               //if result
-                if(count($chunk) > 0){
-                    //if only 1 result
-                     if(count($chunk) === 1){
-                         //return that 1 result instead of the array containing one result
-                          return($chunk[0]);
-                     }
-                     else {
-                         //return the whole result array if result size > 1
-                          return($chunk);
-                     }
-                }
-                else {
-                    //no results
-                     return(NULL);
-                }
-           }
-           //Something went wrong!
-           catch (PDOException $e){
-                echo "SELECT failed: ".$e->getMessage();
-                return(false);
-           }
+          $stmt = $this->run($sql, $whereValues);
+          //if plugging results into an object
+          if(is_object($obj)){
+               $stmt->setFetchMode(PDO::FETCH_INTO, $obj);
+               $chunk = [];
+              //for each result, put representative object into an array
+               while($object = $stmt->fetch()){
+                    array_push($chunk, clone $object);
+               }
+          }
+          else {
+              //returns an array of associative arrays of result(s)
+               $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC);
+          }
+           //if result
+          if(count($chunk) > 0){
+               //if only 1 result
+               if(count($chunk) === 1){
+                   //return that 1 result instead of the array containing one result
+                    return($chunk[0]);
+               }
+               else {
+                   //return the whole result array if result size > 1
+                    return($chunk);
+               }
+          }
+          else {
+              //no results
+              return(NULL);
+          }
       }
 
      /**
       * Inserts data into the database
       *
       * Converts values into placeholder values, prepares the statement and executes it against the provided values.
-      * Values can either be a single data-set or an array of data-sets
+      * If Values are an array of data-sets, INSERT will store all the values before committing the transaction.
+      *
+      * Provides convenience in executing an insert over an array of data-sets
       *
       * @param array $args Dictionary of arguments used to guide the construction of the query
       *      REQUIRED
@@ -544,73 +539,49 @@
       function UPDATE($args){
 
            $setValues = [];
-           try {
-               // Generate join arguments
-                $join = [];
-                $joinCondition = [];
-                if(array_key_exists("join", $args)){ // if select query involves a join
-                     $this->prepJoin($args, $join, $joinCondition);
-                }
+           // Generate join arguments
+            $join = [];
+            $joinCondition = [];
+            if(array_key_exists("join", $args)){ // if select query involves a join
+                 $this->prepJoin($args, $join, $joinCondition);
+            }
 
-               // Generate set arguments
-                if(isset($args['set'])){  //set values for update (UPDATE table SET setColumn = setValue, etc)
-                     foreach($args['set'] as $column=>$value){
-                          $prepCol = ":set".str_replace(".","",$column);
-                          $setValues[$prepCol] = $value;
-                     }
-                }
-               // No set values assigned, throw an error
-                else {
-                     throw new Exception("Set values missing for update command!",10);
-                }
+           // Generate set arguments
+            if(isset($args['set'])){  //set values for update (UPDATE table SET setColumn = setValue, etc)
+                 foreach($args['set'] as $column=>$value){
+                      $prepCol = ":set".str_replace(".","",$column);
+                      $setValues[$prepCol] = $value;
+                 }
+            }
+           // No set values assigned, throw an error
+            else {
+                 throw new Exception("Set values missing for update command!",10);
+            }
 
-               // Prepare where arguments
-                $where = [];
-                $whereValues = [];
-                if(isset($args['where'])){ //where
-                     $this->prepWhere($args['where'], $where, $whereValues);
-                }
-                else {
-                     throw new Exception("Missing WHERE values for update command!", 11);
-                }
+           // Prepare where arguments
+            $where = [];
+            $whereValues = [];
+            if(isset($args['where'])){ //where
+                 $this->prepWhere($args['where'], $where, $whereValues);
+            }
+            else {
+                 throw new Exception("Missing WHERE values for update command!", 11);
+            }
 
-               // Prepare order by and limit arguments
-                $orderby = [];
-                if(isset($args['orderby'])){
-                     $orderby = $args['orderby'];
-                }
-                $limit = null; //limit
-                if(isset($args['limit']) && empty($join)){
-                     $limit = $args['limit'];
-                }
+           // Prepare order by and limit arguments
+            $orderby = [];
+            if(isset($args['orderby'])){
+                 $orderby = $args['orderby'];
+            }
+            $limit = null; //limit
+            if(isset($args['limit']) && empty($join)){
+                 $limit = $args['limit'];
+            }
 
-                //Spin sql from options
-                $sql = (new sqlSpinner())->UPDATE($args)->JOIN($join, $joinCondition)->SET($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+            //Spin sql from options
+            $sql = (new sqlSpinner())->UPDATE($args)->JOIN($join, $joinCondition)->SET($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
 
-               $this->debug($sql, $setValues);
-               $this->debug($sql, $whereValues);
-
-               // Make sure the database is still available
-                $this->ping();
-               // Begin a new transaction
-                $this->pdo->beginTransaction();
-               //prepares sql statement
-                $stmt = $this->pdo->prepare($sql);
-               //executes with the value arrays
-                $stmt->execute(array_merge($setValues, $whereValues));
-               //returns commit status
-                return($this->pdo->commit());
-           }
-           catch(PDOException $pe){
-                $this->pdo->rollBack();
-                echo "Update Failed: ".$pe->getMessage();
-                return(false);
-           }
-           catch(Exception $e){
-                $this->pdo->rollBack();
-                echo "Update Failed: ".$e->getMessage();
-                return(false);
-           }
+           return($this->run($sql, array_merge($setValues, $whereValues)));
 
       }
 
@@ -672,25 +643,7 @@
 
            //spin sql from arguments
            $sql = (new sqlSpinner())->DELETE($args)->JOIN($join, $joinCondition)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
-            $this->debug($sql, $whereValues);
-           try {
-                $this->ping(); //ensure db available
-                $this->pdo->beginTransaction(); //begin transaction
-                $stmt = $this->pdo->prepare($sql); //prepare statement
-                $stmt->execute($whereValues); //execute with value array
-                return($this->pdo->commit()); //return commit status
-           }
-           catch(PDOException $pe){
-                $this->pdo->rollBack();
-                echo "Delete Failed: ".$pe->getMessage();
-                return(false);
-           }
-           catch(Exception $e){
-                $this->pdo->rollBack();
-                echo "Delete Failed: ".$e->getMessage();
-                return(false);
-           }
-
+           return($this->run($sql, $whereValues));
       }
 
 
@@ -710,24 +663,7 @@
           $this->pdo->beginTransaction();
           if(!$this->tableExists($table)){
               $sql = (new sqlSpinner())->CREATE($table,$props)->getSQL();
-              $this->debug($sql, $table);
-              try {
-                  $this->ping();
-                  $this->pdo->beginTransaction();
-                  $stmt = $this->pdo->prepare($sql);
-                  $stmt->execute();
-                  return($this->pdo->commit());
-              }
-              catch(PDOException $pe){
-                  $this->pdo->rollBack();
-                  echo "Create Failed: ".$pe->getMessage();
-                  return(false);
-              }
-              catch(Exception $e){
-                  $this->pdo->rollBack();
-                  echo "Create Failed: ".$e->getMessage();
-                  return(false);
-              }
+              return($this->run($sql));
           } else {
               // Table already exists
               throw new Exception("Table already exists: ".$table);
@@ -746,22 +682,7 @@
       */
       function DROP($table){
           $sql = (new sqlSpinner())->DROP($table)->getSQL();
-          try {
-              $this->ping();
-              $this->pdo->beginTransaction();
-              $stmt = $this->pdo->prepare($sql);
-              $stmt->execute();
-              return($this->pdo->commit());
-          } catch(PDOException $pe){
-                $this->pdo->rollBack();
-                echo "Drop Failed: ".$pe->getMessage();
-                return(false);
-          }
-          catch(Exception $e){
-                $this->pdo->rollBack();
-                echo "Drop Failed: ".$e->getMessage();
-                return(false);
-          }
+          return($this->run($sql));
       }
 
      /**
@@ -770,22 +691,14 @@
       * Retrieves the table schema from the database as an associative array
       *
       * @param string $table table name
-      * @return array|bool result
+      * @return array result
       * @api
-      * @todo return null not false on fail
       */
       function describe($table){
-           try {
-               $sql = (new sqlSpinner())->DESCRIBE($table)->getSQL(); //instantiate sql
-               $this->ping(); //ensure db access
-               $stmt = $this->pdo->prepare($sql); //prepare statement
-               $stmt->execute(); //execute statement
-               $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC); //return associative array of table schema
-               return($chunk);
-           } catch(PDOException $p){
-                echo "Describe Failed: ".$p->getMessage();
-                return(false);
-           }
+          $sql = (new sqlSpinner())->DESCRIBE($table)->getSQL(); // Generate sql
+          $stmt = $this->run($sql);
+          $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC); //return associative array of table schema
+          return($chunk);
       }
 
      /**
@@ -812,25 +725,44 @@
       *
       * @param string $sql Must have placeholder values
       * @param array $values Dictionary of placeholder names => values
-      * @return bool success
+      * @return bool|PDOStatement Success|Result set
       *
-      * @todo This wont work for some types of sql methods. We should at least try to do a check to guide the flow of execution and what is returned
+      * @throws Exception If no sql is provided to run
+      *
+      * @todo This wont work for some types of sql methods. We should try to do a check to guide the flow of execution and what is returned
       */
       function run($sql, $values=[]){
            if($sql !==""){
+               $method = substr($sql,0, strpos($sql, " ") );
+               $this->debug($sql, $method);
+               $this->debug($sql, $values);
                 try{
-                     $this->pdo->beginTransaction();
-                     $stmt = $this->pdo->prepare($sql);
-                    if(!empty($values)) {
+                    $this->ping();
+                    if($method !== "SELECT" && $method !== "DESC") {
+                        $this->pdo->beginTransaction();
+                    }
+                    $stmt = $this->pdo->prepare($sql);
+                    if (!empty($values)) {
                         $stmt->execute($values);
                     } else {
                         $stmt->execute();
                     }
-                     return($this->pdo->commit());
+                    if($method !== "SELECT" && $method !== "DESC") {
+                        return ($this->pdo->commit());
+                    } else {
+                        // Selects can be fetched into a multitude of ways. Return the statement so that the caller can decide
+                        // Desc is a kind of select that returns the table | column schema as a data set
+                        return($stmt);
+                    }
+                }
+                catch (PDOException $p){
+                    $this->pdo->rollBack();
+                    echo(ucfirst(strtolower($method))." Failed: ").$p->getMessage();
+                    return(false);
                 }
                 catch (Exception $e){
                      $this->pdo->rollBack();
-                     echo("Failed: ").$e->getMessage();
+                     echo(ucfirst(strtolower($method))." Failed: ").$e->getMessage();
                      return(false);
                 }
            } else {
