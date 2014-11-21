@@ -155,6 +155,16 @@
                }
           }
 
+         private function debug($sql, $args){
+             if($this->debug) {
+                 echo "<pre>";
+                 print_r($sql);
+                 echo("<br />\n");
+                 print_r($args);
+                 echo "</pre>";
+             }
+         }
+
          /**
           * Prepares the where arguments.
           *
@@ -363,13 +373,7 @@
                //spin sql statement from options
                $sql = (new sqlSpinner())->SELECT($args)->JOIN($join, $joinCondition)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
               // If we're debugging, display the sql and where values
-               if($this->debug){
-                   echo "<pre>";
-                    print_r($sql);
-                    echo("<br />\n");
-                    print_r($whereValues);
-                    echo "</pre>";
-               }
+               $this->debug($sql, $whereValues);
               // before running sql query, ensure the db is still 'there'
                $this->ping();
                try {
@@ -434,13 +438,7 @@
               // spin sql statement from arguments with placeholders
                $sql = (new sqlSpinner())->INSERT($args)->getSQL();
               //if in debug mode
-               if($this->debug){
-                    echo "<pre>";
-                    print_r($sql);
-                    echo("<br />\n");
-                    print_r($args);
-                    echo "</pre>";
-               }
+              $this->debug($sql, $args);
                try {
                    //verify db exists
                     $this->ping();
@@ -586,16 +584,8 @@
                     //Spin sql from options
                     $sql = (new sqlSpinner())->UPDATE($args)->JOIN($join, $joinCondition)->SET($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
 
-                    if($this->debug){ //if debugging
-                        echo "<pre>";
-                         print_r($sql);
-                         echo("<br />\n");
-                         print_r($setValues);
-                         echo("<br />\n");
-                         print_r($whereValues);
-                         echo("<br />\n");
-                         echo "</pre>";
-                    }
+                   $this->debug($sql, $setValues);
+                   $this->debug($sql, $whereValues);
 
                    // Make sure the database is still available
                     $this->ping();
@@ -679,15 +669,7 @@
 
                //spin sql from arguments
                $sql = (new sqlSpinner())->DELETE($args)->JOIN($join, $joinCondition)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
-
-               if($this->debug){
-                         echo "<pre>";
-                         print_r($sql);
-                         echo("<br />\n");
-                         print_r($whereValues);
-                         echo("<br />\n");
-                         echo "</pre>";
-               }
+                $this->debug($sql, $whereValues);
                try {
                     $this->ping(); //ensure db access
                     $this->pdo->beginTransaction(); //begin transaction
@@ -725,14 +707,7 @@
               $this->pdo->beginTransaction();
               if(!$this->tableExists($table)){
                   $sql = (new sqlSpinner())->CREATE($table,$props)->getSQL();
-                  if($this->debug){
-                      echo "<pre>";
-                      print_r($sql);
-                      echo "<br />";
-                      print_r($table);
-                      echo "<br />";
-                      print_r(json_encode($props));
-                  }
+                  $this->debug($sql, $table);
                   try {
                       $this->ping();
                       $this->pdo->beginTransaction();
@@ -823,7 +798,7 @@
           function queue($instructions = []){
                try {
                     $this->pdo->beginTransaction();
-                    foreach($instruction as $method->$args){
+                    foreach($instructions as $method->$args){
                          $M = strtoupper($method);
                          $this->$M[$args];
                     }
