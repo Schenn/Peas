@@ -783,7 +783,7 @@
                    $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC); //return associative array of table schema
                    return($chunk);
                } catch(PDOException $p){
-                    echo "Describe Failed: ".$pe->getMessage();
+                    echo "Describe Failed: ".$p->getMessage();
                     return(false);
                }
           }
