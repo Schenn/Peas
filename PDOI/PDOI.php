@@ -816,7 +816,7 @@
           *
           * @todo This wont work for some types of sql methods. We should at least try to do a check to guide the flow of execution and what is returned
           */
-          function run($sql="", $values=[]){
+          function run($sql, $values=[]){
                if($sql !==""){
                     try{
                          $this->pdo->beginTransaction();
