@@ -6,11 +6,12 @@ class userTable {
     protected $config;
     protected $debug;
     protected $conn;
+    protected $userConn;
     
     public function __construct($config, $debug){
         $this->config = $config;
         $this->debug = $debug;
-       
+       $this->userConn = new pdoITable($this->config, 'users', $this->debug);
     }
     
     // Before running methods off a table, those tables have to exist
@@ -35,17 +36,16 @@ class userTable {
     }
     
     public function createUser($user, $pass){
-        $this->conn = new pdoITable($this->config, 'users', $this->debug);
         $userExists = ['where'=>[
             'username'=>$user
         ], 'limit'=>1];
-        if(!$this->conn->select($userExists)) {
-           $this->conn->setRelationship([
+        if(!$this->userConn->select($userExists)) {
+           $this->userConn->setRelationship([
                'users.hash_id'=>'hashwords.hash_id',
                'hashwords.salt_id'=>'salts.salt_id',
                'salts.round_id'=>'rounds.round_id']);
 
-           $newuser = $this->conn->asDynamo();
+           $newuser = $this->userConn->asDynamo();
            $hash = $this->saltAndPepper($pass);
 
            $newuser->username = $user;
@@ -54,6 +54,8 @@ class userTable {
            $newuser->rounds = $hash['rounds'];
 
            $newuser->insert();
+
+            $this->userConn->endRelationship();
            return($newuser);
         } else {
             return false;
@@ -61,8 +63,7 @@ class userTable {
     }
     
     public function deleteUser($username){
-        $this->conn = new pdoITable($this->config, 'users', $this->debug);
-        $this->conn->setRelationship([
+        $this->userConn->setRelationship([
                'users.hash_id'=>'hashwords.hash_id',
                'hashwords.salt_id'=>'salts.salt_id',
                'salts.round_id'=>'rounds.round_id']);
@@ -70,6 +71,7 @@ class userTable {
         ], 'limit'=>1];
         if($user = $this->conn->select($userExists)) {
             $user->delete();
+            $this->userConn->endRelationship();
             return true;
         } else {
             return false;
@@ -77,8 +79,7 @@ class userTable {
     }
     
     public function login($username, $pass){
-        $this->conn = new pdoITable($this->config, 'users', $this->debug);
-        $this->conn->setRelationship([
+        $this->userConn->setRelationship([
                'users.hash_id'=>'hashwords.hash_id',
                'hashwords.salt_id'=>'salts.salt_id',
                'salts.round_id'=>'rounds.round_id']);
@@ -89,11 +90,14 @@ class userTable {
                 unset ($user->hash);
                 unset ($user->salt);
                 unset ($user->rounds);
+                $this->userConn->endRelationship();
                return $user;
             } else {
+                $this->userConn->endRelationship();
                return false;
             }
         } else {
+            $this->userConn->endRelationship();
             return false;
         }
     }
@@ -149,6 +153,5 @@ class userTable {
         return($hashcheck === $hash);
 
     }
-        
 }
 ?>
