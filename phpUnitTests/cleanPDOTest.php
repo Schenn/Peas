@@ -1,12 +1,15 @@
 <?php
-include_once("")
+include_once("..\PDOI\Utils\cleanPDO.php");
 use PDOI\Utils\cleanPDO as cleanPDO;
 
 class cleanPDOITest extends PHPUnit_Framework_TestCase {
+    // Disable the persistent nature of cleanPdo due to the unique nature of the test environment.
+    // Lots of new pdos in this test and it was leading to a crash in php
     private $goodConfig = [
         'dbname'=>'unit_test',
         'username'=>'unit_test',
-        'password'=>'wQeR56dAu8pFywFP'
+        'password'=>'wQeR56dAu8pFywFP',
+        'driver_options'=> [PDO::ATTR_PERSISTENT => false]
     ];
 
     public function testCreation(){
@@ -38,52 +41,33 @@ class cleanPDOITest extends PHPUnit_Framework_TestCase {
     /**
      * @depends testCreation
      * */
-    public function testCanAccessData(){
-        $cleanPDO = new cleanPDO($this->goodConfig);
-        $stmt = $cleanPDO->query("SELECT 1 FROM `test_table` ");
-        $stmt->execute();
-        $res = $stmt->fetch();
-        $this->assertTrue($res[0] == 1);
-    }
-
-    /**
-     * @depends testCanAccessData
-     * */
-    public function testCanInsertData(){
+    public function testCanInsertAndRetrieveData(){
         $cleanPDO = new cleanPDO($this->goodConfig);
         $cleanPDO->beginTransaction();
-        $cleanPDO->query("INSERT INTO test_table VALUES(1)");
+        $cleanPDO->query("INSERT INTO test_table VALUES(null, 1)");
         $this->assertTrue($cleanPDO->commit());
 
-        $stmt = $cleanPDO->query("SELECT * FROM `test_table` WHERE `key` = 1");
+        $stmt = $cleanPDO->query("SELECT * FROM `test_table` WHERE `value` = 1 LIMIT 1");
         $stmt->execute();
         $res = $stmt->fetch();
         $this->assertTrue($res['value'] == 1);
 
-        $cleanPDO->beginTransaction();
-        $cleanPDO->query("DELETE FROM `test_table`");
-        $cleanPDO->commit();
     }
 
     /**
-     * @depends testCanInsertData
+     * @depends testCanInsertAndRetrieveData
      * */
     public function testCantBeginTransactionWhileInTransaction(){
         $cleanPDO = new cleanPDO($this->goodConfig);
         $cleanPDO->beginTransaction();
-        $cleanPDO->query("INSERT INTO test_table VALUES(1)");
+        $cleanPDO->query("INSERT INTO test_table VALUES(null, 1)");
 
-        $stmt = $cleanPDO->query("SELECT * FROM `test_table` WHERE `key` = 1");
+        $stmt = $cleanPDO->query("SELECT * FROM `test_table` WHERE `value` = 1 LIMIT 1");
         $stmt->execute();
         $res = $stmt->fetch();
         $this->assertTrue($res['value'] == 1);
 
-        $nextTrans = $cleanPDO->beginTransaction();
-        $this->assertFalse($nextTrans);
-        if($nextTrans == true) {
-            $cleanPDO->query("DELETE FROM `test_table`");
-            $cleanPDO->commit();
-        }
+        $this->assertFalse($cleanPDO->beginTransaction());
     }
 
     /**
@@ -92,35 +76,37 @@ class cleanPDOITest extends PHPUnit_Framework_TestCase {
     public function testCanRollback(){
         $cleanPDO = new cleanPDO($this->goodConfig);
         $cleanPDO->beginTransaction();
-        $cleanPDO->query("INSERT INTO test_table VALUES(1)");
+        $cleanPDO->query("INSERT INTO test_table VALUES(null, 1)");
 
-        $stmt = $cleanPDO->query("SELECT * FROM `test_table` WHERE `key` = 1");
+        $stmt = $cleanPDO->query("SELECT * FROM `test_table` WHERE `value` = 1 LIMIT 1");
         $stmt->execute();
         $res = $stmt->fetch();
         $this->assertTrue($res['value'] == 1);
 
         $nextTrans = $cleanPDO->beginTransaction();
         $this->assertFalse($nextTrans);
-        if($nextTrans == true) {
-            $cleanPDO->query("DELETE FROM `test_table`");
-            $cleanPDO->commit();
-        } else {
-            $this->assertTrue($cleanPDO->rollback());
-        }
+        $this->assertTrue($cleanPDO->rollback());
+
     }
 
     /**
-     * @depends testCanAccessData
-     */
+     * @depends testCreation
+     * @expectedException PDOException
+     * */
     public function testThrowsPDOExceptionOnError(){
         $cleanPDO = new cleanPDO($this->goodConfig);
-        try {
+        $cleanPDO->beginTransaction();
+        $cleanPDO->query("INSERT INTO `testtable` VALUES(null, 1)");
+        $this->assertTrue($cleanPDO->rollback());
+    }
 
-            $cleanPDO->beginTransaction();
-            $cleanPDO->query("INSERT INTO testtable VALUES(1)");
-
-        } catch(PDOException $e){
-            $this->assertTrue($cleanPDO->rollback());
-        }
+    /**
+     * @depends testCanInsertAndRetrieveData
+     * */
+    public function testCanDestroyData(){
+        $cleanPDO = new cleanPDO($this->goodConfig);
+        $cleanPDO->beginTransaction();
+        $cleanPDO->query("DELETE FROM `test_table` WHERE `value` = 1");
+        $this->assertTrue($cleanPDO->commit());
     }
 }
