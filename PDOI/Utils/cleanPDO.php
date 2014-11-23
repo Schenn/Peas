@@ -84,4 +84,16 @@ class cleanPDO extends PDO {
         $this->hasActiveTransaction = false;
         return(parent::rollBack());
     }
+
+    /**
+     * Return the last insert id
+     * @return string|void
+     */
+    function lastInsertId(){
+        if($this->hasActiveTransaction) {
+            return(parent::lastInsertId());
+        } else {
+            return 0;
+        }
+    }
 }
