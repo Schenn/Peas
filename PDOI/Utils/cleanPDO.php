@@ -87,7 +87,7 @@ class cleanPDO extends PDO {
 
     /**
      * Return the last insert id
-     * @return string|void
+     * @return string|int
      */
     function lastInsertId(){
         if($this->hasActiveTransaction) {

@@ -71,6 +71,8 @@ class cleanPDOITest extends PHPUnit_Framework_TestCase {
     }
 
     /**
+     * Ensure that we can't begin a new transaction if we haven't finished with the old
+     *
      * @depends testCanInsertAndRetrieveData
      * */
     public function testCantBeginTransactionWhileInTransaction(){
@@ -87,6 +89,8 @@ class cleanPDOITest extends PHPUnit_Framework_TestCase {
     }
 
     /**
+     * Ensure that we can rollback on an error
+     *
      * @depends testCantBeginTransactionWhileInTransaction
      */
     public function testCanRollback(){
@@ -99,8 +103,7 @@ class cleanPDOITest extends PHPUnit_Framework_TestCase {
         $res = $stmt->fetch();
         $this->assertTrue($res['value'] == 1);
 
-        $nextTrans = $cleanPDO->beginTransaction();
-        $this->assertFalse($nextTrans);
+        // We detected an error (not seen here) and have to rollback the transaction
         $this->assertTrue($cleanPDO->rollback());
 
     }
