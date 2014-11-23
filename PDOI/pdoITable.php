@@ -392,7 +392,7 @@
       *
       * @api
       */
-      function drop(){
+      function destroy(){
           if(is_array($this->tableName)){
               foreach($this->tableName as $table){
                   parent::DROP($table);
