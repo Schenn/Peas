@@ -16,20 +16,22 @@ class userTable {
     // Before running methods off a table, those tables have to exist
     // Use PDOI to create tables. Use pdoITable to reference tables.
     public function init(){
+
        $this->conn = new PDOI($this->config, $this->debug);
-       
-       $this->conn->create('users',['user_id'=>[], 
-                          'username'=>['type'=>'varchar','length'=>50],
-                          'hash_id'=>['type'=>'int']]);
-       $this->conn->create('hashwords',['hash_id'=>[],
-                          'hash'=>['type'=>'varchar','length'=>350],
-                          'salt_id'=>['type'=>'int']]);
-       $this->conn->create('salts',['salt_id'=>[],
-                          'salt'=>['type'=>'varchar','length'=>350],
-                          'round_id'=>['type'=>'int']]);
-       $this->conn->create('rounds',['round_id'=>[],
-                          'rounds'=>['type'=>'int']]);
-       return true;
+        if(!$this->conn->tableExists("users")) {
+
+            $this->conn->create('users', ['user_id' => [],
+                'username' => ['type' => 'varchar', 'length' => 50],
+                'hash_id' => ['type' => 'int']]);
+            $this->conn->create('hashwords', ['hash_id' => [],
+                'hash' => ['type' => 'varchar', 'length' => 350],
+                'salt_id' => ['type' => 'int']]);
+            $this->conn->create('salts', ['salt_id' => [],
+                'salt' => ['type' => 'varchar', 'length' => 350],
+                'round_id' => ['type' => 'int']]);
+            $this->conn->create('rounds', ['round_id' => [],
+                'rounds' => ['type' => 'int']]);
+        }
     }
     
     public function createUser($user, $pass){

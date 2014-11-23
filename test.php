@@ -8,7 +8,9 @@ $config = [
 
 $install = new userTable($config, true);
 
-//$install->init();
+
+$install->init();
+
 if($user = $install->createUser('schenn', 'monkey')){
     echo "Successfully created $user";
     
