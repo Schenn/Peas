@@ -200,7 +200,13 @@
       */
       function select($options=[], $entity = null){
           //if no object supplied to take values from select query, use dynamo
-           $entity = ($entity !== null ? $entity : $this->asDynamo());
+          $isDynamo = false;
+          if($entity == null){
+              $isDynamo = true;
+              $entity = $this->asDynamo();
+              $entity->stopValidation();
+          }
+           $entity = ($entity !== null) ? $entity : $this->asDynamo();
            if(array_key_exists('table', $options) && array_key_exists('columns', $options)) {
                $a = $options;
            } else {
@@ -214,7 +220,18 @@
                     unset($a['on']);
                 }
            }
-           return(parent::SELECT($a, $entity)); //return PDOI select result
+          $res = parent::SELECT($a, $entity);
+          if($isDynamo && $res !== null){
+              if(is_array($res)){
+                  foreach($res as $dyn){
+                      $dyn->startValidation();
+                  }
+              } else {
+                  $res->startValidation();
+              }
+
+          }
+           return($res); //return PDOI select result
       }
 
      /**
@@ -572,7 +589,6 @@
          $schema = $dynamo->TableSchema;
 
          $foreignKeys = array_reverse($schema->getForeignKeys());
-         $this->debug("Inserting Dynamo", $foreignKeys);
 
          if ($foreignKeys) {
              foreach ($foreignKeys as $tableName => $relationships) {
@@ -595,8 +611,6 @@
                                      }
                                  }
                              }
-                             $this->debug($foreignTable, $foreignKeys);
-                             $this->debug("Values", $values);
 
                              // Insert foreign table data
                              $id = $this->insert(['table' => $foreignTable, 'columns' => $foreignCols, 'values' => $values]);

@@ -310,10 +310,12 @@
           $stmt = $this->run($sql, $whereValues);
           //if plugging results into an object
           if(is_object($obj)){
+
                $stmt->setFetchMode(PDO::FETCH_INTO, $obj);
                $chunk = [];
               //for each result, put representative object into an array
                while($object = $stmt->fetch()){
+
                     array_push($chunk, clone $object);
                }
           }
