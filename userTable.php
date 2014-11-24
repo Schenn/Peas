@@ -41,6 +41,7 @@ class userTable {
         $userExists = ['where'=>[
             'username'=>$user
         ], 'limit'=>1];
+
         if(!$this->userConn->select($userExists)) {
            $this->userConn->setRelationship([
                'users.hash_id'=>'hashwords.hash_id',
@@ -69,9 +70,11 @@ class userTable {
                'users.hash_id'=>'hashwords.hash_id',
                'hashwords.salt_id'=>'salts.salt_id',
                'salts.round_id'=>'rounds.round_id']);
+
         $userExists = ['where'=>['users'=>['username'=>$username]
         ], 'limit'=>1];
-        if($user = $this->conn->select($userExists)) {
+
+        if($user = $this->userConn->select($userExists)) {
             $user->delete();
             $this->userConn->endRelationship();
             return true;
@@ -87,7 +90,7 @@ class userTable {
                'salts.round_id'=>'rounds.round_id']);
         $userExists = ['where'=>['users'=>['username'=>$username]
            ], 'limit'=>1];
-        if($user = $this->conn->select($userExists)) {               
+        if($user = $this->userConn->select($userExists)) {
             if($this->checkPassword($pass, $user->hash, $user->salt, $user->rounds)) {
                 unset ($user->hash);
                 unset ($user->salt);
