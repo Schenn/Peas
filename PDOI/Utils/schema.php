@@ -160,15 +160,11 @@ class schema implements schemaInterface {
      * @param string $table The name of the table to remove
      */
     public function __unset($table){
-        unset($this->map[$table]);
-        unset($this->primaryKeys[$table]);
-        unset($this->foreignKeys[$table]);
+        unset($this->map[$table], $this->primaryKeys[$table], $this->foreignKeys[$table]);
 
         foreach($this->foreignKeys as $fkTable){
             foreach($fkTable as $column=>$fkRel){
-                $seekTable = array_keys($fkRel)[0];
-
-                if($seekTable === $table){
+                if(array_keys($fkRel)[0] === $table){
                     unset($this->foreignKeys[$fkTable][$column]);
                 }
             }
