@@ -374,6 +374,7 @@
 
                // if Values are array of data-sets. Process multiple inserts in one table using bindParam
                 if(isset($args['values'][0])){
+                    $id = [];
                     $columns = $args['columns'];
                      $colCount = count($columns);
                      $cols = [];
@@ -393,6 +394,7 @@
                           }
                          //execute statement with bound parameters for each row in array of value arrays
                           $stmt->execute();
+                         array_push($id,$this->pdo->lastInsertId());
 
                          //destroy temporary placeholder without disturbing index count
                           $varCount = count($cols);
@@ -415,9 +417,14 @@
                      if(!($stmt->execute($values))){
                           throw new Exception("Insert Failed");
                      }
+                    $id = $this->pdo->lastInsertId();
                 }
                 //returns result of committing changes to db
-                return($this->pdo->commit());
+               if($this->pdo->commit()){
+                   return $id;
+               } else {
+                   return false;
+               }
 
            }catch(PDOException $pe){
                 $this->pdo->rollBack();
