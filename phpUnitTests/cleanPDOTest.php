@@ -7,7 +7,7 @@ use PDOI\Utils\cleanPDO as cleanPDO;
  *
  * Unit Tests for PDOI\Utils\cleanPDO, the 'safe' pdo
  */
-class cleanPDOITest extends PHPUnit_Framework_TestCase {
+class cleanPDOTest extends PHPUnit_Framework_TestCase {
     // Disable the persistent nature of cleanPdo due to the unique nature of the test environment.
     // Lots of new pdos in this test and it was leading to a crash in php
     private $goodConfig = [
