@@ -11,7 +11,6 @@ class userTable {
     public function __construct($config, $debug){
         $this->config = $config;
         $this->debug = $debug;
-       $this->userConn = new pdoITable($this->config, 'users', $this->debug);
     }
     
     // Before running methods off a table, those tables have to exist
@@ -33,6 +32,7 @@ class userTable {
             $this->conn->create('rounds', ['round_id' => [],
                 'rounds' => ['type' => 'int']]);
         }
+        $this->userConn = new pdoITable($this->config, "users", $this->debug);
     }
     
     public function createUser($user, $pass){

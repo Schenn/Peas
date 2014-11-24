@@ -570,6 +570,7 @@
          // The pdoITable schema may have changed after the dynamo was spawned. Use the schema which was assigned to
          // the dynamo at its creation
          $schema = $dynamo->TableSchema;
+         $dynamo->stopValidation();
          $foreignKeys = array_reverse($schema->getForeignKeys());
          $this->debug("Inserting Dynamo", $foreignKeys);
 
@@ -646,7 +647,7 @@
                  //get the user_id and return it
                  $dynamo->$primaryKey = $row->$primaryKey;
              }
-
+             $dynamo->startValidation();
              if ($this->debug) echo $dynamo;
 
          }

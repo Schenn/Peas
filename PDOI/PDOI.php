@@ -679,12 +679,16 @@
                     }
                 }
                 catch (PDOException $p){
-                    $this->pdo->rollBack();
+                    if($method !== "SELECT" && $method !== "DESC") {
+                        $this->pdo->rollBack();
+                    }
                     echo(ucfirst(strtolower($method))." Failed: ").$p->getMessage();
                     return(false);
                 }
                 catch (Exception $e){
-                     $this->pdo->rollBack();
+                    if($method !== "SELECT" && $method !== "DESC") {
+                        $this->pdo->rollBack();
+                    }
                      echo(ucfirst(strtolower($method))." Failed: ").$e->getMessage();
                      return(false);
                 }
