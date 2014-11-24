@@ -19,6 +19,9 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
         "p"=>["type"=>"int", "length"=>5, "auto"=>true, "primaryKey"=>true]
     ];
 
+    /**
+     * Initialize and Give the dynamo some starting properties
+     */
     function setUp()
     {
         $this->dynamo = new dynamo();
@@ -27,6 +30,9 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
         $this->dynamo->p = 10;
     }
 
+    /**
+     * Dynamo properties can hold any value type
+     */
     public function testDynamoCanSetValueOfAnyType(){
 
         $this->dynamo = new dynamo();
@@ -55,6 +61,8 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
     }
 
     /**
+     * Dynamo can erase values
+     *
      * @depends testDynamoCanSetValueOfAnyType
      */
     public function testDynamoCanUnsetValue(){
@@ -74,6 +82,9 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse($propExists);
     }
 
+    /**
+     * Dynamo can take closures and we can get data from those closures
+     */
     public function testDynamoCanTakeClosures(){
         $this->dynamo->z = 2;
         $test = $this;
@@ -88,6 +99,8 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
     }
 
     /**
+     * BadMethodCall if you call a method that doesn't exist
+     *
      * @expectedException BadMethodCallException
      */
     public function testDynamoThrowsBadMethod(){
@@ -95,6 +108,10 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
     }
 
     /**
+     * Properties arn't methods, but methods can be a property
+     *
+     * BadMethodException when calling a property like a method
+     *
      * @expectedException BadMethodCallException
      */
     public function testDynamoThrowsBadMethodContinued(){
@@ -103,6 +120,9 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
         $this->dynamo->foo();
     }
 
+    /**
+     * Dynamo can validate its values against expected constraints
+     */
     public function testDynamoCanValidate(){
         // Set Validation Rules
         $this->dynamo->setValidationRules($this->meta);
@@ -122,6 +142,7 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
     }
 
     /**
+     * Dynamo can be set to fail hard, when it does it throws a validationException on invalid data
      * @expectedException PDOI\Utils\validationException
      */
     public function testDynamoThrowsValidationExceptionOnBadData(){
@@ -131,12 +152,16 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
         $this->assertThat($this->dynamo->x, $this->identicalTo(1));
     }
 
+    /**
+     * When working with dynamos that have been generated (and are empty), we may want to change the primary key
+     * to allow the dynamo to be loaded by a database.
+     */
     public function testDynamoCanFlipBetweenValidationStates(){
         $this->dynamo->setValidationRules($this->meta);
         $this->dynamo->p = 5;
         $this->assertThat($this->dynamo->p, $this->identicalTo(10));
 
-        // We can stop validation so that we can set primary keys for loading or assigning
+        // We can stop validation so that we can set primary keys for loading against
         $this->dynamo->stopValidation();
         $this->dynamo->p = 5;
         $this->assertThat($this->dynamo->p, $this->identicalTo(5));
@@ -158,6 +183,9 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
         $this->assertThat((int)$this->dynamo->x, $this->identicalTo(10));
     }
 
+    /**
+     * Dynamos allow you to iterate over their properties
+     */
     public function testCanIterateOverDynamo(){
         foreach($this->dynamo as $prop=>$var){
             switch($prop) {
@@ -174,6 +202,9 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
         }
     }
 
+    /**
+     * For dealing with errors, dynamos keep their previous property data value
+     */
     public function testCanAccessPropertyLastValue(){
         $this->dynamo->x = 20;
 
