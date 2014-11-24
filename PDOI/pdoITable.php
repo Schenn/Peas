@@ -452,10 +452,10 @@
       *
       * @api
       */
-      function asDynamo(){
+      function asDynamo($failSoft = true){
 
            //dynamo insert function, uses this pdoITable
-           $dynamo = new dynamo($this->columns, $this->columnMeta);
+           $dynamo = new dynamo($this->columns, $this->columnMeta, $failSoft);
            $this->reset();
           // Give the object a reference to the table schema.
           // The table schema may have relationships added or removed by the time we go into the database
@@ -562,7 +562,7 @@
       *
       * @api
       */
-     function insertDynamo($dynamo)
+     function insertDynamo(&$dynamo)
      {
          $args = [];
          $args['values'] = [];
@@ -570,7 +570,7 @@
          // The pdoITable schema may have changed after the dynamo was spawned. Use the schema which was assigned to
          // the dynamo at its creation
          $schema = $dynamo->TableSchema;
-         $dynamo->stopValidation();
+
          $foreignKeys = array_reverse($schema->getForeignKeys());
          $this->debug("Inserting Dynamo", $foreignKeys);
 
@@ -599,20 +599,11 @@
                              $this->debug("Values", $values);
 
                              // Insert foreign table data
-                             $this->insert(['table' => $foreignTable, 'columns' => $foreignCols, 'values' => $values]);
+                             $id = $this->insert(['table' => $foreignTable, 'columns' => $foreignCols, 'values' => $values]);
 
-                             $primaryKey = $schema->getPrimaryKey($foreignTable);
-
-                             $selectOptions = ['where' => $values,
-                                 'columns' => [$primaryKey],
-                                 'table' => $foreignTable,
-                                 'orderby' => [$primaryKey => 'DESC'],
-                                 'limit' => 1
-                             ];
-
-                             $row = $this->select($selectOptions);
-
-                             $this->$foreignColumn = $row->$foreignColumn;
+                             $dynamo->stopValidation();
+                             $dynamo->$foreignColumn = $id;
+                             $dynamo->startValidation();
                          }
                      }
                  }
@@ -634,20 +625,13 @@
                  foreach ($cols as $col) {
                      $values[$col] = $dynamo->$col;
                  }
-                 $this->insert(['table' => $masterTable, 'columns' => $cols, 'values' => $values]);
+                 $id = $this->insert(['table' => $masterTable, 'columns' => $cols, 'values' => $values]);
 
-                 $select = ['where' => $values,
-                     'columns' => [$primaryKey],
-                     'table' => $masterTable,
-                     'orderby' => [$primaryKey => 'DESC'],
-                     'limit' => 1
-                 ];
-                 //run an insert on the master
-                 $row = $this->select($select);
                  //get the user_id and return it
-                 $dynamo->$primaryKey = $row->$primaryKey;
+                 $dynamo->stopValidation();
+                 $dynamo->$primaryKey = $id;
+                 $dynamo->startValidation();
              }
-             $dynamo->startValidation();
              if ($this->debug) echo $dynamo;
 
          }
