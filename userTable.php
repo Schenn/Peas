@@ -6,6 +6,7 @@ class userTable {
     protected $config;
     protected $debug;
     protected $conn;
+    /** @var  pdoItable $userConn The connection to the user database table */
     protected $userConn;
     
     public function __construct($config, $debug){
@@ -23,6 +24,7 @@ class userTable {
             $this->conn->create('users', ['user_id' => [],
                 'username' => ['type' => 'varchar', 'length' => 50],
                 'hash_id' => ['type' => 'int']]);
+
             $this->conn->create('hashwords', ['hash_id' => [],
                 'hash' => ['type' => 'varchar', 'length' => 350],
                 'salt_id' => ['type' => 'int']]);
@@ -45,18 +47,18 @@ class userTable {
                'hashwords.salt_id'=>'salts.salt_id',
                'salts.round_id'=>'rounds.round_id']);
 
-           $newuser = $this->userConn->asDynamo();
+           $newUser = $this->userConn->asDynamo();
            $hash = $this->saltAndPepper($pass);
 
-           $newuser->username = $user;
-           $newuser->hash = $hash['hash'];
-           $newuser->salt = $hash['salt'];
-           $newuser->rounds = $hash['rounds'];
+           $newUser->username = $user;
+           $newUser->hash = $hash['hash'];
+           $newUser->salt = $hash['salt'];
+           $newUser->rounds = $hash['rounds'];
 
-           $newuser->insert();
+           $newUser->insert();
 
             $this->userConn->endRelationship();
-           return($newuser);
+           return($newUser);
         } else {
             return false;
         }
