@@ -45,7 +45,7 @@ interface dynamoInterface extends Iterator, JsonSerializable {
 * @see PDOI\pdoITable::asDynamo Where Dynamos are made
 *
 * @package PDOI\Utils
-*@todo Better handling of array properties
+*@todo Better handling of array properties for sets
 */
 class dynamo implements dynamoInterface{
     /** @var array $old The previous value of a property */

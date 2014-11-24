@@ -1,7 +1,8 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: Schenn
- * Date: 11/23/2014
- * Time: 8:06 PM
- */ 
+include_once("../PDOI/Utils/schema.php");
+use PDOI\Utils\schema as schema;
+
+class schemaTest extends PHPUnit_Framework_TestCase{
+
+
+}
