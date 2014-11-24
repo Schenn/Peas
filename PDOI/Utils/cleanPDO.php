@@ -31,17 +31,17 @@ class cleanPDO extends PDO {
      *
      */
     function __construct($config){
-        $dns = 'mysql:dbname='.$config['dbname'].';';
+        $dsn = 'mysql:dbname='.$config['dbname'].';';
         if(isset($config['host'])){
-            $dns .= $config['host'];
+            $dsn .= $config['host'];
         } else {
-            $dns .= '127.0.0.1';
+            $dsn .= '127.0.0.1';
         }
         if(!isset($config['driver_options'])){
             $config['driver_options'] = [PDO::ATTR_PERSISTENT => true];
         }
         $this->hasActiveTransaction = false;
-        parent::__construct($dns, $config['username'], $config['password'], $config['driver_options']);
+        parent::__construct($dsn, $config['username'], $config['password'], $config['driver_options']);
         parent::setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
