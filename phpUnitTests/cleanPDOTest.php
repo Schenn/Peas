@@ -27,26 +27,24 @@ class cleanPDOTest extends PHPUnit_Framework_TestCase {
 
     /**
      * Ensure that attempting to create a new cleanPDO with a bad config throws an Exception
+     * @expectedException Exception
      */
-    public function testCreationFails(){
-        try {
-            $cleanPDO = new cleanPDO([
-                'username'=>'unit_test',
-                'password'=>'wQeR56dAu8pFywFP'
-            ]);
-            $this->assertTrue(false);
-        }catch(Exception $e){
-            $this->assertTrue(true);
-        }
+    public function testCreationFailsWithoutDatabaseName(){
+        $cleanPDO = new cleanPDO([
+            'username'=>'unit_test',
+            'password'=>'wQeR56dAu8pFywFP'
+        ]);
+    }
 
-        try {
-            $cleanPDO = new cleanPDO([
-                'dbname'=>'unit_test'
-            ]);
-            $this->assertTrue(false);
-        }catch(Exception $e){
-            $this->assertTrue(true);
-        }
+    /**
+     * Ensure that attempting to create a new cleanPDO with a bad config throws an Exception
+     * @expectedException Exception
+     */
+    public function testCreationFailsWithoutUserInfo()
+    {
+        $cleanPDO = new cleanPDO([
+            'dbname'=>'unit_test'
+        ]);
     }
 
     /**
