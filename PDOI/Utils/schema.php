@@ -99,6 +99,84 @@ class schema implements schemaInterface {
      }
 
     /**
+     * Rewinds the iterator to the first position
+     */
+    public function rewind(){
+        reset($this->map);
+    }
+
+    /**
+     * Retrieve the current table content from the map
+     *
+     * @return array [table=>[columnName=>MetaData]]
+     */
+    public function current(){
+        return(current($this->map));
+    }
+
+    /**
+     * Get the tableName of the current position of the map
+     *
+     * @return string tableName
+     */
+    public function key(){
+        return(key($this->map));
+    }
+
+    /**
+     * Moves the map to the next position
+     */
+    public function next(){
+        next($this->map);
+    }
+
+    /**
+     * Does the current position of the map not have a null key
+     *
+     * @return bool
+     */
+    public function valid(){
+        return(key($this->map) !== null);
+    }
+
+    /**
+     * Determine if a tableName has been assigned to this schema
+     *
+     * @param string $table the name of the table to check
+     * @return bool
+     */
+    public function __isset($table){
+        if(array_key_exists($table, $this->map)){
+            return(true);
+        }
+        else {
+            return(false);
+        }
+    }
+
+    /**
+     * Removes a table and it's related information from the schema
+     *
+     * @param string $table The name of the table to remove
+     */
+    public function __unset($table){
+        unset($this->map[$table]);
+        unset($this->primaryKeys[$table]);
+        unset($this->foreignKeys[$table]);
+
+        foreach($this->foreignKeys as $fkTable){
+            foreach($fkTable as $column=>$fkRel){
+                $seekTable = array_keys($fkRel)[0];
+
+                if($seekTable === $table){
+                    unset($this->foreignKeys[$fkTable][$column]);
+                }
+            }
+        }
+
+    }
+
+    /**
      * Retrieve the schema as a json object
      *
      * @return string $this->map as a json string
@@ -114,6 +192,7 @@ class schema implements schemaInterface {
      *
      * @param $relationship [table.column=>table.column]
      * @param array $values propagate the map with the values assigned to the given columns
+     * @api
      */
      public function setForeignKey($relationship, $values = []){
           $tableColumn1 = array_keys($relationship)[0];
@@ -139,6 +218,7 @@ class schema implements schemaInterface {
      *
      * This method returns the map without any metadata. It's used to interpret schema structure
      * @return array $map A dictionary of [table =>[columnName, columnName, ...], ...]
+     * @api
      */
      public function getMap(){
           $map = [];
@@ -152,89 +232,14 @@ class schema implements schemaInterface {
           return($map);
      }
 
-    /**
-     * Rewinds the iterator to the first position
-     */
-     public function rewind(){
-          reset($this->map);
-     }
 
-    /**
-     * Retrieve the current table content from the map
-     *
-     * @return array [table=>[columnName=>MetaData]]
-     */
-     public function current(){
-          return(current($this->map));
-     }
-
-    /**
-     * Get the tableName of the current position of the map
-     *
-     * @return string tableName
-     */
-     public function key(){
-          return(key($this->map));
-     }
-
-    /**
-     * Moves the map to the next position
-     */
-     public function next(){
-          next($this->map);
-     }
-
-    /**
-     * Does the current position of the map not have a null key
-     *
-     * @return bool
-     */
-     public function valid(){
-          return(key($this->map) !== null);
-     }
-
-    /**
-     * Determine if a tableName has been assigned to this schema
-     *
-     * @param string $table the name of the table to check
-     * @return bool
-     */
-     public function __isset($table){
-          if(array_key_exists($table, $this->map)){
-               return(true);
-          }
-          else {
-               return(false);
-          }
-     }
-
-    /**
-     * Removes a table and it's related information from the schema
-     *
-     * @param string $table The name of the table to remove
-     */
-     public function __unset($table){
-          unset($this->map[$table]);
-          unset($this->primaryKeys[$table]);
-          unset($this->foreignKeys[$table]);
-
-          foreach($this->foreignKeys as $fkTable){
-                foreach($fkTable as $column=>$fkRel){
-                    $seekTable = array_keys($fkRel)[0];
-                    
-                    if($seekTable === $table){
-                        unset($this->foreignKeys[$fkTable][$column]);
-                    }
-                }
-            }
-          
-     }
 
     /**
      * Add Columns to a table
      *
      * @param string $table The name of the table to add the columns too
      * @param array $cols [columnName=>MetaData, columnName=>MetaData]
+     * @api
      */
      public function addColumns($table, $cols){
           array_merge($this->map[$table],$cols);
@@ -245,6 +250,7 @@ class schema implements schemaInterface {
      *
      * @param string $table the name of the table
      * @return array A list of the columnNames
+     * @api
      */
      public function getColumns($table){
           return array_keys($this->map[$table]);
@@ -254,6 +260,7 @@ class schema implements schemaInterface {
      * Add Tables to the schema
      *
      * @param array $tables A list of table names to add to the map
+     * @api
      */
      public function addTable($tables){
           if(is_array($tables)){
@@ -276,6 +283,7 @@ class schema implements schemaInterface {
      * Get the table names in the schema
      *
      * @return array The list of table names
+     * @api
      */
      public function getTables(){
           return(array_keys($this->map));
@@ -299,6 +307,7 @@ class schema implements schemaInterface {
      *
      * @param string $table the table to get the primary key of
      * @return string|bool Returns the primary key of the table or false if one isn't assigned.
+     * @api
      *
      * @todo this should probably return null instead of false on fail
      */
@@ -312,6 +321,7 @@ class schema implements schemaInterface {
      *
      * @param string $table The table name to add the column to
      * @param string $field The name of the column to add to the table
+     * @api
      */
      public function addColumn($table, $field){
           $this->map[$table]=[$field=>[]];
@@ -331,7 +341,7 @@ class schema implements schemaInterface {
      * @param string $table The tableName the meta rules apply to
      * @param string $field The columnName the meta rules apply to
      * @param array $meta The dictionary of meta data about the rules
-     *
+     * @api
      * @todo Error Catching
      */
      public function setMeta($table,$field,$meta=[]){
@@ -392,6 +402,7 @@ class schema implements schemaInterface {
      * @param string $table The name of the table
      * @param string $field the name of the column
      * @return array mixed The meta data for the field
+     * @api
      */
      public function getMeta($table, $field){
 
@@ -403,6 +414,7 @@ class schema implements schemaInterface {
      * Retrieve the foreign keys
      *
      * @return array $this->foreignKeys
+     * @api
      */
      public function getForeignKeys(){
           return $this->foreignKeys;
@@ -412,6 +424,7 @@ class schema implements schemaInterface {
      * Retrieve the primary keys
      *
      * @return array $this->primaryKeys
+     * @api
      */
      public function getPrimaryKeys(){
          return $this->primaryKeys;
@@ -421,6 +434,7 @@ class schema implements schemaInterface {
      * Retrieve the Master Key
      *
      * @return array $this->masterKey
+     * @api
      */
      public function getMasterKey(){
          return $this->masterKey;
