@@ -136,62 +136,62 @@ class dynamo implements dynamoInterface{
                 // If we're validating values and this column has validation data
                 if(($this->useMeta) && (isset($this->meta[$name]))){
                     // If the value can be changed
-                    if(!array_key_exists('fixed',$this->meta[$name])){
+                    if(array_key_exists('fixed',$this->meta[$name])) {
                         // If the value is numeric and is within the min and max values of the type
-                        if($this->meta[$name]['type'] ==="numeric"){
-                            if(is_numeric($value)) {
-                                if (abs($value) <= $this->meta[$name]['max'] && $value >= $this->meta[$name]['max'] * -1) {
-                                    $this->setProperty($name, (float)$value);
-                                } else {
-                                    throw new validationException("$value falls outside of $name available range (" . ($this->meta[$name]['max'] * -1) . " to " . $this->meta[$name]['max'] . ")", 1);
-                                }
-                            } else {
-                                throw new validationException("$value is a string, number expected", 0);
-                            }
-                        }
-                        // If the type is a string
-                        elseif($this->meta[$name]['type'] === "string"){
-                            // If the string has a max length
-                            if(array_key_exists("length",$this->meta[$name])){
-                                $value = (string)$value;
-                                // If the string is less than the max length
-                                if(strlen($value) <= $this->meta[$name]['length']){
-                                    $this->setProperty($name, $value);
-                                }
-                                else {
-                                    throw new validationException("$value has too many characters for $name",2);
-                                }
-                            }
-                            // No maximum length
-                            else {
-                                $value = (string)$value;
-                                $this->setProperty($name, $value);
-                            }
-                        }
-                        // If type is a boolean
-                        elseif($this->meta[$name]['type'] === "boolean"){
-                            if(is_bool($value)){
-                                $this->setProperty($name, $value);
-                            }
-                            else {
-                                throw new validationException("$name expects boolean value; not $value",3);
-                            }
-                        }
-                        // If type is a Date
-                        elseif($this->meta[$name]['type'] === "date"){
-                            if(get_class($value) === "DateTime"){
-                                if(isset($this->meta[$name]['format'])){
-                                    $value->format($this->meta[$name]['format']);
-                                }
-                                $this->setProperty($name, $value);
-                            }
-                            else {
-                                throw new validationException("$value not a date for $name",4);
-                            }
-                        }
-                    } else {
-                        throw new validationException("$name is fixed and cannot be changed to $value",5);
+                        throw new validationException("$name is fixed and cannot be changed to $value", 5);
                     }
+                    if($this->meta[$name]['type'] ==="numeric"){
+                        if(is_numeric($value)) {
+                            if (abs($value) <= $this->meta[$name]['max'] && $value >= $this->meta[$name]['max'] * -1) {
+                                $this->setProperty($name, (float)$value);
+                            } else {
+                                throw new validationException("$value falls outside of $name available range (" . ($this->meta[$name]['max'] * -1) . " to " . $this->meta[$name]['max'] . ")", 1);
+                            }
+                        } else {
+                            throw new validationException("$value is a string, number expected", 0);
+                        }
+                    }
+                    // If the type is a string
+                    elseif($this->meta[$name]['type'] === "string"){
+                        // If the string has a max length
+                        if(array_key_exists("length",$this->meta[$name])){
+                            $value = (string)$value;
+                            // If the string is less than the max length
+                            if(strlen($value) <= $this->meta[$name]['length']){
+                                $this->setProperty($name, $value);
+                            }
+                            else {
+                                throw new validationException("$value has too many characters for $name",2);
+                            }
+                        }
+                        // No maximum length
+                        else {
+                            $value = (string)$value;
+                            $this->setProperty($name, $value);
+                        }
+                    }
+                    // If type is a boolean
+                    elseif($this->meta[$name]['type'] === "boolean"){
+                        if(is_bool($value)){
+                            $this->setProperty($name, $value);
+                        }
+                        else {
+                            throw new validationException("$name expects boolean value; not $value",3);
+                        }
+                    }
+                    // If type is a Date
+                    elseif($this->meta[$name]['type'] === "date"){
+                        if(get_class($value) === "DateTime"){
+                            if(isset($this->meta[$name]['format'])){
+                                $value->format($this->meta[$name]['format']);
+                            }
+                            $this->setProperty($name, $value);
+                        }
+                        else {
+                            throw new validationException("$value not a date for $name",4);
+                        }
+                    }
+
                 }
                 // No validation is being done, just assign it
                 else {
