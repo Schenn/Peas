@@ -701,10 +701,9 @@
       * Set's up relationship data in the schema
       *
       * @param array $relationships The relationship to create [tableName.foreignKey => foreignTableName.primaryKey]
-      * @param bool $values
       * @api
       */
-      function setRelationship($relationships, $values = false){
+      function setRelationship($relationships){
            foreach($relationships as $fKey=>$pKey){
                //add tables w/columns to schema
                $this->schema->addTable([explode(".",$pKey)[0]]);
