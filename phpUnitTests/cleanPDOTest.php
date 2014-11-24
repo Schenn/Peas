@@ -27,7 +27,7 @@ class cleanPDOTest extends PHPUnit_Framework_TestCase {
 
     /**
      * Ensure that attempting to create a new cleanPDO with a bad config throws an Exception
-     * @expectedException Exception
+     * @expectedException PDOException
      */
     public function testCreationFailsWithoutDatabaseName(){
         $cleanPDO = new cleanPDO([
@@ -38,7 +38,7 @@ class cleanPDOTest extends PHPUnit_Framework_TestCase {
 
     /**
      * Ensure that attempting to create a new cleanPDO with a bad config throws an Exception
-     * @expectedException Exception
+     * @expectedException PDOException
      */
     public function testCreationFailsWithoutUserInfo()
     {

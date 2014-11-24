@@ -31,6 +31,9 @@ class cleanPDO extends PDO {
      *
      */
     function __construct($config){
+        if(!isset($config["dbname"]) || !isset($config['username']) || !isset($config['password'])) {
+            throw new \PDOException("Invalid config arguments");
+        }
         $dsn = 'mysql:dbname='.$config['dbname'].';';
         if(isset($config['host'])){
             $dsn .= $config['host'];
