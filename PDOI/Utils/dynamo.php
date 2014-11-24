@@ -16,6 +16,7 @@ use Closure;
 *
 * @package PDOI\Utils
 * @Category Exceptions
+ * @todo Add some error messages like in sqlSpinner
 */
 class validationException extends Exception {
 
@@ -44,6 +45,7 @@ interface dynamoInterface extends Iterator, JsonSerializable {
 * @see PDOI\pdoITable::asDynamo Where Dynamos are made
 *
 * @package PDOI\Utils
+*@todo Better handling of array properties
 */
 class dynamo implements dynamoInterface{
     /** @var array $old The previous value of a property */
@@ -54,6 +56,8 @@ class dynamo implements dynamoInterface{
     private $meta = [];
     /** @var bool $useMeta Whether or not to validate incoming values. Default is true */
     private $useMeta = true;
+
+    private $failSoft;
 
     /**
      * Create a Dynamo
@@ -67,11 +71,12 @@ class dynamo implements dynamoInterface{
      *
      * @see PDOI\pdoITable
      */
-    public function __construct($values = [], $meta = []){
+    public function __construct($values = [], $meta = [], $failSoft = true){
           foreach($values as $name=>$value){
-               $this->properties[$name]=$value;
+               $this->$name = $value;
           }
           $this->setValidationRules($meta);
+        $this->failSoft = $failSoft;
      }
 
     /**
@@ -131,14 +136,17 @@ class dynamo implements dynamoInterface{
                 // If we're validating values and this column has validation data
                 if(($this->useMeta) && (isset($this->meta[$name]))){
                     // If the value can be changed
-                    if(!array_key_exists('fixed',$this->meta)){
+                    if(!array_key_exists('fixed',$this->meta[$name])){
                         // If the value is numeric and is within the min and max values of the type
                         if($this->meta[$name]['type'] ==="numeric"){
-                            if(abs($value)<=$this->meta[$name]['max'] && $value >= $this->meta[$name]['max'] * -1){
-                                $this->setProperty($name, (float)$value);
-                            }
-                            else {
-                                throw new validationException("$value falls outside of $name available range (".($this->meta[$name]['max'] * -1)." to ".$this->meta[$name]['max'].")", 1);
+                            if(is_numeric($value)) {
+                                if (abs($value) <= $this->meta[$name]['max'] && $value >= $this->meta[$name]['max'] * -1) {
+                                    $this->setProperty($name, (float)$value);
+                                } else {
+                                    throw new validationException("$value falls outside of $name available range (" . ($this->meta[$name]['max'] * -1) . " to " . $this->meta[$name]['max'] . ")", 1);
+                                }
+                            } else {
+                                throw new validationException("$value is a string, number expected", 0);
                             }
                         }
                         // If the type is a string
@@ -184,18 +192,22 @@ class dynamo implements dynamoInterface{
                     } else {
                         throw new validationException("$name is fixed and cannot be changed to $value",5);
                     }
-                    // Continue from a throw here
-                    dynamo_continue:
                 }
                 // No validation is being done, just assign it
                 else {
                     $this->setProperty($name, $value);
                 }
+                // Continue from a throw here
+                dynamo_continue:
             }
         }
         catch (validationException $e){
-            echo $e->getMessage();
-            goto dynamo_continue;
+            if($this->failSoft) {
+                echo $e->getMessage()."\n";
+                goto dynamo_continue;
+            } else {
+                throw new validationException($e->getMessage(), $e->getCode());
+            }
         }
     }
 
@@ -230,7 +242,7 @@ class dynamo implements dynamoInterface{
      *
      * @param string $name The name of the property
      * @return bool Whether or not the property exists
-     * @todo Should this also return false if the property is empty or null?
+     * @todo Should this also return false if the property is null like isset does?
      */
     public function __isset($name){
         if(array_key_exists($name, $this->properties)){
@@ -265,24 +277,16 @@ class dynamo implements dynamoInterface{
      * @throws BadMethodCallException if the method doesn't exist or isn't callable.
      */
     public function __call($method, $args){
-        try {
-            if(isset($this->$method)){
-                if(is_callable($this->$method)){
-                    $func = $this->$method;
-                    $func($args);
-                }
-                else {
-                    throw new BadMethodCallException("$method is not a callable function!");
-                }
-            } else {
-                throw new BadMethodCallException("$method is not set!");
+        if(isset($this->$method)){
+            if(is_callable($this->$method)){
+                $func = $this->$method;
+                return ($func($args));
             }
-        }
-        catch (BadMethodCallException $e){
-            echo $e->getMessage();
-        }
-        catch (Exception $e){
-            echo $e->getMessage();
+            else {
+                throw new BadMethodCallException("$method is not a callable function!");
+            }
+        } else {
+            throw new BadMethodCallException("$method is not set!");
         }
     }
 
@@ -356,49 +360,52 @@ class dynamo implements dynamoInterface{
      *      if the type is numeric, the length field is changed to a max value representation.
      *          (length of 1 = max values of 9 and -9, length of 2 = 99 and -99))
      * @api
-     *
+     * @todo We should be able to set the validation rules without having already set properties. In that case, we should be assigning those properties and possibly assigning the default values
+     * @todo If the property doesn't have a value and a default value was provided, set the property to the default
      */
     public function setValidationRules($validationRules = []){
         foreach($validationRules as $var=>$rules){
-            if(array_key_exists($var,$this->properties)){
-                $this->meta[$var] = [];
-                //sets validation type (numeric, boolean, string or date)
-                switch($rules['type']){
-                    case "int":
-                    case "decimal":
-                    case "double":
-                    case "float":
-                    case "real":
-                    case "bit":
-                    case "serial":
-                        $this->meta[$var]['type'] = 'numeric';
-                        $this->meta[$var]['max'] = pow(10, $rules['length'])-1;
-                        break;
-                    case "bool":
-                        $this->meta[$var]['type'] = 'boolean';
-                        break;
-                    case "date":
-                    case "time":
-                    case "year":
-                        $this->meta[$var]['type']='date';
-                        $this->meta[$var]['format'] = $rules['format'];
-                        break;
-                    default:
-                        $this->meta[$var]['type']='string';
-                        if(array_key_exists('length',$rules)){
-                            $this->meta[$var]['length'] = $rules['length'];
-                        }
-                        break;
-                }
-                $this->meta[$var]['default'] = $rules['default'];
-                if(isset($rules['primaryKey']) && isset($rules['auto'])){
-                    $this->meta[$var]['fixed'] = true;
-                }
-                if(array_key_exists('required', $rules)){
-                    $this->meta[$var]['required'] = $rules['required'];
-                }
-
+            $this->meta[$var] = [];
+            //sets validation type (numeric, boolean, string or date)
+            switch($rules['type']){
+                case "int":
+                case "decimal":
+                case "double":
+                case "float":
+                case "real":
+                case "bit":
+                case "serial":
+                    $this->meta[$var]['type'] = 'numeric';
+                    $this->meta[$var]['max'] = pow(10, $rules['length'])-1;
+                    break;
+                case "bool":
+                    $this->meta[$var]['type'] = 'boolean';
+                    break;
+                case "date":
+                case "time":
+                case "year":
+                    $this->meta[$var]['type']='date';
+                    $this->meta[$var]['format'] = $rules['format'];
+                    break;
+                default:
+                    $this->meta[$var]['type']='string';
+                    if(array_key_exists('length',$rules)){
+                        $this->meta[$var]['length'] = $rules['length'];
+                    }
+                    break;
             }
+
+            if(isset($rules['default'])) {
+                $this->meta[$var]['default'] = $rules['default'];
+            }
+
+            if(isset($rules['primaryKey']) && isset($rules['auto'])){
+                $this->meta[$var]['fixed'] = true;
+            }
+            if(array_key_exists('required', $rules)){
+                $this->meta[$var]['required'] = $rules['required'];
+            }
+
         }
     }
 
@@ -463,6 +470,7 @@ class dynamo implements dynamoInterface{
     /**
      * Resume validating incoming rules
      * @api
+     * @todo validate the current property values against the meta data
      */
     public function startValidation(){
         $this->useMeta = true;
