@@ -58,14 +58,23 @@ Class Validator {
             throw new validationException("$name is fixed and cannot be changed to $value", 5);
         }
         if($this->meta[$name]['type'] ==="numeric"){
-            if(is_numeric($value)) {
-                if (abs($value) <= $this->meta[$name]['max'] && $value >= $this->meta[$name]['max'] * -1) {
-                    return true;
+            if(!is_numeric($value)){
+                // Try to convert the value into a numeric one
+                if(is_string($value)){
+                    // If the string contains a decimal, cast to float, else cast to int
+                    $value = (strpos($value, '.') > -1) ? (float)$value : (int) $value;
+                } if(is_bool($value)) {
+                    $value = (int) $value;
                 } else {
-                    throw new validationException("$value falls outside of $name available range (" . ($this->meta[$name]['max'] * -1) . " to " . $this->meta[$name]['max'] . ")", 1);
+                    throw new validationException("$value is not numeric, number expected", 0);
                 }
+            }
+            $max = $this->meta[$name]['max'];
+            $min = (isset($this->meta[$name]['min'])) ? $this->meta[$name]['min'] : $max * -1;
+            if (abs($value) <= $max && $value >= $min) {
+                return true;
             } else {
-                throw new validationException("$value is a string, number expected", 0);
+                throw new validationException("$value falls outside of $name available range (" . ($this->meta[$name]['max'] * -1) . " to " . $this->meta[$name]['max'] . ")", 1);
             }
         }
         // If the type is a string
