@@ -1,31 +1,14 @@
 <?php
 namespace PDOI\Utils;
 include_once("Validator.php");
-use BadMethodCallException, Exception, Iterator, JsonSerializable;
+use BadMethodCallException, Iterator, JsonSerializable;
 use Closure;
-use PDOI\Utils\Validator as Validator;
+use PDOI\Utils\Validator;
 
 /**
 * @author Steven Chennault Schenn@Mash.is
 * @link: https://github.com/Schenn/PDOI Repository
 */
-
-
-/**
-* Class validationException
-*
-* A provided value failed to pass validation
-*
-* @package PDOI\Utils
-* @Category Exceptions
- * @todo Add some error messages like in sqlSpinner
-*/
-class validationException extends Exception {
-
- public function __construct($message,$code, Exception $previous = null){
-      parent::__construct($message, $code, $previous);
- }
-}
 
 /**
 * Interface dynamoInterface
@@ -50,12 +33,10 @@ interface dynamoInterface extends Iterator, JsonSerializable {
 *@todo Better handling of array properties for sets
 */
 class dynamo implements dynamoInterface{
-    /** @var array $old The previous value of a property */
-    private $old = [];
+
     /** @var array $properties The current property values */
     private $properties = [];
-    /** @var array $meta The metadata for the properties */
-    private $meta = [];
+
     /** @var bool $useMeta Whether or not to validate incoming values. Default is true */
     private $useMeta = true;
 
@@ -95,11 +76,7 @@ class dynamo implements dynamoInterface{
      */
     private function setProperty($name, $value){
         if($value !== $this->properties[$name]) {
-            $this->old[$name] = $this->properties[$name];
             $this->properties[$name] =$value;
-            if ($this->old[$name] === null) {
-                $this->old[$name] = $this->properties[$name];
-            }
         }
     }
 
@@ -137,7 +114,6 @@ class dynamo implements dynamoInterface{
                 // If this is a new property, create space for it
                 if(!array_key_exists($name, $this->properties)){
                     $this->properties[$name] = null;
-                    $this->old[$name] = null;
                 }
                 // If we're validating values and this column has validation data
                 if(($this->useMeta) && $this->validator->hasRule($name) && ($this->validator->IsValid($name, $value))){
@@ -349,17 +325,6 @@ class dynamo implements dynamoInterface{
      */
     public function startValidation(){
         $this->useMeta = true;
-    }
-
-    /**
-     * Get the previous value for a property
-     *
-     * @param string $key The name of the property to get the old value of
-     * @return mixed
-     * @api
-     */
-    public function oldData($key){
-        return($this->old[$key]);
     }
 
 }
