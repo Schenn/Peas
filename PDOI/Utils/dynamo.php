@@ -1,7 +1,9 @@
 <?php
 namespace PDOI\Utils;
+include_once("Validator.php");
 use BadMethodCallException, Exception, Iterator, JsonSerializable;
 use Closure;
+use PDOI\Utils\Validator as Validator;
 
 /**
 * @author Steven Chennault Schenn@Mash.is
@@ -59,6 +61,9 @@ class dynamo implements dynamoInterface{
 
     private $failSoft;
 
+    /** @var Validator $validator validates values against their meta data */
+    private $validator;
+
     /**
      * Create a Dynamo
      *
@@ -72,10 +77,11 @@ class dynamo implements dynamoInterface{
      * @see PDOI\pdoITable
      */
     public function __construct($values = [], $meta = [], $failSoft = true){
-          foreach($values as $name=>$value){
-               $this->$name = $value;
-          }
-          $this->setValidationRules($meta);
+        $this->validator = new Validator();
+        foreach($values as $name=>$value){
+           $this->$name = $value;
+        }
+        $this->setValidationRules($meta);
         $this->failSoft = $failSoft;
      }
 
@@ -134,64 +140,8 @@ class dynamo implements dynamoInterface{
                     $this->old[$name] = null;
                 }
                 // If we're validating values and this column has validation data
-                if(($this->useMeta) && (isset($this->meta[$name]))){
-                    // If the value can be changed
-                    if(array_key_exists('fixed',$this->meta[$name])) {
-                        // If the value is numeric and is within the min and max values of the type
-                        throw new validationException("$name is fixed and cannot be changed to $value", 5);
-                    }
-                    if($this->meta[$name]['type'] ==="numeric"){
-                        if(is_numeric($value)) {
-                            if (abs($value) <= $this->meta[$name]['max'] && $value >= $this->meta[$name]['max'] * -1) {
-                                $this->setProperty($name, (float)$value);
-                            } else {
-                                throw new validationException("$value falls outside of $name available range (" . ($this->meta[$name]['max'] * -1) . " to " . $this->meta[$name]['max'] . ")", 1);
-                            }
-                        } else {
-                            throw new validationException("$value is a string, number expected", 0);
-                        }
-                    }
-                    // If the type is a string
-                    elseif($this->meta[$name]['type'] === "string"){
-                        // If the string has a max length
-                        if(array_key_exists("length",$this->meta[$name])){
-                            $value = (string)$value;
-                            // If the string is less than the max length
-                            if(strlen($value) <= $this->meta[$name]['length']){
-                                $this->setProperty($name, $value);
-                            }
-                            else {
-                                throw new validationException("$value has too many characters for $name",2);
-                            }
-                        }
-                        // No maximum length
-                        else {
-                            $value = (string)$value;
-                            $this->setProperty($name, $value);
-                        }
-                    }
-                    // If type is a boolean
-                    elseif($this->meta[$name]['type'] === "boolean"){
-                        if(is_bool($value)){
-                            $this->setProperty($name, $value);
-                        }
-                        else {
-                            throw new validationException("$name expects boolean value; not $value",3);
-                        }
-                    }
-                    // If type is a Date
-                    elseif($this->meta[$name]['type'] === "date"){
-                        if(get_class($value) === "DateTime"){
-                            if(isset($this->meta[$name]['format'])){
-                                $value->format($this->meta[$name]['format']);
-                            }
-                            $this->setProperty($name, $value);
-                        }
-                        else {
-                            throw new validationException("$value not a date for $name",4);
-                        }
-                    }
-
+                if(($this->useMeta) && $this->validator->hasRule($name) && ($this->validator->IsValid($name, $value))){
+                    $this->setProperty($name, $value);
                 }
                 // No validation is being done, just assign it
                 else {
@@ -259,7 +209,7 @@ class dynamo implements dynamoInterface{
      * @param string $name The name of the field to unset
      */
     public function __unset($name){
-        unset($this->properties[$name]);
+        unset($this->properties[$name], $this->old[$name]);
         if(array_key_exists($name, $this->meta)){
             unset($this->meta[$name]);
         }
@@ -365,52 +315,14 @@ class dynamo implements dynamoInterface{
      */
     public function setValidationRules($validationRules = []){
         foreach($validationRules as $var=>$rules){
-            $this->meta[$var] = [];
-            //sets validation type (numeric, boolean, string or date)
-            switch($rules['type']){
-                case "int":
-                case "decimal":
-                case "double":
-                case "float":
-                case "real":
-                case "bit":
-                case "serial":
-                    $this->meta[$var]['type'] = 'numeric';
-                    $this->meta[$var]['max'] = pow(10, $rules['length'])-1;
-                    break;
-                case "bool":
-                    $this->meta[$var]['type'] = 'boolean';
-                    break;
-                case "date":
-                case "time":
-                case "year":
-                    $this->meta[$var]['type']='date';
-                    $this->meta[$var]['format'] = $rules['format'];
-                    break;
-                default:
-                    $this->meta[$var]['type']='string';
-                    if(array_key_exists('length',$rules)){
-                        $this->meta[$var]['length'] = $rules['length'];
-                    }
-                    break;
-            }
-
-            if(isset($rules['default'])) {
-                $this->meta[$var]['default'] = $rules['default'];
-            }
-
-            if(isset($rules['primaryKey']) && isset($rules['auto'])){
-                $this->meta[$var]['fixed'] = true;
-            }
-            if(array_key_exists('required', $rules)){
-                $this->meta[$var]['required'] = $rules['required'];
-            }
+            $this->validator->SetMetaData($var, $rules);
 
         }
+        $this->useMeta = true;
     }
 
     /**
-     * Returns the validation rule of a property
+     * Returns the validation class which contains the metadata for properties
      *
      * @param string $key The name of the property
      * @return mixed|bool The value of the property or false if the property doesn't have validation rules
@@ -418,43 +330,8 @@ class dynamo implements dynamoInterface{
      *
      * @todo This should return null, not false if there's no validation rule
      */
-    public function getRule($key){
-        if(isset($this->meta[$key])){
-            return($this->meta[$key]);
-        }
-        else {
-            return(false);
-        }
-    }
-
-    /**
-     * Get all the validation rules
-     *
-     * @return array The dictionary of validation rules
-     * @api
-     */
-    public function getRules(){
-        return($this->meta);
-    }
-
-    /**
-     * Forget validation rules for a property
-     *
-     * @param string $key The name of the property
-     * @api
-     */
-    public function unsetRule($key){
-        unset($this->meta[$key]);
-    }
-
-    /**
-     * Forget all of the validation rules in the dynamo
-     * @api
-     *
-     * @todo This should remove the validation rules for the columns, not the columns themselves from the dictionary
-     */
-    public function unsetRules(){
-        $this->meta = [];
+    public function getValidator(){
+        return($this->validator);
     }
 
     /**
