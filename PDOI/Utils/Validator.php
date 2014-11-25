@@ -1,54 +1,86 @@
 <?php
 namespace PDOI\Utils;
+use Exception;
 
 /**
- * @package PDOI\Utils
+ * @author Steven Chennault Schenn@Mash.is
+ * @link: https://github.com/Schenn/PDOI Repository
  */
 
+
+/**
+ * Class validationException
+ *
+ * A provided value failed to pass validation
+ *
+ * @package PDOI\Utils
+ * @Category Exceptions
+ * @todo Add some error messages like in sqlSpinner
+ */
+class validationException extends Exception {
+
+    public function __construct($message,$code, Exception $previous = null){
+        parent::__construct($message, $code, $previous);
+    }
+}
 Class Validator {
 
     private $meta = [];
 
     public function SetMetaData($prop, $rules){
-        $this->meta[$prop] = [];
-        //sets validation type (numeric, boolean, string or date)
-        switch($rules['type']){
-            case "int":
-            case "decimal":
-            case "double":
-            case "float":
-            case "real":
-            case "bit":
-            case "serial":
-                $this->meta[$prop]['type'] = 'numeric';
-                $this->meta[$prop]['max'] = pow(10, $rules['length'])-1;
-                break;
-            case "bool":
-                $this->meta[$prop]['type'] = 'boolean';
-                break;
-            case "date":
-            case "time":
-            case "year":
-                $this->meta[$prop]['type']='date';
-                $this->meta[$prop]['format'] = $rules['format'];
-                break;
-            default:
-                $this->meta[$prop]['type']='string';
-                if(array_key_exists('length',$rules)){
-                    $this->meta[$prop]['length'] = $rules['length'];
+        // Preserve any already existing meta data
+        if(!isset($this->meta[$prop])){
+            $this->meta[$prop] = [];
+        }
+
+
+        $isPrimary = false;
+        $isAuto = false;
+        foreach($rules as $rule=>$values){
+            if($rule == 'type'){
+                switch($values){
+                    case "int":
+                    case "decimal":
+                    case "double":
+                    case "float":
+                    case "real":
+                    case "bit":
+                    case "serial":
+                        $this->meta[$prop]['type'] = 'numeric';
+                        $this->meta[$prop]['max'] = (isset($rules['max'])) ?  $rules['max'] : pow(10, $rules['length'])-1;
+                        if(isset($rules['min'])) {
+                            $this->meta[$prop]['min'] = $rules['min'];
+                        }
+                        break;
+                    case "bool":
+                        $this->meta[$prop]['type'] = 'boolean';
+                        break;
+                    case "date":
+                    case "time":
+                    case "year":
+                        $this->meta[$prop]['type']='date';
+                        $this->meta[$prop]['format'] = $rules['format'];
+                        break;
+                    default:
+                        $this->meta[$prop]['type']='string';
+                        if(array_key_exists('length',$rules)){
+                            $this->meta[$prop]['length'] = $rules['length'];
+                        }
+                        break;
                 }
-                break;
-        }
-
-        if(isset($rules['default'])) {
-            $this->meta[$prop]['default'] = $rules['default'];
-        }
-
-        if(isset($rules['primaryKey']) && isset($rules['auto'])){
-            $this->meta[$prop]['fixed'] = true;
-        }
-        if(array_key_exists('required', $rules)){
-            $this->meta[$prop]['required'] = $rules['required'];
+            }
+            else if($rule == 'primaryKey' || $rule == 'auto'){
+                if($rule == 'primaryKey')
+                    $isPrimary = true;
+                if($rule == 'auto'){
+                    $isAuto = true;
+                }
+                if($isPrimary && $isAuto){
+                    $this->meta[$prop]['fixed'] = true;
+                }
+            }else {
+                $this->meta[$prop][$rule] = $values;
+            }
         }
     }
 
@@ -58,17 +90,18 @@ Class Validator {
             throw new validationException("$name is fixed and cannot be changed to $value", 5);
         }
         if($this->meta[$name]['type'] ==="numeric"){
-            if(!is_numeric($value)){
-                // Try to convert the value into a numeric one
-                if(is_string($value)){
-                    // If the string contains a decimal, cast to float, else cast to int
-                    $value = (strpos($value, '.') > -1) ? (float)$value : (int) $value;
-                } if(is_bool($value)) {
-                    $value = (int) $value;
-                } else {
+            // If Numeric String
+            if(is_string($value) && is_numeric($value)){
+                // If the string contains a decimal, cast to float, else cast to int
+                $value = (strpos($value, '.') > -1) ? (float)$value : (int) $value;
+            }else if(is_bool($value)) {
+                $value = (int) $value;
+            } else {
+                if(!is_numeric($value)) {
                     throw new validationException("$value is not numeric, number expected", 0);
                 }
             }
+
             $max = $this->meta[$name]['max'];
             $min = (isset($this->meta[$name]['min'])) ? $this->meta[$name]['min'] : $max * -1;
             if (abs($value) <= $max && $value >= $min) {
@@ -84,6 +117,14 @@ Class Validator {
                 $value = (string)$value;
                 // If the string is less than the max length
                 if(strlen($value) <= $this->meta[$name]['length']){
+                    // Check against required characters
+                    if(isset($this->meta[$name]['required_chars'])) {
+                        foreach($this->meta[$name]['required_chars'] as $char){
+                            if(strpos($value, $char) == -1){
+                                throw new validationException("$value is missing required character $char", 6);
+                            }
+                        }
+                    }
                     return true;
                 }
                 else {
