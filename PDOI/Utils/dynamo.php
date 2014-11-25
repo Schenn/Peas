@@ -209,10 +209,8 @@ class dynamo implements dynamoInterface{
      * @param string $name The name of the field to unset
      */
     public function __unset($name){
-        unset($this->properties[$name], $this->old[$name]);
-        if(array_key_exists($name, $this->meta)){
-            unset($this->meta[$name]);
-        }
+        unset($this->properties[$name]);
+        $this->validator->unsetRule($name);
     }
 
     /**

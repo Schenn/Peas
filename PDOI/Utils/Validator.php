@@ -170,12 +170,7 @@ Class Validator {
      * @todo This should return null, not false if there's no validation rule
      */
     public function getRule($key){
-        if(isset($this->meta[$key])){
-            return($this->meta[$key]);
-        }
-        else {
-            return(false);
-        }
+        return ($this->hasRule($key)) ? $this->meta[$key] : null;
     }
 
     public function hasRule($key){
@@ -199,7 +194,8 @@ Class Validator {
      * @api
      */
     public function unsetRule($key){
-        unset($this->meta[$key]);
+        if(array_key_exists($key, $this->meta))
+            unset($this->meta[$key]);
     }
 
     /**
