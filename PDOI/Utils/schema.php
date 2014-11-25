@@ -190,24 +190,23 @@ class schema implements schemaInterface {
      * @param array $values propagate the map with the values assigned to the given columns
      * @api
      */
-     public function setForeignKey($relationship, $values = []){
-          $tableColumn1 = array_keys($relationship)[0];
-          $tableColumn2 = $relationship[$tableColumn1];
+    public function setForeignKey($relationship, $values = []){
+        $tableColumn1 = array_keys($relationship)[0];
+        $tableColumn2 = $relationship[$tableColumn1];
 
-          $table1 = substr($tableColumn1,0,strpos($tableColumn1,'.'));
-          $column1 = substr($tableColumn1,strpos($tableColumn1,'.')+1);
-          $table2 = substr($tableColumn2,0,strpos($tableColumn2,'.'));
-          $column2 = substr($tableColumn2,strpos($tableColumn2,'.')+1);
+        $table1Args = preg_split("[\.]", $tableColumn1);
+        $table2Args = preg_split("[\.]", $tableColumn2);
 
-          if(!isset($this->foreignKeys[$table1])){
-              $this->foreignKeys[$table1] = [];
-          }
-          array_push($this->foreignKeys[$table1], [$column1=>[$table2=>$column2]]);
-
-          if(count($values)!==0){
-               $this->map[$table1][$column1] = ['table'=>$table2,'column'=>$column2, $values];
-          }
-     }
+        // TableName == position 0
+        // ColumnName == position 1
+        if(!isset($this->foreignKeys[$table1Args[0]])){
+            $this->foreignKeys[$table1Args[0]] = [];
+        }
+        array_push($this->foreignKeys[$table1Args[0]], [$table1Args[1]=>[$table2Args[0]=>$table2Args[1]]]);
+        if(count($values)!==0){
+             $this->map[$table1Args[0]][$table1Args[1]] = ['table'=>$table2Args[0],'column'=>$table2Args[1], $values];
+        }
+    }
 
     /**
      * Get the schema without metadata
