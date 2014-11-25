@@ -201,16 +201,4 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
             }
         }
     }
-
-    /**
-     * For dealing with errors, dynamos keep their previous property data value
-     */
-    public function testCanAccessPropertyLastValue(){
-        $this->dynamo->x = 20;
-
-        $x = $this->dynamo->oldData("x");
-
-        $this->assertThat($x, $this->identicalTo(1));
-        $this->assertThat($this->dynamo->x, $this->identicalTo(20));
-    }
 }
