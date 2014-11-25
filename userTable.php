@@ -92,9 +92,7 @@ class userTable {
            ], 'limit'=>1];
         if($user = $this->userConn->select($userExists)) {
             if($this->checkPassword($pass, $user->hash, $user->salt, $user->rounds)) {
-                unset ($user->hash);
-                unset ($user->salt);
-                unset ($user->rounds);
+                unset ($user->hash, $user->salt, $user->rounds);
                 $this->userConn->endRelationship();
                return $user;
             } else {
