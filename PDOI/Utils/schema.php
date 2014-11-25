@@ -7,7 +7,6 @@ use Exception, Iterator, JsonSerializable;
  * @link: https://github.com/Schenn/PDOI Repository
 */
 
-
 /**
  * Error Exception for schema
  *
@@ -37,13 +36,13 @@ interface schemaInterface extends Iterator, JsonSerializable {
  */
 class schema implements schemaInterface {
     /** @var array $map The schema dictionary of table, column and metadata */
-     private $map = [];
+    private $map = [];
     /** @var array $primaryKeys A dictionary of table=>primary keys */
-     private $primaryKeys = [];
+    private $primaryKeys = [];
     /** @var array $foreignKeys A dictionary of table=>[foreign key=>[table=>key]] */
-     private $foreignKeys = [];
+    private $foreignKeys = [];
     /** @var array $masterKey The dictionary which represents the base table of the schema. [table=>primary_key] */
-     private $masterKey = [];
+    private $masterKey = [];
 
     /**
      * Create a new Schema
@@ -52,20 +51,20 @@ class schema implements schemaInterface {
      *
      * @param array $maps [tableName=>[columnName, columnName, ...]]
      */
-     public function __construct($maps = []){
-          foreach($maps as $table=>$columns){
-               $this->map[$table]=[];
-               foreach($columns as $column){
-                    $this->map[$table][$column]=null;
-               }
-               $this->primaryKeys[$table] = [];
-               $this->foreignKeys[$table] = [];
-          }
-         // If only one table was provided, set that table as the master
-          if(count($maps)===1){
-              $this->masterKey = [array_keys($maps)[0]=>""];
-          }
-     }
+    public function __construct($maps = []){
+        foreach($maps as $table=>$columns){
+            $this->map[$table]=[];
+            foreach($columns as $column){
+                $this->map[$table][$column]=null;
+            }
+            $this->primaryKeys[$table] = [];
+            $this->foreignKeys[$table] = [];
+        }
+        // If only one table was provided, set that table as the master
+        if(count($maps)===1){
+            $this->masterKey = [array_keys($maps)[0]=>""];
+        }
+    }
 
     /**
      * Add a table to the schema
@@ -377,6 +376,7 @@ class schema implements schemaInterface {
                }
 
                // If Null values are not allowed, mark the field as required (can't update or insert if value isn't set)
+              // 'NO' is how mysql desc says whether or not null is allowed
                if($meta['Null'] === 'NO'){
                     $metaTranslate[$field]['required'] = true;
                }

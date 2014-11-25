@@ -118,26 +118,26 @@ class userTable {
         $salt = "";
         for($i=0; $i<17; $i++){
             $rnd = rand(0,11);
-            $chrs= ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
+            $chars= ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
             if($rnd <= 3){
-                $cdig = rand(0,9);
-                $c = $cdig;
+                $charDigit = rand(0,9);
+                $c = $charDigit;
             } elseif($rnd > 3 && $rnd <= 7){
-                $cdig = rand(0,25);
-                $c = $chrs[$cdig];
+                $charDigit = rand(0,25);
+                $c = $chars[$charDigit];
             } else {
-                $cdig = rand(0,25);
-                $c = ucfirst($chrs[$cdig]);
+                $charDigit = rand(0,25);
+                $c = ucfirst($chars[$charDigit]);
             }
             $salt .= $c;
         }
-        $newsalt = hash('sha256', $salt);
-        $hash = hash('sha256', $password.$newsalt);
+        $newSalt = hash('sha256', $salt);
+        $hash = hash('sha256', $password.$newSalt);
         $max = rand(10, 16785);
         for ($i=0; $i<$max; $i++){
-            $hash = hash('sha256', $hash . $newsalt);
+            $hash = hash('sha256', $hash . $newSalt);
         }
-        return(['salt'=>$newsalt,'rounds'=>$max,'hash'=>$hash]);
+        return(['salt'=>$newSalt,'rounds'=>$max,'hash'=>$hash]);
     }
 
     /**
@@ -151,11 +151,11 @@ class userTable {
      * @api
      */
     function checkPassword($pass, $hash, $salt, $rounds){
-        $hashcheck = hash('sha256', $pass.$salt);
+        $hashCheck = hash('sha256', $pass.$salt);
         for ($i=0; $i<$rounds; $i++){
-            $hashcheck = hash('sha256', $hashcheck.$salt);
+            $hashCheck = hash('sha256', $hashCheck.$salt);
         }
-        return($hashcheck === $hash);
+        return($hashCheck === $hash);
 
     }
 }
