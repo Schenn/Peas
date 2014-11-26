@@ -1,12 +1,10 @@
 <?php
-namespace PDOI\Utils;
-use Exception;
-
 /**
  * @author Steven Chennault Schenn@Mash.is
  * @link: https://github.com/Schenn/PDOI Repository
  */
-
+namespace PDOI\Utils;
+use Exception;
 
 /**
  * Class validationException
@@ -23,16 +21,24 @@ class validationException extends Exception {
         parent::__construct($message, $code, $previous);
     }
 }
+
+/**
+ * Class Validator
+ *
+ * Validator handles validating values against rules.
+ *
+ * @package PDOI\Utils
+ */
 Class Validator {
 
     private $meta = [];
+    private $custom = null;
 
     public function SetMetaData($prop, $rules){
         // Preserve any already existing meta data
         if(!isset($this->meta[$prop])){
             $this->meta[$prop] = [];
         }
-
 
         $isPrimary = false;
         $isAuto = false;
@@ -89,75 +95,113 @@ Class Validator {
             // If the value is numeric and is within the min and max values of the type
             throw new validationException("$name is fixed and cannot be changed to $value", 5);
         }
-        if($this->meta[$name]['type'] ==="numeric"){
-            // If Numeric String
-            if(is_string($value) && is_numeric($value)){
-                // If the string contains a decimal, cast to float, else cast to int
-                $value = (strpos($value, '.') > -1) ? (float)$value : (int) $value;
-            }else if(is_bool($value)) {
-                $value = (int) $value;
-            } else {
-                if(!is_numeric($value)) {
-                    throw new validationException("$value is not numeric, number expected", 0);
-                }
-            }
 
-            $max = $this->meta[$name]['max'];
-            $min = (isset($this->meta[$name]['min'])) ? $this->meta[$name]['min'] : $max * -1;
-            if (abs($value) <= $max && $value >= $min) {
-                return true;
-            } else {
-                throw new validationException("$value falls outside of $name available range (" . ($this->meta[$name]['max'] * -1) . " to " . $this->meta[$name]['max'] . ")", 1);
-            }
+        $validationMethod = "validate".ucfirst($this->meta[$name]['type']);
+        if(is_callable([$this,$validationMethod])) {
+            return $this->$validationMethod($name, $value);
+        } else {
+            // We can't validate this value
+            return true;
+
         }
-        // If the type is a string
-        elseif($this->meta[$name]['type'] === "string"){
-            // If the string has a max length
-            if(array_key_exists("length",$this->meta[$name])){
-                $value = (string)$value;
-                // If the string is less than the max length
-                if(strlen($value) <= $this->meta[$name]['length']){
-                    // Check against required characters
-                    if(isset($this->meta[$name]['required_chars'])) {
-                        foreach($this->meta[$name]['required_chars'] as $char){
-                            if(strpos($value, $char) == -1){
-                                throw new validationException("$value is missing required character $char", 6);
-                            }
+    }
+
+    /**
+     * @param $value
+     * @throws validationException
+     * @returns bool
+     *
+     * @internal
+     */
+    private function validateNumeric($name, &$value){
+        // If Numeric String
+        if(is_string($value) && is_numeric($value)){
+            // If the string contains a decimal, cast to float, else cast to int
+            $value = (strpos($value, '.') > -1) ? (float)$value : (int) $value;
+        }else if(is_bool($value)) {
+            $value = (int) $value;
+        } else if(!is_numeric($value)) {
+            throw new validationException("$value is not numeric, number expected", 0);
+        }
+
+        $max = $this->meta[$name]['max'];
+        $min = (isset($this->meta[$name]['min'])) ? $this->meta[$name]['min'] : $max * -1;
+        if (abs($value) <= $max && $value >= $min) {
+            return true;
+        } else {
+            throw new validationException("$value falls outside of $name available range (" . $min . " to " . $max . ")", 1);
+        }
+    }
+
+    /**
+     * @param $value
+     * @throws validationException
+     * @returns bool
+     *
+     * @internal
+     */
+    private function validateString($name, &$value)
+    {
+        // If the string has a max length
+        if(array_key_exists("length",$this->meta[$name])){
+            $value = (string)$value;
+            // If the string is less than the max length
+            if(strlen($value) <= $this->meta[$name]['length']){
+                // Check against required characters
+                if(isset($this->meta[$name]['required_chars'])) {
+                    foreach($this->meta[$name]['required_chars'] as $char){
+                        if(strpos($value, $char) == -1){
+                            throw new validationException("$value is missing required character $char", 6);
                         }
                     }
-                    return true;
-                }
-                else {
-                    throw new validationException("$value has too many characters for $name",2);
-                }
-            }
-            // No maximum length
-            else {
-                return true;
-            }
-        }
-        // If type is a boolean
-        elseif($this->meta[$name]['type'] === "boolean"){
-            if(is_bool($value)){
-                return true;
-            }
-            else {
-                throw new validationException("$name expects boolean value; not $value",3);
-            }
-        }
-        // If type is a Date
-        elseif($this->meta[$name]['type'] === "date"){
-            if(get_class($value) === "DateTime"){
-                if(isset($this->meta[$name]['format'])){
-                    $value->format($this->meta[$name]['format']);
                 }
                 return true;
             }
             else {
-                throw new validationException("$value not a date for $name",4);
+                throw new validationException("$value has too many characters for $name",2);
             }
         }
-        return true;
+        // No maximum length
+        else {
+            return true;
+        }
+    }
+
+    /**
+     * @param $value
+     * @throws validationException
+     * @returns bool
+     *
+     * @internal
+     */
+    private function validateBoolean($name, &$value)
+    {
+        if(is_bool($value)){
+            return true;
+        }
+        else {
+            throw new validationException("$name expects boolean value; not $value",3);
+        }
+    }
+
+    /**
+     * @param $value
+     * @throws validationException
+     * @returns bool
+     *
+     * @internal
+     */
+    private function validateDate($name, &$value)
+    {
+        if(is_a($value, "DateTime")){
+            if(isset($this->meta[$name]['format'])){
+                $value->format($this->meta[$name]['format']);
+            }
+            return true;
+        }
+        else {
+            throw new validationException("$name expects date, not $value",4);
+        }
     }
 
     /**
