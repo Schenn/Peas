@@ -21,9 +21,8 @@
   * Schema that has been created for EntityEmitter. The entities are given the capacity to save themselves when they are
   * created by a EntityEmitter.
   *
-  * @uses PDOI\Utils\schema
-  * @uses PDOI\Utils\Entity
-  * @uses PDOI\Utils\sqlSpinner
+  * @uses EntityGenerator\Utils\Schema
+  * @uses EntityGenerator\Utils\Entity
   *
   * @package EmitterDatabaseHandler
   * @todo Should we be holding on to args or can that be removed?
@@ -224,8 +223,8 @@
           $res = parent::SELECT($a, $entity);
           if($isEntity && $res !== null){
               if(is_array($res)){
-                  foreach($res as $dyn){
-                      $dyn->startValidation();
+                  foreach($res as $ent){
+                      $ent->startValidation();
                   }
               } else {
                   $res->startValidation();
