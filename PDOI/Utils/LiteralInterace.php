@@ -1,5 +1,5 @@
 <?php
-namespace PDOI\Utils;
+namespace EntityGenerator\Utils;
 use Iterator, JsonSerializable;
 /**
  * Created by PhpStorm.

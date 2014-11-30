@@ -1,5 +1,5 @@
 <?php
-     namespace PDOI\Utils;
+     namespace EntityGenerator\Utils;
      use Exception;
      /*
       * @author:  Steven Chennault schenn@mash.is

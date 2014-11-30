@@ -1,6 +1,6 @@
 <?php
 include_once("..\PDOI\Utils\cleanPDO.php");
-use PDOI\Utils\cleanPDO as cleanPDO;
+use EntityGenerator\Utils\cleanPDO as cleanPDO;
 
 /**
  * Class cleanPDOITest

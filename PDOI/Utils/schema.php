@@ -1,6 +1,6 @@
 <?php
-namespace PDOI\Utils;
-use Exception, PDOI\Utils\LiteralInterface as LiteralInterace;
+namespace EntityGenerator\Utils;
+use Exception, EntityGenerator\Utils\LiteralInterface as LiteralInterace;
 
 /**
  * @author:  Steven Chennault schenn@mash.is

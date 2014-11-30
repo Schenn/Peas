@@ -1,8 +1,8 @@
 <?php
- namespace PDOI;
+ namespace EntityGenerator;
  use Exception;
- use PDOI\Utils\SqlBuilder as sqlSpinner;
- use PDOI\Utils\cleanPDO as cleanPDO;
+ use EntityGenerator\Utils\SqlBuilder as sqlSpinner;
+ use EntityGenerator\Utils\cleanPDO as cleanPDO;
  use PDO;
  use PDOException;
  use PDOStatement;

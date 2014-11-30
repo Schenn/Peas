@@ -6,7 +6,7 @@
  * Time: 1:42 PM
  */
 require_once("../autoload.php");
-use PDOI\EmitterDatabaseHandler as PDOI;
+use EntityGenerator\EmitterDatabaseHandler as PDOI;
 
 class PDOITest extends PHPUnit_Framework_TestCase {
 

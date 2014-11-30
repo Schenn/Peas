@@ -1,8 +1,8 @@
 <?php
- namespace PDOI;
- use PDOI\EmitterDatabaseHandler as PDOI;
- use PDOI\Utils\Entity as Entity;
- use PDOI\Utils\Schema as schema;
+ namespace EntityGenerator;
+ use EntityGenerator\EmitterDatabaseHandler as PDOI;
+ use EntityGenerator\Utils\Entity as Entity;
+ use EntityGenerator\Utils\Schema as schema;
 
  /**
   * @author Steven Chennault schenn@mash.is

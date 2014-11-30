@@ -1,6 +1,6 @@
 <?php
 include_once("../PDOI/Utils/dynamo.php");
-use PDOI\Utils\entity as dynamo;
+use EntityGenerator\Utils\entity as dynamo;
 
 /**
  * Class dynamoTest
@@ -143,7 +143,7 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
 
     /**
      * Dynamo can be set to fail hard, when it does it throws a validationException on invalid data
-     * @expectedException PDOI\Utils\validationException
+     * @expectedException EntityGenerator\Utils\validationException
      */
     public function testDynamoThrowsValidationExceptionOnBadData(){
         // Dynamos can be set to fail hard by passing false as the third construction argument

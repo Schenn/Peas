@@ -1,6 +1,6 @@
 <?php
      require_once("EntityEmitter.php");
-     use PDOI\EntityEmitter;
+     use EntityGenerator\EntityEmitter;
 
      if(isset($_GET['action'])){
           print_r($_GET);

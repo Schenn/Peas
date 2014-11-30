@@ -1,9 +1,9 @@
 <?php
-namespace PDOI\Utils;
+namespace EntityGenerator\Utils;
 use BadMethodCallException, Iterator, JsonSerializable;
 use Closure;
-use PDOI\Utils\Validator as Validator;
-use PDOI\Utils\LiteralInterface as LiteralInterface;
+use EntityGenerator\Utils\Validator as Validator;
+use EntityGenerator\Utils\LiteralInterface as LiteralInterface;
 
 /**
 * @author Steven Chennault Schenn@Mash.is

@@ -1,7 +1,7 @@
 <?php
      require_once("EntityEmitter.php");
-     use PDOI\EntityEmitter as pdoITable;
-     use PDOI\EmitterDatabaseHandler as PDOI;
+     use EntityGenerator\EntityEmitter as pdoITable;
+     use EntityGenerator\EmitterDatabaseHandler as PDOI;
      $config = [
                'dbname'=>'pdoi_tester',
                'username'=>'pdoi_tester',

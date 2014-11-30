@@ -1,6 +1,6 @@
 <?php
-use PDOI\EmitterDatabaseHandler as PDOI;
-use PDOI\EntityEmitter as EntityEmitter;
+use EntityGenerator\EmitterDatabaseHandler as PDOI;
+use EntityGenerator\EntityEmitter as EntityEmitter;
 
 class userTable {
     protected $config;

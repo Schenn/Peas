@@ -1,5 +1,5 @@
 <?php
-namespace PDOI\Utils;
+namespace EntityGenerator\Utils;
 use PDO;
 /**
  * @author Steven Chennault schenn@gmail.com
