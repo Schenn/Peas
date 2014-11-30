@@ -1,36 +1,36 @@
 <?php
  namespace PDOI;
- use PDOI\PDOI as PDOI;
- use PDOI\Utils\dynamo as dynamo;
+ use PDOI\EmitterDatabaseHandler as PDOI;
+ use PDOI\Utils\Entity as Entity;
  use PDOI\Utils\schema as schema;
 
  /**
   * @author Steven Chennault schenn@mash.is
-  * @link: https://github.com/Schenn/PDOI Repository
+  * @link: https://github.com/Schenn/EmitterDatabaseHandler Repository
   */
 
  /**
-  * Class pdoITable
+  * Class EntityEmitter
   *
-  * pdoITable acts as a wrapper over a relationship of tables. The relationship could be of a single table or more.
+  * EntityEmitter acts as a wrapper over a relationship of tables. The relationship could be of a single table or more.
   * It acts as a facilitator for retrieving, updating or removing data from the wrapped tables. When you create and
-  * assign tables to the pdoITable, it loads the metadata about those tables into a Schema. If you request data from
-  * a pdoITable and don't provide an object, it will use a dynamo to hold onto the data.
+  * assign tables to the EntityEmitter, it loads the metadata about those tables into a Schema. If you request data from
+  * a EntityEmitter and don't provide an object, it will use an entity to hold onto the data.
   *
-  * pdoITable can create dynamo's upon request. The dynamos will have the same structure as the table relationship
-  * schema that has been created for pdoITable. The dynamos are given the capacity to save themselves when they are
-  * created by a pdoITable.
+  * EntityEmitter can create entity's upon request. The entities will have the same structure as the table relationship
+  * schema that has been created for EntityEmitter. The entities are given the capacity to save themselves when they are
+  * created by a EntityEmitter.
   *
   * @uses PDOI\Utils\schema
-  * @uses PDOI\Utils\dynamo
+  * @uses PDOI\Utils\Entity
   * @uses PDOI\Utils\sqlSpinner
   *
-  * @package PDOI
+  * @package EmitterDatabaseHandler
   * @todo Should we be holding on to args or can that be removed?
   */
 
- class pdoITable extends PDOI {
-     /** @var string|array $tableName name or names of the table(s) this pdoITable is currently working with */
+ class EntityEmitter extends EmitterDatabaseHandler {
+     /** @var string|array $tableName name or names of the table(s) this EntityEmitter is currently working with */
       protected $tableName;
      /** @var array $columns The columns for the tables. [columnName =>value, columnName=>value, ..] */
       protected $columns=[];
@@ -42,10 +42,10 @@
       protected $args = [];
 
      /**
-      * Create a new pdoITable
+      * Create a new EntityEmitter
       *
       * @param array $config Dictionary of database configuration data
-      * @param string|array $tables The tableName(s) to assign to the pdoITable
+      * @param string|array $tables The tableName(s) to assign to the EntityEmitter
       * @param bool $debug Whether or not to log debug information
       *
       * @throws \Exception
@@ -58,11 +58,11 @@
 
 
      /**
-      * Sets the table(s) for the pdoITable.
+      * Sets the table(s) for the EntityEmitter.
       *
       * Runs setColumns after the tables are set. Sets the table argument.
       *
-      * @see pdoITable::setColumns
+      * @see EntityEmitter::setColumns
       * @param string|array $tables The table name(s) to add
       */
       function setTable($tables){
@@ -186,7 +186,7 @@
      /**
       * Retrieve data from the wrapped table relationships
       *
-      * Creates a new dynamo and passes it and the relationship information as a dictionary to PDOI::Select
+      * Creates a new entity and passes it and the relationship information as a dictionary to EmitterDatabaseHandler::Select
       *
       * @uses PDOI::SELECT
       *
@@ -194,19 +194,19 @@
       * @param null|object $entity The object to assign the data from the query to. Passed by reference so the
       *     object will be mutated without having to do something with the return value
       *
-      * @return array|dynamo|bool|null
+      * @return array|entity|bool|null
       *
       * @api
       */
       function select($options=[], $entity = null){
-          //if no object supplied to take values from select query, use dynamo
-          $isDynamo = false;
+          //if no object supplied to take values from select query, use entity
+          $isEntity = false;
           if($entity == null){
-              $isDynamo = true;
-              $entity = $this->asDynamo();
+              $isEntity = true;
+              $entity = $this->EmitEntity();
               $entity->stopValidation();
           }
-           $entity = ($entity !== null) ? $entity : $this->asDynamo();
+           $entity = ($entity !== null) ? $entity : $this->EmitEntity();
            if(array_key_exists('table', $options) && array_key_exists('columns', $options)) {
                $a = $options;
            } else {
@@ -221,7 +221,7 @@
                 }
            }
           $res = parent::SELECT($a, $entity);
-          if($isDynamo && $res !== null){
+          if($isEntity && $res !== null){
               if(is_array($res)){
                   foreach($res as $dyn){
                       $dyn->startValidation();
@@ -231,21 +231,21 @@
               }
 
           }
-           return($res); //return PDOI select result
+           return($res); //return EmitterDatabaseHandler select result
       }
 
      /**
       * Get all records from the wrapped table relationships
       *
-      * Constructs the arguments to select all records and uses a dynamo to hold the data
+      * Constructs the arguments to select all records and uses a entity to hold the data
       *
-      * @uses PDOI\Utils\dynamo
+      * @uses PDOI\Utils\Entity
       * @return array|bool|null
       *
       * @api
       */
       function selectAll(){
-           $entity = $this->asDynamo();
+           $entity = $this->EmitEntity();
            $arguments = $this->generateArguments();
            return(parent::SELECT($arguments, $entity));
       }
@@ -311,7 +311,7 @@
 
            }
 
-           return(parent::INSERT($arguments)); //returns result of PDOI->insert
+           return(parent::INSERT($arguments)); //returns result of EmitterDatabaseHandler->insert
       }
 
      /**
@@ -344,7 +344,7 @@
       *
       * Generates the relationship arguments for the sqlSpinner to use when it generates the UPDATE query
       *
-      * @param array $options Dictionary of options. See PDOI::UPDATE for more information on available options
+      * @param array $options Dictionary of options. See EmitterDatabaseHandler::UPDATE for more information on available options
       * @return bool success
       *
       * @api
@@ -379,7 +379,7 @@
                 $arguments[$option]=$setting;
            }
 
-           return(parent::UPDATE($arguments)); //return PDOI->update result
+           return(parent::UPDATE($arguments)); //return EmitterDatabaseHandler->update result
       }
 
      /**
@@ -387,7 +387,7 @@
       *
       * Uses the wrapped relationships to generate arguments for sqlSpinner to delete data.
       *
-      * @param array $options See PDOI::DELETE for more information on what options are available
+      * @param array $options See EmitterDatabaseHandler::DELETE for more information on what options are available
       * @return bool success
       *
       * @api
@@ -435,19 +435,19 @@
       }
 
      /**
-      * echo the current dynamo
+      * print an Entity
       */
       function display(){
-           echo($this->asDynamo());
+           echo($this->EmitEntity());
       }
 
      /**
       * Use a given schema
       *
-      * When a dynamo needs to interact with its pdoITable, the pdoITable's schema may have changed.
+      * When a entity needs to interact with its EntityEmitter, the EntityEmitter's schema may have changed.
       *
       * @param schema $schema The schema to use
-      * @todo Error Catching, also is this necessary since dynamo's hold onto their origin schema now?
+      * @todo Error Catching, also is this necessary since Entity's hold onto their origin schema now?
       *
       * @internal
       */
@@ -458,44 +458,44 @@
      }
 
      /**
-      * Create a Dynamo based off the current wrapped table relationship schema
+      * Create a Entity based off the current wrapped table relationship schema
       *
-      * Creates a dynamo and gives the dynamo access to the pdoITable's insert, update, delete and select methods
+      * Creates a Entity and gives the Entity access to the EntityEmitter's insert, update, delete and select methods
       *
-      * @uses PDOI\Utils\dynamo
+      * @uses PDOI\Utils\Entity
       * @uses PDOI\Utils\schema
       *
-      * @return dynamo
+      * @return Entity
       *
       * @api
       */
-      function asDynamo($failSoft = true){
+      function EmitEntity($failSoft = true){
 
-           //dynamo insert function, uses this pdoITable
-           $dynamo = new dynamo($this->columns, $this->columnMeta, $failSoft);
+           //Entity insert function, uses this EntityEmitter
+           $entity = new Entity($this->columns, $this->columnMeta, $failSoft);
            $this->reset();
           // Give the object a reference to the table schema.
           // The table schema may have relationships added or removed by the time we go into the database
-            $dynamo->TableSchema = $this->getSchema();
-            $pdoITable = $this;
+            $entity->TableSchema = $this->getSchema();
+            $entityEmitter = $this;
 
-          /** @method PDOI\Utils\dynamo::insert
-           * Gives the dynamo access to inserting itself into the database
+          /** @method EmitterDatabaseHandler\Utils\Entity::insert
+           * Gives the Entity access to inserting itself into the database
            */
-            $dynamo->insert = function() use(&$pdoITable){
-                $pdoITable->insertDynamo($this);
+            $entity->insert = function() use(&$entityEmitter){
+                $entityEmitter->insertEntity($this);
             };
 
-          /** @method PDOI\Utils\dynamo::load
-           * Gives the dynamo access to filling itself with data from the database
+          /** @method EmitterDatabaseHandler\Utils\Entity::load
+           * Gives the Entity access to filling itself with data from the database
            */
-            $dynamo->load = function($pKey = null) use(&$pdoITable){
-                $pdoITable->loadDynamo($this, $pKey);
+            $entity->load = function($pKey = null) use(&$entityEmitter){
+                $entityEmitter->loadEntity($this, $pKey);
             };
-          /** @method PDOI\Utils\dynamo::update
-           * Gives the dynamo access to updating it's data in the database
+          /** @method EmitterDatabaseHandler\Utils\Entity::update
+           * Gives the Entity access to updating it's data in the database
            */
-            $dynamo->update= function() use(&$pdoITable){
+            $entity->update= function() use(&$entityEmitter){
                 $args = [];
                 $args['set'] = [];
                 $args['where'] = [];
@@ -503,7 +503,7 @@
                 //use primary keys to create where
                 //compare current values against defaults before adding to 'set'
 
-                $schema = $pdoITable->getSchema();
+                $schema = $entityEmitter->getSchema();
                 $primaryKeys = $schema->getPrimaryKeys();
                 $tCount = count($schema->getTables());
                 foreach($schema as $tableName=>$column){
@@ -533,13 +533,13 @@
 
                 $args['limit']=1;
 
-                return $pdoITable->update($args);
+                return $entityEmitter->update($args);
             };
 
-          /** @var dynamo->load Gives the dynamo access to remove itself from the database */
-            $dynamo->delete = function() use(&$pdoITable){
+          /** @var entity->load Gives the Entity access to remove itself from the database */
+            $entity->delete = function() use(&$entityEmitter){
                 $args = [];
-                $schema = $pdoITable->getSchema();
+                $schema = $entityEmitter->getSchema();
                 $foreignKeys = $schema->getForeignKeys();
                 if(is_array($foreignKeys)){
                     foreach($foreignKeys as $tableName=>$relationships){
@@ -548,7 +548,7 @@
                                     foreach($fk as $foreignTable=>$foreignColumn){
                                         $args = ['table'=>$foreignTable,
                                             'where'=>[$foreignColumn=>$this->$foreignColumn]];
-                                        $pdoITable->delete($args);
+                                        $entityEmitter->delete($args);
                                     }
                                 }
                             }
@@ -556,7 +556,7 @@
                     $mk = $schema->getMasterKey();
                     foreach($mk as $table=>$column){
                         $args = ['where'=>[$column=>$this->$column]];
-                        return($pdoITable->delete($args));
+                        return($entityEmitter->delete($args));
                     }
                 } else {
                     foreach($this as $key=>$value){
@@ -564,29 +564,29 @@
                               $args['where'] = [$key=>$value];
                          }
                     }
-                    return $pdoITable->delete($args);
+                    return $entityEmitter->delete($args);
                 }
             };
 
-           return($dynamo); //returns the dynamo with access to the parent table
+           return($entity); //returns the Entity with access to the parent table
       }
 
      /**
-      * Insert a dynamo into the database
+      * Insert a Entity into the database
       *
-      * Using the schema from the dynamo, insert it's data into the database
-      * @param dynamo $dynamo
+      * Using the schema from the entity, insert it's data into the database
+      * @param entity $entity
       *
       * @api
       */
-     function insertDynamo(&$dynamo)
+     function insertEntity(&$entity)
      {
          $args = [];
          $args['values'] = [];
 
-         // The pdoITable schema may have changed after the dynamo was spawned. Use the schema which was assigned to
-         // the dynamo at its creation
-         $schema = $dynamo->TableSchema;
+         // The EntityEmitter schema may have changed after the entity was spawned. Use the schema which was assigned to
+         // the entity at its creation
+         $schema = $entity->TableSchema;
 
          $foreignKeys = array_reverse($schema->getForeignKeys());
 
@@ -601,8 +601,8 @@
                              foreach ($foreignCols as $column) {
                                  $columnMeta = $schema->getMeta($foreignTable, $column);
                                  if (!array_key_exists('primaryKey', $columnMeta) && !array_key_exists('auto', $columnMeta)) {
-                                     if (isset($dynamo->$column)) {
-                                         $values[$column] = $dynamo->$column;
+                                     if (isset($entity->$column)) {
+                                         $values[$column] = $entity->$column;
                                      }
                                  } else {
                                      if (($key = array_search($column, $foreignCols)) !== false) {
@@ -615,9 +615,9 @@
                              // Insert foreign table data
                              $id = $this->insert(['table' => $foreignTable, 'columns' => $foreignCols, 'values' => $values]);
 
-                             $dynamo->stopValidation();
-                             $dynamo->$foreignColumn = $id;
-                             $dynamo->startValidation();
+                             $entity->stopValidation();
+                             $entity->$foreignColumn = $id;
+                             $entity->startValidation();
                          }
                      }
                  }
@@ -637,31 +637,31 @@
                  $values = [];
                  //get master table column values from $this
                  foreach ($cols as $col) {
-                     $values[$col] = $dynamo->$col;
+                     $values[$col] = $entity->$col;
                  }
                  $id = $this->insert(['table' => $masterTable, 'columns' => $cols, 'values' => $values]);
 
                  //get the user_id and return it
-                 $dynamo->stopValidation();
-                 $dynamo->$primaryKey = $id;
-                 $dynamo->startValidation();
+                 $entity->stopValidation();
+                 $entity->$primaryKey = $id;
+                 $entity->startValidation();
              }
-             if ($this->debug) echo $dynamo;
+             if ($this->debug) echo $entity;
 
          }
      }
 
      /**
-      * Using the schema of a given dynamo, fill it with it's related data
+      * Using the schema of a given entity, fill it with it's related data
       *
-      * @param dynamo $dynamo The dynamo to fill with data
+      * @param Entity entity The entity to fill with data
       * @param mixed $pKey The primary key to load from
       * @api
       */
-     function loadDynamo(&$dynamo, $pKey = null){
-         // set the pdoITable schema to the dynamo schema
+     function loadEntity(&$entity, $pKey = null){
+         // set the EntityEmitter schema to the Entity schema
          $oldSchema = $this->getSchema();
-         $this->setSchema($dynamo->TableSchema);
+         $this->setSchema($entity->TableSchema);
 
          // run a select off the table using the provided pKey
 
@@ -681,17 +681,17 @@
              }
          }
 
-         // assign the return dynamo values to this
-         $dynamo->stopValidation();
+         // assign the return entity values to this
+         $entity->stopValidation();
          // pdo fetch_into should be assigning the values to 'this'. We shouldn't need to copy the values out of the return into this
          $newMe = $this->select($args,$this);
          foreach($newMe as $key=>$val){
              $this->$key = $val;
          }
 
-         $dynamo->startValidation();
+         $entity->startValidation();
 
-         // Return pdoITable to its original schema
+         // Return EntityEmitter to its original schema
          $this->setSchema($oldSchema);
      }
 
@@ -719,7 +719,7 @@
       *     it will remove that data from the object.
       *
       * @param array $tables List of table names
-      * @param dynamo|null $entity A class which has been mapped to the data that the relationship was based on.
+      * @param entity|null $entity A class which has been mapped to the data that the relationship was based on.
       * @api
       */
       function endRelationship($tables=[], &$entity = null){

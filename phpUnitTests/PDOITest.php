@@ -6,7 +6,7 @@
  * Time: 1:42 PM
  */
 require_once("../autoload.php");
-use PDOI\PDOI as PDOI;
+use PDOI\EmitterDatabaseHandler as PDOI;
 
 class PDOITest extends PHPUnit_Framework_TestCase {
 
@@ -25,7 +25,7 @@ class PDOITest extends PHPUnit_Framework_TestCase {
     protected static $pdoi;
 
     public static function setUpBeforeClass(){
-        self::$pdoi = new PDOI(self::$config);
+        self::$pdoi = new EmitterDatabaseHandler(self::$config);
     }
 
     public function testTableExists(){

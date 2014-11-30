@@ -3,7 +3,7 @@
      use Exception;
      /*
       * @author:  Steven Chennault schenn@mash.is
-      * @link: https://github.com/Schenn/PDOI Repository
+      * @link: https://github.com/Schenn/EmitterDatabaseHandler Repository
       */
 
      /*

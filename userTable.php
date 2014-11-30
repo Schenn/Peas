@@ -1,12 +1,12 @@
 <?php
-use PDOI\PDOI as PDOI;
-use PDOI\pdoITable as pdoITable;
+use PDOI\EmitterDatabaseHandler as PDOI;
+use PDOI\EntityEmitter as EntityEmitter;
 
 class userTable {
     protected $config;
     protected $debug;
     protected $conn;
-    /** @var  pdoItable $userConn The connection to the user database table */
+    /** @var  EntityEmitter $userConn The connection to the user database table */
     protected $userConn;
     
     public function __construct($config, $debug){
@@ -15,10 +15,10 @@ class userTable {
     }
     
     // Before running methods off a table, those tables have to exist
-    // Use PDOI to create tables. Use pdoITable to reference tables.
+    // Use EmitterDatabaseHandler to create tables. Use EntityEmitter to reference tables.
     public function init(){
 
-       $this->conn = new PDOI($this->config, $this->debug);
+       $this->conn = new EmitterDatabaseHandler($this->config, $this->debug);
         if(!$this->conn->tableExists("users")) {
 
             $this->conn->create('users', ['user_id' => [],
@@ -34,7 +34,7 @@ class userTable {
             $this->conn->create('rounds', ['round_id' => [],
                 'rounds' => ['type' => 'int']]);
         }
-        $this->userConn = new pdoITable($this->config, "users", $this->debug);
+        $this->userConn = new EntityEmitter($this->config, "users", $this->debug);
     }
     
     public function createUser($user, $pass){
@@ -48,7 +48,7 @@ class userTable {
                'hashwords.salt_id'=>'salts.salt_id',
                'salts.round_id'=>'rounds.round_id']);
 
-           $newUser = $this->userConn->asDynamo();
+           $newUser = $this->userConn->EmitEntity();
            $hash = $this->saltAndPepper($pass);
 
            $newUser->username = $user;

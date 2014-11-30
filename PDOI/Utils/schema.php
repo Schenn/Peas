@@ -4,7 +4,7 @@ use Exception, Iterator, JsonSerializable;
 
 /**
  * @author:  Steven Chennault schenn@mash.is
- * @link: https://github.com/Schenn/PDOI Repository
+ * @link: https://github.com/Schenn/EmitterDatabaseHandler Repository
 */
 
 /**
@@ -20,7 +20,7 @@ class schemaException extends Exception {
 
 /**
  * Interface schemaInterface Combines Iterator and JsonSerializable for the Schema class
- * @package PDOI\Utils
+ * @package EmitterDatabaseHandler\Utils
  */
 interface schemaInterface extends Iterator, JsonSerializable {
 
@@ -32,7 +32,7 @@ interface schemaInterface extends Iterator, JsonSerializable {
  * Schema maintains table relationship and column information in a manner which allows other classes to iterate over that information
  * In addition, Schema maintains the meta data for the table columns so that values can be validated before attempting to store them
  *
- * @package PDOI\Utils
+ * @package EmitterDatabaseHandler\Utils
  */
 class schema implements schemaInterface {
     /** @var array $map The schema dictionary of table, column and metadata */

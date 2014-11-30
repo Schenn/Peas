@@ -7,32 +7,32 @@ use PDOI\Utils\Validator;
 
 /**
 * @author Steven Chennault Schenn@Mash.is
-* @link: https://github.com/Schenn/PDOI Repository
+* @link: https://github.com/Schenn/EmitterDatabaseHandler Repository
 */
 
 /**
-* Interface dynamoInterface
+* Interface EntityInterface
 *
 * Condense Iterator and JsonSerializable interfaces for dynamo to use
-* @package PDOI\Utils
+* @package EmitterDatabaseHandler\Utils
 */
-interface dynamoInterface extends Iterator, JsonSerializable {
+interface EntityInterface extends Iterator, JsonSerializable {
 
 }
 
 /**
-* Class dynamo
+* Class Entity
 *
 * Dynamic anonymous object. Can be assigned anonymous functions which have be given access to the dynamo as '$this'.
 * Uses the metadata provided by a schema at it's construction to validate assigned values.
 *
 * @see PDOI\Utils\schema
-* @see PDOI\pdoITable::asDynamo Where Dynamos are made
+* @see EmitterDatabaseHandler\pdoITable::EmitEntity Where Dynamos are made
 *
-* @package PDOI\Utils
+* @package EmitterDatabaseHandler\Utils
 *@todo Better handling of array properties for sets
 */
-class dynamo implements dynamoInterface{
+class Entity implements EntityInterface{
 
     /** @var array $properties The current property values */
     private $properties = [];
@@ -53,7 +53,7 @@ class dynamo implements dynamoInterface{
      * The parameters are optional, a dynamo can be built from nothing up
      *
      * @param array $values [columnName=>value, ..]
-     * @param array $meta column meta data from the pdoITable
+     * @param array $meta column meta data from the EntityEmitter
      *
      * @see PDOI\pdoITable
      */

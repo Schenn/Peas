@@ -9,12 +9,12 @@
 
  /**
   * @author Steven Chennault schenn@mash.is
-  * @link: https://github.com/Schenn/PDOI Repository
+  * @link: https://github.com/Schenn/EmitterDatabaseHandler Repository
   */
 
 
  /**
-  * Class PDOI - PDO - Improved
+  * Class EmitterDatabaseHandler - PDO - Improved
   *
   * Provides a safe pdo environment with automatic rollbacks on errors, reconnects on timeouts, and provides
   * convenience methods for the most frequently used types of queries.
@@ -23,13 +23,13 @@
   * will be built for you with placeholder names and run against your provided arguments without you having to do anything
   * to them. .
   *
-  * PDOI is only known to be compatible with MySql.
+  * EmitterDatabaseHandler is only known to be compatible with MySql.
   *
   * @uses PDOI\Utils\sqlSpinner
   *
-  * @package PDOI
+  * @package EmitterDatabaseHandler
   */
- class PDOI
+ class EmitterDatabaseHandler
  {
      /** @var  cleanPDO $pdo The pdo we will be interacting with */
       protected $pdo;
@@ -39,7 +39,7 @@
       protected $debug;
 
      /**
-      * Create a new PDOI
+      * Create a new EmitterDatabaseHandler
       *
       * Using the provided configuration data, create a new pdo and ensure the connection works.
       * The config is stored in case the server goes away and the pdo needs to be recreated.

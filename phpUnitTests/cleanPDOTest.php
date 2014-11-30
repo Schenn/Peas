@@ -5,7 +5,7 @@ use PDOI\Utils\cleanPDO as cleanPDO;
 /**
  * Class cleanPDOITest
  *
- * Unit Tests for PDOI\Utils\cleanPDO, the 'safe' pdo
+ * Unit Tests for EmitterDatabaseHandler\Utils\cleanPDO, the 'safe' pdo
  */
 class cleanPDOTest extends PHPUnit_Framework_TestCase {
     // Disable the persistent nature of cleanPdo due to the unique nature of the test environment.
@@ -22,7 +22,7 @@ class cleanPDOTest extends PHPUnit_Framework_TestCase {
      */
     public function testCreation(){
         $cleanPDO = new cleanPDO($this->goodConfig);
-        $this->assertInstanceOf("PDOI\Utils\cleanPDO", $cleanPDO);
+        $this->assertInstanceOf("EmitterDatabaseHandler\Utils\cleanPDO", $cleanPDO);
     }
 
     /**

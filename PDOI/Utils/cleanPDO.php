@@ -3,7 +3,7 @@ namespace PDOI\Utils;
 use PDO;
 /**
  * @author Steven Chennault schenn@gmail.com
- * @link: https://github.com/Schenn/PDOI Repository
+ * @link: https://github.com/Schenn/EmitterDatabaseHandler Repository
  */
 
 /**
@@ -11,7 +11,7 @@ use PDO;
  *
  * Constructs a PDO ready to handle errors using a dictionary of configuration options.
  *
- * @package PDOI
+ * @package EmitterDatabaseHandler
  * @internal
  */
 

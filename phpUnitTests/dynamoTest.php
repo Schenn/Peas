@@ -1,16 +1,16 @@
 <?php
 include_once("../PDOI/Utils/dynamo.php");
-use PDOI\Utils\dynamo as dynamo;
+use PDOI\Utils\entity as dynamo;
 
 /**
  * Class dynamoTest
  *
- * Unit Tests for PDOI\Utils\dynamo, An anonymous object with type validation and the capacity to take
+ * Unit Tests for EmitterDatabaseHandler\Utils\dynamo, An anonymous object with type validation and the capacity to take
  * delta functions.
  */
 class dynamoTest extends PHPUnit_Framework_TestCase {
 
-    /** @var  dynamo $dynamo The Dynamo object */
+    /** @var  entity $dynamo The Dynamo object */
     private $dynamo;
     // Metadata follows mysql metadata rules
     private $meta = [
@@ -24,7 +24,7 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
      */
     function setUp()
     {
-        $this->dynamo = new dynamo();
+        $this->dynamo = new entity();
         $this->dynamo->x = 1;
         $this->dynamo->y = "string";
         $this->dynamo->p = 10;
@@ -35,7 +35,7 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
      */
     public function testDynamoCanSetValueOfAnyType(){
 
-        $this->dynamo = new dynamo();
+        $this->dynamo = new entity();
         // The properties don't even exist yet
         // isset on dynamo returns true if the property exists, regardless of value
         $this->assertFalse(isset($this->dynamo->x));
@@ -89,7 +89,7 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
         $this->dynamo->z = 2;
         $test = $this;
         $this->dynamo->add = function() use (&$test) {
-            $test->assertInstanceOf("PDOI\Utils\dynamo", $this);
+            $test->assertInstanceOf("EmitterDatabaseHandler\Utils\dynamo", $this);
             $sum = $this->x + $this->z;
             return $sum;
         };
@@ -147,7 +147,7 @@ class dynamoTest extends PHPUnit_Framework_TestCase {
      */
     public function testDynamoThrowsValidationExceptionOnBadData(){
         // Dynamos can be set to fail hard by passing false as the third construction argument
-        $this->dynamo=new dynamo([["x"=>1],["y"=>"beep"]],$this->meta, false);
+        $this->dynamo=new entity([["x"=>1],["y"=>"beep"]],$this->meta, false);
         $this->dynamo->x = "frank";
         $this->assertThat($this->dynamo->x, $this->identicalTo(1));
     }

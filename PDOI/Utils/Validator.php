@@ -1,7 +1,7 @@
 <?php
 /**
  * @author Steven Chennault Schenn@Mash.is
- * @link: https://github.com/Schenn/PDOI Repository
+ * @link: https://github.com/Schenn/EmitterDatabaseHandler Repository
  */
 namespace PDOI\Utils;
 use Exception;
@@ -11,7 +11,7 @@ use Exception;
  *
  * A provided value failed to pass validation
  *
- * @package PDOI\Utils
+ * @package EmitterDatabaseHandler\Utils
  * @Category Exceptions
  * @todo Add some error messages like in sqlSpinner
  */
@@ -27,7 +27,7 @@ class validationException extends Exception {
  *
  * Validator handles validating values against rules.
  *
- * @package PDOI\Utils
+ * @package EmitterDatabaseHandler\Utils
  */
 Class Validator {
 

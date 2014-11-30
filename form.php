@@ -1,6 +1,6 @@
 <?php
-     require_once("pdoITable.php");
-     use PDOI\pdoITable;
+     require_once("EntityEmitter.php");
+     use PDOI\EntityEmitter;
 
      if(isset($_GET['action'])){
           print_r($_GET);
@@ -107,12 +107,12 @@
      }
 
 
-     $persons = new pdoITable($config, "persons");
-     $ships = new pdoITable($config, "ships");
+     $persons = new EntityEmitter($config, "persons");
+     $ships = new EntityEmitter($config, "ships");
 
 
-     $person = $persons->asDynamo();
-     $ship = $ships->asDynamo();
+     $person = $persons->EmitEntity();
+     $ship = $ships->EmitEntity();
 
      $genInsertForm = function(){
           $html = "";

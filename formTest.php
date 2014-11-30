@@ -1,7 +1,7 @@
 <?php
-     require_once("pdoITable.php");
-     use PDOI\pdoITable as pdoITable;
-     use PDOI\PDOI as PDOI;
+     require_once("EntityEmitter.php");
+     use PDOI\EntityEmitter as pdoITable;
+     use PDOI\EmitterDatabaseHandler as PDOI;
      $config = [
                'dbname'=>'pdoi_tester',
                'username'=>'pdoi_tester',
@@ -9,9 +9,9 @@
                'driver_options'=>[PDO::ATTR_PERSISTENT => true]
           ];
 
-     $persons = new pdoITable($config, 'persons', true);
-     $ships = new pdoITable($config, 'ships', true);
-     $manifest = new pdoITable($config, 'manifest', true);
+     $persons = new EntityEmitter($config, 'persons', true);
+     $ships = new EntityEmitter($config, 'ships', true);
+     $manifest = new EntityEmitter($config, 'manifest', true);
 
      function insert($entity){
           foreach($entity as $column=>$value){
@@ -154,7 +154,7 @@
           if($result){
                if(is_array($result)){
                     foreach($result as $row){
-                         //since we are using the pdoITable object, $result is a row of dynamic objects.  We can add functions to those objects here.
+                         //since we are using the EntityEmitter object, $result is a row of dynamic objects.  We can add functions to those objects here.
                          $row->show = $appendDisplay;
                          $row->show();
                     }
@@ -197,15 +197,15 @@
      
      if(isset($_POST['action'])){
           if($_POST['action']==="insert"){
-               $person = $persons->asDynamo();
+               $person = $persons->EmitEntity();
                insert($person);
           }
           elseif($_POST['action']==="insertShip"){
-               $ship = $ships->asDynamo();
+               $ship = $ships->EmitEntity();
                insert($ship);
           }
           elseif($_POST['action']==="manifestAdd"){
-               $crew = $manifest->asDynamo();
+               $crew = $manifest->EmitEntity();
                insert($crew);
           }
           else if($_POST['action'] === 'update'){
@@ -230,7 +230,7 @@
                    $crew = [$crew];
                }
                $years = (int)$_POST['mission_years'];
-               $crewTemplate = $persons->asDynamo();
+               $crewTemplate = $persons->EmitEntity();
 
                foreach($crew as $index=>$crewman){
                     foreach($crewTemplate as $key=>$val){
@@ -243,7 +243,7 @@
                $opts = ['where'=>["ship_id"=>$crew[0]->ship_id]];
                $ship = $ships->select($opts);
 
-               $sTemp = $ships->asDynamo();
+               $sTemp = $ships->EmitEntity();
                foreach($sTemp as $key=>$val){
                     $sTemp->$key = $ship->$key;
                }

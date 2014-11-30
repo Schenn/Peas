@@ -1,15 +1,15 @@
 *****************************************
 Author: Steven Chennault
-Project: PDOI
-Included Files: PDOI.php, pdoITable.php, Utils/dynamo.php, Utils/sqlSpinner.php
-NameSpace Classes: PDOI\PDOI, PDOI\pdoITable, PDOI\Utils\dynamo, PDOI\Utils\sqlSpinner
+Project: EmitterDatabaseHandler
+Included Files: EmitterDatabaseHandler.php, EntityEmitter.php, Utils/dynamo.php, Utils/sqlSpinner.php
+NameSpace Classes: EmitterDatabaseHandler\EmitterDatabaseHandler, EmitterDatabaseHandler\EntityEmitter, EmitterDatabaseHandler\Utils\dynamo, EmitterDatabaseHandler\Utils\sqlSpinner
 
 *****************************************
 
 	class sqlSpinner
 
 		This class is a chaining class which constructs a sql statement through a set of function calls.  It is designed to be used by the pdoI
-	class but can be used by anyone.  The sql query it generates is prepared to work with php's PDO system.  If you use this outside of the PDOI object
+	class but can be used by anyone.  The sql query it generates is prepared to work with php's PDO system.  If you use this outside of the EmitterDatabaseHandler object
 	make sure to check your bindings compatable via the method explained below.
 
 		protected attributes:
@@ -96,11 +96,11 @@ NameSpace Classes: PDOI\PDOI, PDOI\pdoITable, PDOI\Utils\dynamo, PDOI\Utils\sqlS
 			rollback
 				- rolls back the current transaction and clears the transaction flag
 
-	class PDOI
+	class EmitterDatabaseHandler
 
 		This is the class to use to simplify your interactions with the pdo.  It handles failures safely and greatly reduces the amount of code that
 	YOU need to work with the pdo.  Takes 2 arguments, an associative array containing the config information for the cleanPDO and a boolean to set the
-	debug flag.  ($pdoI = new PDOI($configArray, false))
+	debug flag.  ($pdoI = new EmitterDatabaseHandler($configArray, false))
 
 		protected attributes:
 			pdo
