@@ -13,7 +13,7 @@ use Exception;
  *
  * @package EmitterDatabaseHandler\Utils
  * @Category Exceptions
- * @todo Add some error messages like in sqlSpinner
+ * @todo Add some error messages like in SqlBuilder
  */
 class validationException extends Exception {
 

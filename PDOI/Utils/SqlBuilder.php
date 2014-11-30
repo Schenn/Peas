@@ -7,14 +7,14 @@
       */
 
      /*
-      * Error Exception for sqlSpinner
+      * Error Exception for SqlBuilder
       *
-      * When sql is malformed or missing data, an sqlSpunError is thrown
+      * When sql is malformed or missing data, an SqlBuildError is thrown
       *
       * @category Exceptions
       */
 
-     class sqlSpunError extends Exception {
+     class SqlBuildError extends Exception {
 
           protected $errorList = [
                "Invalid Column data for Insert Spinning.",
@@ -23,21 +23,21 @@
           ];
 
           public function __construct($message,$code, Exception $previous = null){
-               $message .= " sqlSpinner ERROR: ".$code.": ".$this->errorList[$code];
+               $message .= " SqlBuilder ERROR: ".$code.": ".$this->errorList[$code];
                parent::__construct($message, $code, $previous);
           }
      }
 
      /*
-      * sqlSpinner generates sql from an argument dictionary
+      * SqlBuilder generates sql from an argument dictionary
       *
       * It's methods can be chained together until getSQL is called.
       *
-      * @see sqlSpinner::getSQL
+      * @see SqlBuilder::getSQL
       * @todo Improve error handling
       * @todo Remove unused variables, clean up and format
       */
-     class sqlSpinner {
+     class SqlBuilder {
          /** @var string some methods need to know what type of query is being constructed to guide their flow
           *  @see sqlSpinner::WHERE
           */
@@ -89,7 +89,7 @@
            * @param string aggMethod "" | (sum | avg | count | min | max)
            * @param array aggValues a list of column names
            *
-           * @see sqlSpinner::SELECT
+           * @see SqlBuilder::SELECT
            *
            * @internal
            */
@@ -183,10 +183,10 @@
            *        'buffer'=>     true (SQL_BUFFER_RESULT)
            *        'cache'=>      true | false (SQL_CACHE | SQL_NO_CACHE)
            *
-           * @throws sqlSpunError if no table information is given
-           * @return sqlSpinner this
+           * @throws SqlBuildError if no table information is given
+           * @return SqlBuilder this
            *
-           * @todo Throw sqlSpunError if the provided arguments have invalid values or are being used in invalid ways
+           * @todo Throw SqlBuildError if the provided arguments have invalid values or are being used in invalid ways
            *
            * @api
            */
@@ -292,9 +292,9 @@
                          $this->sql .= " ";
                     }
                     else {
-                         throw new sqlSpunError("Invalid Arguments",1);
+                         throw new SqlBuildError("Invalid Arguments",1);
                     }
-               } catch(sqlSpunError $e){
+               } catch(SqlBuildError $e){
                     echo $e->getMessage();
                }
 
@@ -308,12 +308,12 @@
         *
         * @param array args
         *             REQUIRED
-        *                  'table'=>      'tableName'  if missing, sqlSpinner throws sqlSpunError
-        *                  'columns'=>    ['columnName', 'columnName']  if missing, sqlSpinner throws sqlSpunError
+        *                  'table'=>      'tableName'  if missing, SqlBuilder throws SqlBuildError
+        *                  'columns'=>    ['columnName', 'columnName']  if missing, SqlBuilder throws SqlBuildError
         *
-        * @throws sqlSpunError if no table or columns provided
+        * @throws SqlBuildError if no table or columns provided
         *
-        * @return sqlSpinner this
+        * @return SqlBuilder this
         */
          function INSERT($args){
                $this->method = 'insert';
@@ -323,7 +323,7 @@
                          $this->sql = "INSERT INTO"." ".$args['table'];
                     }
                     else {
-                         throw new sqlSpunError("Invalid Arguments", 1);
+                         throw new SqlBuildError("Invalid Arguments", 1);
                     }
 
 
@@ -331,7 +331,7 @@
                          $columnCount = count($args['columns']);
                     }
                     else {
-                         throw new sqlSpunError("Invalid Arguments",0);
+                         throw new SqlBuildError("Invalid Arguments",0);
                     }
 
                     $this->sql .="(";
@@ -347,7 +347,7 @@
                     $this->sql .=")";
 
 
-               } catch(sqlSpunError $e){
+               } catch(SqlBuildError $e){
                     echo $e->getMessage();
                }
              return($this);
@@ -361,11 +361,11 @@
            *
            * @param array args
            *             REQUIRED
-           *                  'table'=>      'tableName'  if missing, sqlSpinner throws sqlSpunError
-           *                  'set'=>    ['columnName'=>'value']  if missing, sqlSpinner throws sqlSpunError
+           *                  'table'=>      'tableName'  if missing, SqlBuilder throws SqlBuildError
+           *                  'set'=>    ['columnName'=>'value']  if missing, SqlBuilder throws SqlBuildError
            *
-           * @throws sqlSpunError if no table or set argument provided
-           * @return sqlSpinner this
+           * @throws SqlBuildError if no table or set argument provided
+           * @return SqlBuilder this
            *
            * @api
            */
@@ -376,15 +376,15 @@
                          $this->sql = "UPDATE ".$args['table']." ";
                     }
                     else {
-                         throw new sqlSpunError("Invalid Arguments", 1);
+                         throw new SqlBuildError("Invalid Arguments", 1);
                     }
                     if(!isset($args['set'])){
-                         throw new sqlSpunError("Invalid Arguments", 2);
+                         throw new SqlBuildError("Invalid Arguments", 2);
                     }
                     
 
                }
-               catch (sqlSpunError $e){
+               catch (SqlBuildError $e){
                     echo $e->getMessage();
                }
               return($this);
@@ -399,7 +399,7 @@
           * @param array $args
           *         REQUIRED
           *             'set'=> ['columnName'=>value, 'columnName'=>value,...]]
-          * @return sqlSpinner this
+          * @return SqlBuilder this
           * @api
           * @todo Error Catching
           */
@@ -427,9 +427,9 @@
            *
            * @param array args
            *             REQUIRED
-           *                  'table'=>      'tableName'  if missing, sqlSpinner throws sqlSpunError
-           * @throws sqlSpunError if no table provided
-           * @return sqlSpinner this
+           *                  'table'=>      'tableName'  if missing, SqlBuilder throws SqlBuildError
+           * @throws SqlBuildError if no table provided
+           * @return SqlBuilder this
            * @api
            */
           function DELETE($args){
@@ -439,11 +439,11 @@
                          $this->sql = "DELETE FROM"." ".$args['table']." ";
                     }
                     else {
-                         throw new sqlSpunError("Invalid Arguments",1);
+                         throw new SqlBuildError("Invalid Arguments",1);
                     }
 
                }
-               catch (sqlSpunError $e){
+               catch (SqlBuildError $e){
                     echo $e->getMessage();
                }
               return($this);
@@ -455,13 +455,13 @@
            * CREATE TABLE tableName IF NOT EXISTS (prop details, prop details, .., PRIMARY KEY (primary key));
            * Most of the properties have default types or lengths which can be found in this typeBasics
            *
-           * @see sqlSpinner::typeBasics
+           * @see SqlBuilder::typeBasics
            *
            * @param string tableName name of the table to create
            * @param array props
            *              'props'=>['primary_key_name'=>['type','length','noai','null'], ['field_name'=>['type','length','notnull',default],...]
            *              The first provided property is assigned as the primary key
-           * @return sqlSpinner this
+           * @return SqlBuilder this
            * @api
            *
            * @todo Error Catching
@@ -528,7 +528,7 @@
           * DROP TABLE IF EXISTS tableName
 
           * @param string $tableName Name of the table to drop
-          * @return sqlSpinner this
+          * @return SqlBuilder this
           *
           * @api
           * @todo Error catching
@@ -548,9 +548,9 @@
           *
           * @param array $join [tableName, tableName]
           * @param array $condition ['on'=>['table1.foreignKey'=>'table2.primaryKey',..]] || ['using'=>['col1', 'col2', 'col3']]
-          * @throws sqlSpunError if no join information provided
+          * @throws SqlBuildError if no join information provided
           *
-          * @return sqlSpinner this
+          * @return SqlBuilder this
           *
           * @api
           */
@@ -665,7 +665,7 @@
            *                       method = 'in' = columnName IN (:where.columnName.0, :where.columnName.1(,:where.columnName.2))
            *                       method = 'not in' = columnName NOT IN (:where.columnName.0, :where.columnName.1(,:where.columnName.2))
            *
-           * @return sqlSpinner this
+           * @return SqlBuilder this
            *
            * @api
            *
@@ -750,7 +750,7 @@
            * GROUP BY columnName, columnName, ..
            * @param array $groupBy
            *         [columnName, columnName]
-           * @return sqlSpinner this
+           * @return SqlBuilder this
            * @api
            */
           function GROUPBY($groupBy = []){
@@ -779,7 +779,7 @@
            *
            * @see sqlSpinner::methodSpin
            *
-           * @return sqlSpinner this;
+           * @return SqlBuilder this;
            *
            * @api
            * @todo Error Catching
@@ -822,7 +822,7 @@
            *    'NULL' |
            *    null (the value)
            *
-           * @return sqlSpinner this
+           * @return SqlBuilder this
            *
            * @api
            *
@@ -865,7 +865,7 @@
            * LIMIT n
            * @param int $limit the limit value
            *
-           * @return sqlSpinner this
+           * @return SqlBuilder this
            * @api
            */
           function LIMIT($limit = null){
@@ -885,7 +885,7 @@
            * @param string $table the tableName
            * @param string $column the columnName
            *
-           * @return sqlSpinner this
+           * @return SqlBuilder this
            * @api
            *
            * @todo Error Catching

@@ -38,7 +38,7 @@
       protected $columnMeta=[];
      /** @var Schema $Schema The Schema object */
       protected $schema;
-     /** @var array arguments Used to generate the SQL queries through sqlSpinner */
+     /** @var array arguments Used to generate the SQL queries through SqlBuilder */
       protected $args = [];
 
      /**
@@ -130,13 +130,13 @@
       }
 
      /**
-      * Generate the relationship arguments for the sqlSpinner
+      * Generate the relationship arguments for the SqlBuilder
       *
-      * Prepare the relationship arguments for the sqlSpinner. Such as table, columns, join and on arguments
+      * Prepare the relationship arguments for the SqlBuilder. Such as table, columns, join and on arguments
       *
       * @see PDOI\Utils\sqlSpinner
       *
-      * @return array The table relationships as a dictionary the sqlSpinner can parse.
+      * @return array The table relationships as a dictionary the SqlBuilder can parse.
       * @todo This could be moved to the Schema class as all of its data comes from the Schema
       *
       * @internal
@@ -342,7 +342,7 @@
      /**
       * Updates data in the wrapped relationships
       *
-      * Generates the relationship arguments for the sqlSpinner to use when it generates the UPDATE query
+      * Generates the relationship arguments for the SqlBuilder to use when it generates the UPDATE query
       *
       * @param array $options Dictionary of options. See EmitterDatabaseHandler::UPDATE for more information on available options
       * @return bool success
@@ -385,7 +385,7 @@
      /**
       * Deletes data from the wrapped relationships
       *
-      * Uses the wrapped relationships to generate arguments for sqlSpinner to delete data.
+      * Uses the wrapped relationships to generate arguments for SqlBuilder to delete data.
       *
       * @param array $options See EmitterDatabaseHandler::DELETE for more information on what options are available
       * @return bool success

@@ -1,7 +1,7 @@
 <?php
  namespace PDOI;
  use Exception;
- use PDOI\Utils\sqlSpinner as sqlSpinner;
+ use PDOI\Utils\SqlBuilder as sqlSpinner;
  use PDOI\Utils\cleanPDO as cleanPDO;
  use PDO;
  use PDOException;
@@ -148,7 +148,7 @@
      /**
       * Prepare the Join Arguments
       *
-      * Prepares the arguments the sqlSpinner uses to create the JOIN part of the sql clause
+      * Prepares the arguments the SqlBuilder uses to create the JOIN part of the sql clause
       *
       * @param array $args The arguments being used to guide the construction of the query.
       * @param array $join The dictionary of relationships guiding the joining of tables
@@ -221,7 +221,7 @@
       *          'where'=>[column=>value] | [column=>[method=>value]] | [column=>[method=>[values]]]
       *               prepares columns and values for pdo query.  Each index in where can be any of the above column options.
       *               if method is 'like' or 'not like' | 'notlike', appends % to beginning and end of value
-      *               See sqlSpinner.php - WHERE for more information on how it is parsed and how to specify 'method'
+      *               See SqlBuilder.php - WHERE for more information on how it is parsed and how to specify 'method'
       *          'limit'=> #
       *                Sets the LIMIT value in the Select statement
       *          'groupby'=>['column'=>[""], "having"=>['aggmethod'=>"", 'columns'=>['',''], 'comparison'=>['method'=>'','value'=>'']]
@@ -305,7 +305,7 @@
            }
 
            //spin sql statement from options
-           $sql = (new sqlSpinner())->SELECT($args)->JOIN($join, $joinCondition)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+           $sql = (new SqlBuilder())->SELECT($args)->JOIN($join, $joinCondition)->WHERE($where)->GROUPBY($groupby)->HAVING($having)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
           // If we're debugging, display the sql and where values
           $stmt = $this->run($sql, $whereValues);
           //if plugging results into an object
@@ -363,7 +363,7 @@
       */
       function INSERT($args){
           // spin sql statement from arguments with placeholders
-           $sql = (new sqlSpinner())->INSERT($args)->getSQL();
+           $sql = (new SqlBuilder())->INSERT($args)->getSQL();
           //if in debug mode
           $this->debug($sql, $args);
            try {
@@ -443,7 +443,7 @@
      /**
       * Updates data in the database
       *
-      * Generates arguments for the sqlSpinner to use to create the sql query. Also prepares placeholders and executes
+      * Generates arguments for the SqlBuilder to use to create the sql query. Also prepares placeholders and executes
       * the prepared statement against the provided arguments.
       *
       * @param array $args Dictionary of arguments used to guide the construction of the update query.
@@ -453,7 +453,7 @@
       *           'where'=>[column=>value] | [column=>[method=>value]] | [column=>[method=>[values]]]
       *                  prepares columns and values for pdo query.  Each index in where can be any of the above column options.
       *                  if method is 'like' or 'not like' | 'notlike', appends % to beginning and end of value
-      *                  See sqlSpinner.php - WHERE for more information on how it is parsed and how to specify 'method'
+      *                  See SqlBuilder.php - WHERE for more information on how it is parsed and how to specify 'method'
       *        OPTIONAL
       *           'orderby'=>['column'=>'ASC' || 'DESC']
       *           'limit'=> #
@@ -512,7 +512,7 @@
             }
 
             //Spin sql from options
-            $sql = (new sqlSpinner())->UPDATE($args)->JOIN($join, $joinCondition)->SET($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
+            $sql = (new SqlBuilder())->UPDATE($args)->JOIN($join, $joinCondition)->SET($args)->WHERE($where)->ORDERBY($orderby)->LIMIT($limit)->getSQL();
 
            return($this->run($sql, array_merge($setValues, $whereValues)));
 
@@ -530,7 +530,7 @@
       *             'where'=>[column=>value] | [column=>[method=>value]] | [column=>[method=>[values]]]
       *                  prepares columns and values for pdo query.  Each index in where can be any of the above column options.
       *                  if method is 'like' or 'not like' | 'notlike', appends % to beginning and end of value
-      *                  See sqlSpinner.php - WHERE for more information on how it is parsed and how to specify 'method'
+      *                  See SqlBuilder.php - WHERE for more information on how it is parsed and how to specify 'method'
       *        OPTIONAL
       *             'orderby'=>['column'=>'ASC' | 'DESC']
       *             'limit'=> #
@@ -575,7 +575,7 @@
            }
 
            //spin sql from arguments
-           $sql = (new sqlSpinner())->DELETE($args)->JOIN($join, $joinCondition)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
+           $sql = (new SqlBuilder())->DELETE($args)->JOIN($join, $joinCondition)->WHERE($where)->ORDERBY($order)->LIMIT($limit)->getSQL();
            return($this->run($sql, $whereValues));
       }
 
@@ -595,7 +595,7 @@
       function CREATE($table, $props){
           $this->pdo->beginTransaction();
           if(!$this->tableExists($table)){
-              $sql = (new sqlSpinner())->CREATE($table,$props)->getSQL();
+              $sql = (new SqlBuilder())->CREATE($table,$props)->getSQL();
               return($this->run($sql));
           } else {
               // Table already exists
@@ -614,7 +614,7 @@
       *
       */
       function DROP($table){
-          $sql = (new sqlSpinner())->DROP($table)->getSQL();
+          $sql = (new SqlBuilder())->DROP($table)->getSQL();
           return($this->run($sql));
       }
 
@@ -628,7 +628,7 @@
       * @api
       */
       function describe($table){
-          $sql = (new sqlSpinner())->DESCRIBE($table)->getSQL(); // Generate sql
+          $sql = (new SqlBuilder())->DESCRIBE($table)->getSQL(); // Generate sql
           $stmt = $this->run($sql);
           $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC); //return associative array of table Schema
           return($chunk);

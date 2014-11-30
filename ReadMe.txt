@@ -1,12 +1,12 @@
 *****************************************
 Author: Steven Chennault
 Project: EmitterDatabaseHandler
-Included Files: EmitterDatabaseHandler.php, EntityEmitter.php, Utils/dynamo.php, Utils/sqlSpinner.php
-NameSpace Classes: EmitterDatabaseHandler\EmitterDatabaseHandler, EmitterDatabaseHandler\EntityEmitter, EmitterDatabaseHandler\Utils\dynamo, EmitterDatabaseHandler\Utils\sqlSpinner
+Included Files: EmitterDatabaseHandler.php, EntityEmitter.php, Utils/dynamo.php, Utils/SqlBuilder.php
+NameSpace Classes: EmitterDatabaseHandler\EmitterDatabaseHandler, EmitterDatabaseHandler\EntityEmitter, EmitterDatabaseHandler\Utils\dynamo, EmitterDatabaseHandler\Utils\SqlBuilder
 
 *****************************************
 
-	class sqlSpinner
+	class SqlBuilder
 
 		This class is a chaining class which constructs a sql statement through a set of function calls.  It is designed to be used by the pdoI
 	class but can be used by anyone.  The sql query it generates is prepared to work with php's PDO system.  If you use this outside of the EmitterDatabaseHandler object
@@ -42,7 +42,7 @@ NameSpace Classes: EmitterDatabaseHandler\EmitterDatabaseHandler, EmitterDatabas
 				Description:
 					- Sets the method to 'select', this tells the Where method to use ' AND ' instead of ', ',
 					- 'SELECT ['column1','column2','column3'] || * from table
-					- Returns sqlSpinner object
+					- Returns SqlBuilder object
 
 			INSERT
 				Takes associative array of arguments
@@ -117,10 +117,10 @@ NameSpace Classes: EmitterDatabaseHandler\EmitterDatabaseHandler, EmitterDatabas
 					columns=>array of column names in the table you wish to select ['','']
 					where=>takes an array of [column=>comparisonValue] or [column=>[comparisonMethod, comparisonValue]]
 						or [column=>[comparisonMethod, comparisonValueArray]] depending on what method and condition you are trying to set.
-						See the sqlSpinner class above to determine how to set 'comparisonMethod'.
+						See the SqlBuilder class above to determine how to set 'comparisonMethod'.
 					orderby=>array of column=>methods ('id'=>'asc')
 				Does:
-					Runs the argument array through the sqlSpinner to generate a proper sql query for the pdo, extracts the
+					Runs the argument array through the SqlBuilder to generate a proper sql query for the pdo, extracts the
 					'where' conditionals and binds them to placeholders for the pdo object, then executes the query with the placeholders.
 				Success:
 					Returns the result set in associate array form
@@ -135,7 +135,7 @@ NameSpace Classes: EmitterDatabaseHandler\EmitterDatabaseHandler, EmitterDatabas
 					values=>associative array of column=>value pairings  OR
 						Array of associative array of column=>value pairings
 				Does:
-					First it runs the arguments through the sqlSpinner which generates the prepared INSERT statement then begins a transaction
+					First it runs the arguments through the SqlBuilder which generates the prepared INSERT statement then begins a transaction
 						with the cleanPDO for safety.
 					if the values are a associative array of column=>value pairings it
 						prepares a value argument with the prepared column names and executes the insert
