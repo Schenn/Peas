@@ -1,24 +1,14 @@
 <?php
 namespace PDOI\Utils;
-include_once("Validator.php");
 use BadMethodCallException, Iterator, JsonSerializable;
 use Closure;
-use PDOI\Utils\Validator;
+use PDOI\Utils\Validator as Validator;
+use PDOI\Utils\LiteralInterface as LiteralInterface;
 
 /**
 * @author Steven Chennault Schenn@Mash.is
 * @link: https://github.com/Schenn/EmitterDatabaseHandler Repository
 */
-
-/**
-* Interface EntityInterface
-*
-* Condense Iterator and JsonSerializable interfaces for dynamo to use
-* @package EmitterDatabaseHandler\Utils
-*/
-interface EntityInterface extends Iterator, JsonSerializable {
-
-}
 
 /**
 * Class Entity
@@ -32,7 +22,7 @@ interface EntityInterface extends Iterator, JsonSerializable {
 * @package EmitterDatabaseHandler\Utils
 *@todo Better handling of array properties for sets
 */
-class Entity implements EntityInterface{
+class Entity implements LiteralInterface{
 
     /** @var array $properties The current property values */
     private $properties = [];

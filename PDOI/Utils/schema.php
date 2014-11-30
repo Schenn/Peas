@@ -1,6 +1,6 @@
 <?php
 namespace PDOI\Utils;
-use Exception, Iterator, JsonSerializable;
+use Exception, PDOI\Utils\LiteralInterface as LiteralInterace;
 
 /**
  * @author:  Steven Chennault schenn@mash.is
@@ -18,13 +18,7 @@ class schemaException extends Exception {
 
 }
 
-/**
- * Interface schemaInterface Combines Iterator and JsonSerializable for the Schema class
- * @package EmitterDatabaseHandler\Utils
- */
-interface schemaInterface extends Iterator, JsonSerializable {
 
-}
 
 /**
  * Class schema
@@ -34,7 +28,7 @@ interface schemaInterface extends Iterator, JsonSerializable {
  *
  * @package EmitterDatabaseHandler\Utils
  */
-class schema implements schemaInterface {
+class schema implements LiteralInterface {
     /** @var array $map The schema dictionary of table, column and metadata */
     private $map = [];
     /** @var array $primaryKeys A dictionary of table=>primary keys */
