@@ -621,7 +621,7 @@
      /**
       * Describes a table
       *
-      * Retrieves the table schema from the database as an associative array
+      * Retrieves the table Schema from the database as an associative array
       *
       * @param string $table table name
       * @return array result
@@ -630,7 +630,7 @@
       function describe($table){
           $sql = (new sqlSpinner())->DESCRIBE($table)->getSQL(); // Generate sql
           $stmt = $this->run($sql);
-          $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC); //return associative array of table schema
+          $chunk = $stmt->fetchAll(PDO::FETCH_ASSOC); //return associative array of table Schema
           return($chunk);
       }
 
@@ -683,7 +683,7 @@
                         return ($this->pdo->commit());
                     } else {
                         // Selects can be fetched into a multitude of ways. Return the statement so that the caller can decide
-                        // Desc is a kind of select that returns the table | column schema as a data set
+                        // Desc is a kind of select that returns the table | column Schema as a data set
                         return($stmt);
                     }
                 }

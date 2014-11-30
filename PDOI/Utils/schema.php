@@ -8,40 +8,40 @@ use Exception, PDOI\Utils\LiteralInterface as LiteralInterace;
 */
 
 /**
- * Error Exception for schema
+ * Error Exception for Schema
  *
- * When a schema is told to build off invalid data, it should throw this error
+ * When a Schema is told to build off invalid data, it should throw this error
  *
  * @category Exceptions
+ *
+ * @todo Expand like validation exception
  */
 class schemaException extends Exception {
 
 }
 
-
-
 /**
- * Class schema
+ * Class Schema
  *
  * Schema maintains table relationship and column information in a manner which allows other classes to iterate over that information
  * In addition, Schema maintains the meta data for the table columns so that values can be validated before attempting to store them
  *
  * @package EmitterDatabaseHandler\Utils
  */
-class schema implements LiteralInterface {
-    /** @var array $map The schema dictionary of table, column and metadata */
+class Schema implements LiteralInterface {
+    /** @var array $map The Schema dictionary of table, column and metadata */
     private $map = [];
     /** @var array $primaryKeys A dictionary of table=>primary keys */
     private $primaryKeys = [];
     /** @var array $foreignKeys A dictionary of table=>[foreign key=>[table=>key]] */
     private $foreignKeys = [];
-    /** @var array $masterKey The dictionary which represents the base table of the schema. [table=>primary_key] */
+    /** @var array $masterKey The dictionary which represents the base table of the Schema. [table=>primary_key] */
     private $masterKey = [];
 
     /**
      * Create a new Schema
      *
-     * From a map of table=>[columns] prepare our schema dictionaries
+     * From a map of table=>[columns] prepare our Schema dictionaries
      *
      * @param array $maps [tableName=>[columnName, columnName, ...]]
      */
@@ -61,7 +61,7 @@ class schema implements LiteralInterface {
     }
 
     /**
-     * Add a table to the schema
+     * Add a table to the Schema
      *
      * @param string $table The name of the table to add
      * @param array $columnList The list of columnNames that belong to the table
@@ -77,7 +77,7 @@ class schema implements LiteralInterface {
      }
 
     /**
-     * Retrieve a table from the schema
+     * Retrieve a table from the Schema
      *
      * @param string $table The table name to retrieve
      * @return array The list of columns from the table
@@ -133,7 +133,7 @@ class schema implements LiteralInterface {
     }
 
     /**
-     * Determine if a tableName has been assigned to this schema
+     * Determine if a tableName has been assigned to this Schema
      *
      * @param string $table the name of the table to check
      * @return bool
@@ -148,7 +148,7 @@ class schema implements LiteralInterface {
     }
 
     /**
-     * Removes a table and it's related information from the schema
+     * Removes a table and it's related information from the Schema
      *
      * @param string $table The name of the table to remove
      */
@@ -166,7 +166,7 @@ class schema implements LiteralInterface {
     }
 
     /**
-     * Retrieve the schema as a json object
+     * Retrieve the Schema as a json object
      *
      * @return string $this->map as a json string
      */
@@ -175,7 +175,7 @@ class schema implements LiteralInterface {
      }
 
     /**
-     * Set a foreign key in the schema
+     * Set a foreign key in the Schema
      *
      * Update our foreignKeys dictionary using a list of relationships so that we can understand how these tables are connected
      *
@@ -202,9 +202,9 @@ class schema implements LiteralInterface {
     }
 
     /**
-     * Get the schema without metadata
+     * Get the Schema without metadata
      *
-     * This method returns the map without any metadata. It's used to interpret schema structure
+     * This method returns the map without any metadata. It's used to interpret Schema structure
      * @return array $map A dictionary of [table =>[columnName, columnName, ...], ...]
      * @api
      */
@@ -245,7 +245,7 @@ class schema implements LiteralInterface {
      }
 
     /**
-     * Add Tables to the schema
+     * Add Tables to the Schema
      *
      * @param array $tables A list of table names to add to the map
      * @api
@@ -268,7 +268,7 @@ class schema implements LiteralInterface {
      }
 
     /**
-     * Get the table names in the schema
+     * Get the table names in the Schema
      *
      * @return array The list of table names
      * @api
@@ -381,7 +381,7 @@ class schema implements LiteralInterface {
                }
 
           }
-          // Set the meta data for the column in the schema dictionary
+          // Set the meta data for the column in the Schema dictionary
           $this->map[$table][$field]=$metaTranslate[$field];
      }
 
@@ -430,7 +430,7 @@ class schema implements LiteralInterface {
      }
 
     /**
-     * Sets the master key for the schema
+     * Sets the master key for the Schema
      *
      * @param $masterKey [tableName->columnName]
      */

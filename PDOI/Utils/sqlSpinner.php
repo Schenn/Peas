@@ -878,9 +878,9 @@
           /**
            * Generates a DESC sql query
            *
-           * DESC is used to determine information about a table's schema.
-           * DESC table to get schema information on the whole table
-           * DESC table column to get schema information on a column
+           * DESC is used to determine information about a table's Schema.
+           * DESC table to get Schema information on the whole table
+           * DESC table column to get Schema information on a column
            *
            * @param string $table the tableName
            * @param string $column the columnName

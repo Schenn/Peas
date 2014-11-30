@@ -14,7 +14,7 @@ use PDOI\Utils\LiteralInterface as LiteralInterface;
 * Class Entity
 *
 * Dynamic anonymous object. Can be assigned anonymous functions which have be given access to the dynamo as '$this'.
-* Uses the metadata provided by a schema at it's construction to validate assigned values.
+* Uses the metadata provided by a Schema at it's construction to validate assigned values.
 *
 * @see PDOI\Utils\schema
 * @see EmitterDatabaseHandler\pdoITable::EmitEntity Where Dynamos are made

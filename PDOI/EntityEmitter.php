@@ -2,7 +2,7 @@
  namespace PDOI;
  use PDOI\EmitterDatabaseHandler as PDOI;
  use PDOI\Utils\Entity as Entity;
- use PDOI\Utils\schema as schema;
+ use PDOI\Utils\Schema as schema;
 
  /**
   * @author Steven Chennault schenn@mash.is
@@ -18,7 +18,7 @@
   * a EntityEmitter and don't provide an object, it will use an entity to hold onto the data.
   *
   * EntityEmitter can create entity's upon request. The entities will have the same structure as the table relationship
-  * schema that has been created for EntityEmitter. The entities are given the capacity to save themselves when they are
+  * Schema that has been created for EntityEmitter. The entities are given the capacity to save themselves when they are
   * created by a EntityEmitter.
   *
   * @uses PDOI\Utils\schema
@@ -36,7 +36,7 @@
       protected $columns=[];
      /** @var array $columnMeta The column meta data for the columns */
       protected $columnMeta=[];
-     /** @var schema $schema The schema object */
+     /** @var Schema $Schema The Schema object */
       protected $schema;
      /** @var array arguments Used to generate the SQL queries through sqlSpinner */
       protected $args = [];
@@ -52,7 +52,7 @@
       */
       function __construct($config, $tables, $debug=false){
            parent::__construct($config, $debug);
-           $this->schema = new schema();
+           $this->schema = new Schema();
            $this->setTable($tables);
       }
 
@@ -126,7 +126,7 @@
                 }
            }
            }
-           // Set up the schema
+           // Set up the Schema
       }
 
      /**
@@ -137,12 +137,12 @@
       * @see PDOI\Utils\sqlSpinner
       *
       * @return array The table relationships as a dictionary the sqlSpinner can parse.
-      * @todo This could be moved to the Schema class as all of its data comes from the schema
+      * @todo This could be moved to the Schema class as all of its data comes from the Schema
       *
       * @internal
       */
      public function generateArguments(){
-         //uses schema information to generate argument list
+         //uses Schema information to generate argument list
          $arguments = [];
 
          $tables = $this->schema->getTables();
@@ -442,23 +442,23 @@
       }
 
      /**
-      * Use a given schema
+      * Use a given Schema
       *
-      * When a entity needs to interact with its EntityEmitter, the EntityEmitter's schema may have changed.
+      * When a entity needs to interact with its EntityEmitter, the EntityEmitter's Schema may have changed.
       *
-      * @param schema $schema The schema to use
-      * @todo Error Catching, also is this necessary since Entity's hold onto their origin schema now?
+      * @param Schema $schema The Schema to use
+      * @todo Error Catching, also is this necessary since Entity's hold onto their origin Schema now?
       *
       * @internal
       */
      function setSchema($schema){
-         if( is_a($schema, "PDOI\Utils\Schema" )){
+         if( is_a($schema, "PDOI\Utils\Schema")){
              $this->schema = $schema;
          }
      }
 
      /**
-      * Create a Entity based off the current wrapped table relationship schema
+      * Create a Entity based off the current wrapped table relationship Schema
       *
       * Creates a Entity and gives the Entity access to the EntityEmitter's insert, update, delete and select methods
       *
@@ -474,8 +474,8 @@
            //Entity insert function, uses this EntityEmitter
            $entity = new Entity($this->columns, $this->columnMeta, $failSoft);
            $this->reset();
-          // Give the object a reference to the table schema.
-          // The table schema may have relationships added or removed by the time we go into the database
+          // Give the object a reference to the table Schema.
+          // The table Schema may have relationships added or removed by the time we go into the database
             $entity->TableSchema = $this->getSchema();
             $entityEmitter = $this;
 
@@ -499,7 +499,7 @@
                 $args = [];
                 $args['set'] = [];
                 $args['where'] = [];
-                //t has schema information
+                //t has Schema information
                 //use primary keys to create where
                 //compare current values against defaults before adding to 'set'
 
@@ -574,7 +574,7 @@
      /**
       * Insert a Entity into the database
       *
-      * Using the schema from the entity, insert it's data into the database
+      * Using the Schema from the entity, insert it's data into the database
       * @param entity $entity
       *
       * @api
@@ -584,7 +584,7 @@
          $args = [];
          $args['values'] = [];
 
-         // The EntityEmitter schema may have changed after the entity was spawned. Use the schema which was assigned to
+         // The EntityEmitter Schema may have changed after the entity was spawned. Use the Schema which was assigned to
          // the entity at its creation
          $schema = $entity->TableSchema;
 
@@ -652,20 +652,20 @@
      }
 
      /**
-      * Using the schema of a given entity, fill it with it's related data
+      * Using the Schema of a given entity, fill it with it's related data
       *
       * @param Entity entity The entity to fill with data
       * @param mixed $pKey The primary key to load from
       * @api
       */
      function loadEntity(&$entity, $pKey = null){
-         // set the EntityEmitter schema to the Entity schema
+         // set the EntityEmitter Schema to the Entity Schema
          $oldSchema = $this->getSchema();
          $this->setSchema($entity->TableSchema);
 
          // run a select off the table using the provided pKey
 
-         //this function takes the pKey provided and prepares a properly formatted select call based off the current schema using the pkey as the where value
+         //this function takes the pKey provided and prepares a properly formatted select call based off the current Schema using the pkey as the where value
          $args = [];
          $args['limit']=1;
          $schema = $this->getSchema();
@@ -691,21 +691,21 @@
 
          $entity->startValidation();
 
-         // Return EntityEmitter to its original schema
+         // Return EntityEmitter to its original Schema
          $this->setSchema($oldSchema);
      }
 
      /**
-      * Create a relationship in the schema
+      * Create a relationship in the Schema
       *
-      * Set's up relationship data in the schema
+      * Set's up relationship data in the Schema
       *
       * @param array $relationships The relationship to create [tableName.foreignKey => foreignTableName.primaryKey]
       * @api
       */
       function setRelationship($relationships){
            foreach($relationships as $fKey=>$pKey){
-               //add tables w/columns to schema
+               //add tables w/columns to Schema
                $this->schema->addTable([explode(".",$pKey)[0]]);
                $this->setColumns();
                $this->schema->setForeignKey([$fKey=>$pKey]);
@@ -724,7 +724,7 @@
       */
       function endRelationship($tables=[], &$entity = null){
           //properly end the fkey=>pkey relationships provided (or all relationships) and
-          //remove the table(s) information from the schema. Be sure to leave the original schema unaffected.
+          //remove the table(s) information from the Schema. Be sure to leave the original Schema unaffected.
             if(empty($tables)){
                 $tables = $this->schema->getTables();
             }
@@ -753,9 +753,9 @@
       }
 
      /**
-      * Retrieve the current working schema
+      * Retrieve the current working Schema
       *
-      * @return schema
+      * @return Schema
       * @api
       */
       function getSchema(){
