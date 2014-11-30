@@ -27,6 +27,7 @@
   *
   * @package EmitterDatabaseHandler
   * @todo Should we be holding on to args or can that be removed?
+  * @todo Emitter should have a EDH, not extend from it
   */
 
  class EntityEmitter extends EmitterDatabaseHandler {
