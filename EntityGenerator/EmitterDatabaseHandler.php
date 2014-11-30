@@ -1,7 +1,7 @@
 <?php
  namespace EntityGenerator;
  use Exception;
- use EntityGenerator\Utils\SqlBuilder as sqlSpinner;
+ use EntityGenerator\Utils\SqlBuilder as SqlBuilder;
  use EntityGenerator\Utils\cleanPDO as cleanPDO;
  use PDO;
  use PDOException;

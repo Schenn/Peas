@@ -1,6 +1,6 @@
 <?php
 namespace EntityGenerator\Utils;
-use Exception, EntityGenerator\Utils\LiteralInterface as LiteralInterace;
+use Exception, EntityGenerator\Utils\LiteralInterface as LiteralInterface;
 
 /**
  * @author:  Steven Chennault schenn@mash.is

@@ -1,6 +1,6 @@
 <?php
  namespace EntityGenerator;
- use EntityGenerator\EmitterDatabaseHandler as PDOI;
+ use EntityGenerator\EmitterDatabaseHandler as EmitterDatabaseHandler;
  use EntityGenerator\Utils\Entity as Entity;
  use EntityGenerator\Utils\Schema as schema;
 
