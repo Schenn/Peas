@@ -702,6 +702,8 @@
       *
       * @param array $relationships The relationship to create [tableName.foreignKey => foreignTableName.primaryKey]
       * @api
+      *
+      * @todo Accept an array of FQNs of components. Those components will be attached to the entity and filled with the entity's data for the corresponding table.
       */
       function setRelationship($relationships){
            foreach($relationships as $fKey=>$pKey){
