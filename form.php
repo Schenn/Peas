@@ -1,5 +1,5 @@
 <?php
-     require_once("EntityEmitter.php");
+     require_once("autoload.php");
      use EntityGenerator\EntityEmitter;
 
      if(isset($_GET['action'])){
@@ -7,9 +7,9 @@
      }
 
      $config = [
-               'dbname'=>'pdoi_tester',
-               'username'=>'pdoi_tester',
-               'password'=>'pdoi_pass',
+               'dbname'=>'pdoi_test',
+               'username'=>'pdoi_test',
+               'password'=>'QzMdPwx3p4UpL4Rq',
                'driver_options'=>[PDO::ATTR_PERSISTENT => true]
           ];
 
@@ -335,7 +335,7 @@
                     </th>
                     <tr>
                          <td><label for='ship_name'>Ship</label></td>
-                         <td><select name="ship_name">
+                         <td><select id="ship_name" name="ship_name">
                               <?php
                                    foreach($shipCollection as $index=>$aShip){
                                         echo "<option value='".$aShip->ship_name."'>".$aShip->ship_name."</option>";

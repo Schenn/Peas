@@ -25,7 +25,7 @@
   *
   * EmitterDatabaseHandler is only known to be compatible with MySql.
   *
-  * @uses PDOI\Utils\sqlSpinner
+  * @uses Utils\SqlBuilder
   *
   * @package EmitterDatabaseHandler
   */
@@ -157,7 +157,7 @@
       protected function prepJoin(&$args, &$join=[], &$joinCondition=[]){
            $cols = [];
            $tables = [];
-          // Separate the tables and columns
+          // Separate the tables and columns in the
            foreach($args['table'] as $table){
                foreach($table as $tableName=>$columnList){
                     array_push($tables, $tableName);
@@ -217,7 +217,8 @@
       *               'table'=>['tableName'=>['columnName','columnName'], "tableName"=>['columnName','columnName']]
       *     OPTIONAL
       *          'columns'=>['','']
-      *               if missing or empty, select statement will build as SELECT *
+      *               if missing or empty, select statement will build as SELECT *.
+      *                 If Joining, specify the columns that belong to each table under the table argument
       *          'where'=>[column=>value] | [column=>[method=>value]] | [column=>[method=>[values]]]
       *               prepares columns and values for pdo query.  Each index in where can be any of the above column options.
       *               if method is 'like' or 'not like' | 'notlike', appends % to beginning and end of value
@@ -248,13 +249,13 @@
       *
       * @return array|object|null|bool The result or false on failure
       *
-      * @uses PDOI\Utils\sqlSpinner::SELECT
-      * @uses PDOI\Utils\sqlSpinner::JOIN
-      * @uses PDOI\Utils\sqlSpinner::WHERE
-      * @uses PDOI\Utils\sqlSpinner::GROUPBY
-      * @uses PDOI\Utils\sqlSpinner::HAVING
-      * @uses PDOI\Utils\sqlSpinner::ORDERBY
-      * @uses PDOI\Utils\sqlSpinner::LIMIT
+      * @uses Utils\SqlBuilder::SELECT
+      * @uses Utils\SqlBuilder::JOIN
+      * @uses Utils\SqlBuilder::WHERE
+      * @uses Utils\SqlBuilder::GROUPBY
+      * @uses Utils\SqlBuilder::HAVING
+      * @uses Utils\SqlBuilder::ORDERBY
+      * @uses Utils\SqlBuilder::LIMIT
       * @api
       * @todo fetch_obj instead of fetch_assoc for when an object isn't provided. Then we'll always return an object or array of objects. Only the object will be a very limited anonymous object.
       * @todo should we return null on failure or false?
@@ -355,7 +356,7 @@
       *         'columns'=>['','']
       *         'values' => ['column'=>'value'] | [["column"=>"value","column"=>"value"],["column"=>"value","column"=>"value"] ]
       *
-      * @uses PDOI\Utils\sqlSpinner::INSERT
+      * @uses Utils\SqlBuilder::INSERT
       * @return bool Success
       * @throws Exception if statement->execute fails with bound variables
       * @api
@@ -459,12 +460,12 @@
       *           'limit'=> #
       *                  Sets the LIMIT value in the Update statement
       *
-      * @uses PDOI\Utils\sqlSpinner::UPDATE
-      * @uses PDOI\Utils\sqlSpinner::JOIN
-      * @uses PDOI\Utils\sqlSpinner::SET
-      * @uses PDOI\Utils\sqlSpinner::WHERE
-      * @uses PDOI\Utils\sqlSpinner::ORDERBY
-      * @uses PDOI\Utils\sqlSpinner::LIMIT
+      * @uses Utils\SqlBuilder::UPDATE
+      * @uses Utils\SqlBuilder::JOIN
+      * @uses Utils\SqlBuilder::SET
+      * @uses Utils\SqlBuilder::WHERE
+      * @uses Utils\SqlBuilder::ORDERBY
+      * @uses Utils\SqlBuilder::LIMIT
       * @return bool success
       * @throws Exception if no 'set' or 'where' arguments provided
       * @api
@@ -536,11 +537,11 @@
       *             'limit'=> #
       *                  Sets the LIMIT value in the Select statement
       *
-      * @uses PDOI\Utils\sqlSpinner::DELETE
-      * @uses PDOI\Utils\sqlSpinner::JOIN
-      * @uses PDOI\Utils\sqlSpinner::WHERE
-      * @uses PDOI\Utils\sqlSpinner::ORDERBY
-      * @uses PDOI\Utils\sqlSpinner::LIMIT
+      * @uses Utils\SqlBuilder::DELETE
+      * @uses Utils\SqlBuilder::JOIN
+      * @uses Utils\SqlBuilder::WHERE
+      * @uses Utils\SqlBuilder::ORDERBY
+      * @uses Utils\SqlBuilder::LIMIT
       *
       * @return bool success
       * @throws Exception
@@ -588,8 +589,9 @@
       * @param string $table The table name
       * @param array $props The dictionary of fields=>[mysql column properties]
       *
-      * @uses PDOI\Utils\sqlSpinner::CREATE
+      * @uses Utils\SqlBuilder::CREATE
       * @return bool success
+      * @throws string If the table already exists
       * @api
       */
       function CREATE($table, $props){
@@ -714,8 +716,8 @@
       */
       function tableExists($table){
            try {
-                $this->pdo->query("Select 1 from {$table}");
-                return true;
+               $result =  $this->pdo->query("Select 1 from {$table}");
+                return !!$result;
            } catch(PDOException $pe){
                 return false;
            }

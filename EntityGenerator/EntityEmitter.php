@@ -260,6 +260,7 @@
       * @todo Go over this method. Pretty sure this can be cleaned up a fair bit
       *
       * @api
+      * @return bool Result of insertion
       */
       function insert($options){
            //$a = $this->args;

@@ -95,28 +95,32 @@
            */
 
           protected function aggregate($aggMethod, $aggValues=[], $alias = ""){
-               $this->sql .= strtoupper($aggMethod)."(";
+              $this->sql .= strtoupper($aggMethod)."(";
 
               //if 'columnNames' is empty, * is used as the column
-               $cNameCount = count($aggValues);
-               if($cNameCount === 0){
-                    $this->sql .= "*";
-               }
-               else {
-                    $this->sql .= implode(", ", $aggValues);
-               }
-               $this->sql.=")";
+              $cNameCount = count($aggValues);
+              $this->sql .= ($cNameCount === 0) ? "*" : implode(", ", $aggValues);
+              $this->sql.=")";
 
               // alias allows mysql to give a name to the value of the function result
-               if(!empty($alias)){
-                   $this->sql.= " AS ".$alias." ";
-               } else {
-                   // Use the first column name or the method being used if no columns are given
-                   $tmpAlias = ($cNameCount > 0) ? $aggMethod.$aggValues[0] : $aggMethod;
-                   $this->sql.= " AS ".$tmpAlias." ";
-               }
+              if(empty($alias)){
+                  // Use the first column name or the method being used if no columns are given
+                  $alias = ($cNameCount > 0) ? $aggMethod.$aggValues[0] : $aggMethod;
+              }
+
+              $this->sql.= " AS ".$alias." ";
           }
 
+
+         protected function setResultSize($resultSize) {
+             $resultSize = strtoupper($resultSize);
+             if($resultSize==='BIG'){
+                 $this->sql.=" SQL_BIG_RESULT ";
+             }
+             elseif($resultSize==='SMALL'){
+                 $this->sql.=" SQL_SMALL_RESULT ";
+             }
+         }
 
          /**
           * Transforms the developer friendly comparison method argument into an sql friendly comparison string
@@ -161,12 +165,12 @@
                }
           }
 
-          /*
+          /**
            * Begins constructing the sql for a select query
            *
            * SELECT columns FROM table
            *
-           * @param array args list of arguments
+           * @param array $args list of arguments
            *    REQUIRED
            *        'table'=>      'tableName' | ['tableName', 'tableName']
            *    OPTIONAL
@@ -206,27 +210,13 @@
                          if($distinct !== 'ALL'){
                               $this->sql .= $distinct." ";
                               if(isset($args['result'])){
-                                   $resultSize = strtoupper($args['result']);
-                                   if($resultSize==='BIG'){
-                                        $this->sql.=" SQL_BIG_RESULT ";
-                                   }
-                                   elseif($resultSize==='SMALL'){
-                                        $this->sql.=" SQL_SMALL_RESULT ";
-                                   }
+                                  $this->setResultSize($args['result']);
                               }
                          }
                     }
 
-                    if(isset($args['groupby'])){
-                         if(isset($args['result'])){
-                              $resultSize = strtoupper($args['result']);
-                              if($resultSize==='BIG'){
-                                   $this->sql.=" SQL_BIG_RESULT ";
-                              }
-                              elseif($resultSize==='SMALL'){
-                                   $this->sql.=" SQL_SMALL_RESULT ";
-                              }
-                         }
+                    if(isset($args['groupby']) && isset($args['result'])){
+                         $this->setResultSize($args['result']);
                     }
 
                     if(isset($args['priority']) && !isset($args['union'])){
@@ -238,12 +228,7 @@
                     }
 
                     if(isset($args['cache'])){
-                         if($args['cache']===true){
-                              $this->sql .= "SQL_CACHE ";
-                         }
-                         elseif($args['cache'] === false){
-                              $this->sql .= "SQL_NO_CACHE";
-                         }
+                        $this->sql .= ($args['cache']===true) ? "SQL_CACHE " : "SQL_NO_CACHE ";
                     }
 
 
@@ -252,25 +237,16 @@
                          $cols = count($args['columns']);
                          if(is_array($args['columns'])){
                             foreach($args['columns'] as $index=>$col){
-                                 if(!isset($col['agg'])){
-                                      if($i !== $cols-1){
-                                           $this->sql .="$col, ";
-                                      }
-                                      else {
-                                           $this->sql .= $col . ' ';
-                                      }
-                                 }
-                                 else {
-                                     $alias = "";
-                                     if(is_string($index)){
-                                         $alias = $index;
-                                     }
-                                      foreach($col['agg'] as $method=>$columnNames){
-                                           $this->aggregate($method, $columnNames, $alias);
-                                      }
-                                 }
-                                 $i++;
-
+                                if(!isset($col['agg'])){
+                                    $this->sql .= ($i !== $cols-1) ? "$col, " : $col . ' ';
+                                }
+                                else {
+                                    $alias = (is_string($index)) ? $index : "";
+                                    foreach($col['agg'] as $method=>$columnNames){
+                                        $this->aggregate($method, $columnNames, $alias);
+                                    }
+                                }
+                                $i++;
                             }
                          }
                         else if(is_string($args['columns']))  {
@@ -282,14 +258,9 @@
                     }
 
                     if(isset($args['table'])){
-                         $this->sql .= "FROM ";
-                         if(is_array($args['table'])){
-                              $this->sql .= implode(", ", $args['table']);
-                         }
-                         elseif(is_string($args['table'])){
-                              $this->sql .= $args['table'];
-                         }
-                         $this->sql .= " ";
+                        $this->sql .= "FROM ";
+                        $this->sql .= (is_array($args['table'])) ? implode(", ", $args['table']) : $args['table'];
+                        $this->sql .= " ";
                     }
                     else {
                          throw new SqlBuildError("Invalid Arguments",1);

@@ -1,5 +1,5 @@
 <?php
-use EntityGenerator\EmitterDatabaseHandler as PDOI;
+use EntityGenerator\EmitterDatabaseHandler as EmitterDatabaseHandler;
 use EntityGenerator\EntityEmitter as EntityEmitter;
 
 class userTable {

@@ -92,9 +92,9 @@ class cleanPDO extends PDO {
      * Return the last insert id
      * @return string|int
      */
-    function lastInsertId(){
+    function lastInsertId($seq = null){
         if($this->hasActiveTransaction) {
-            return(parent::lastInsertId());
+            return(parent::lastInsertId($seq));
         } else {
             return 0;
         }

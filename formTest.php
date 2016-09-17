@@ -1,11 +1,10 @@
 <?php
-     require_once("EntityEmitter.php");
-     use EntityGenerator\EntityEmitter as pdoITable;
-     use EntityGenerator\EmitterDatabaseHandler as PDOI;
+     require_once("autoload.php");
+     use EntityGenerator\EntityEmitter as EntityEmitter;
      $config = [
-               'dbname'=>'pdoi_tester',
-               'username'=>'pdoi_tester',
-               'password'=>'pdoi_pass',
+               'dbname'=>'pdoi_test',
+               'username'=>'pdoi_test',
+               'password'=>'QzMdPwx3p4UpL4Rq',
                'driver_options'=>[PDO::ATTR_PERSISTENT => true]
           ];
 
