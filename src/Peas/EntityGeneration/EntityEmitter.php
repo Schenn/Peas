@@ -1,8 +1,6 @@
 <?php
- namespace EntityGenerator;
- use EntityGenerator\EmitterDatabaseHandler as EmitterDatabaseHandler;
- use EntityGenerator\Utils\Entity as Entity;
- use EntityGenerator\Utils\Schema as schema;
+ namespace Peas\EntityGeneration;
+ use Peas\DataIntegrity\Schema as schema;
 
  /**
   * @author Steven Chennault schenn@mash.is

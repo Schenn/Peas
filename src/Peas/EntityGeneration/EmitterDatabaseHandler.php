@@ -1,8 +1,8 @@
 <?php
- namespace EntityGenerator;
+ namespace Peas\EntityGeneration;
  use Exception;
- use EntityGenerator\Utils\SqlBuilder as SqlBuilder;
- use EntityGenerator\Utils\cleanPDO as cleanPDO;
+ use Peas\Database\SqlBuilder as SqlBuilder;
+ use Peas\Database\cleanPDO as cleanPDO;
  use PDO;
  use PDOException;
  use PDOStatement;

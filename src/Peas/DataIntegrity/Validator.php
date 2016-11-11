@@ -3,7 +3,7 @@
  * @author Steven Chennault Schenn@Mash.is
  * @link: https://github.com/Schenn/EmitterDatabaseHandler Repository
  */
-namespace EntityGenerator\Utils;
+namespace Peas\DataIntegrity;
 use Exception;
 
 /**

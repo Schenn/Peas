@@ -1,5 +1,5 @@
 <?php
-     namespace EntityGenerator\Utils;
+     namespace Peas\Database;
      use Exception;
      /*
       * @author:  Steven Chennault schenn@mash.is

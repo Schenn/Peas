@@ -1,9 +1,9 @@
 <?php
-namespace EntityGenerator\Utils;
+namespace Peas\EntityGeneration;
 use BadMethodCallException, Iterator, JsonSerializable;
 use Closure;
-use EntityGenerator\Utils\Validator as Validator;
-use EntityGenerator\Utils\LiteralInterface as LiteralInterface;
+use Peas\DataIntegrity\Validator as Validator;
+use Peas\DataIntegrity\LiteralInterface as LiteralInterface;
 
 /**
 * @author Steven Chennault Schenn@Mash.is
@@ -194,6 +194,7 @@ class Entity implements LiteralInterface{
         if(isset($this->$method)){
             if(is_callable($this->$method)){
                 $func = $this->$method;
+                /** @var string|closure $func */
                 return ($func($args));
             }
             else {

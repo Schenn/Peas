@@ -1,5 +1,5 @@
 <?php
-namespace EntityGenerator\Utils;
+namespace Peas\DataIntegrity;
 use Iterator, JsonSerializable;
 /**
  * Created by PhpStorm.

@@ -1,5 +1,5 @@
 <?php
-namespace EntityGenerator\Utils;
+namespace Peas\Database;
 use PDO;
 /**
  * @author Steven Chennault schenn@gmail.com
@@ -12,7 +12,6 @@ use PDO;
  * Constructs a PDO ready to handle errors using a dictionary of configuration options.
  *
  * @package EmitterDatabaseHandler
- * @internal
  */
 
 class cleanPDO extends PDO {

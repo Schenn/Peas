@@ -1,6 +1,6 @@
 <?php
-namespace EntityGenerator\Utils;
-use Exception, EntityGenerator\Utils\LiteralInterface as LiteralInterface;
+namespace Peas\DataIntegrity;
+use Exception;
 
 /**
  * @author:  Steven Chennault schenn@mash.is
