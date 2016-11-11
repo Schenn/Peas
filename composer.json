@@ -1,0 +1,17 @@
+{
+    "name": "schenn/pecs",
+    "description": "An Entity Attribute Value System for PHP",
+    "type": "library",
+    "require": {
+        "phpunit/dbunit": "^2.0",
+        "phpunit/phpunit": "^5.6",
+        "phpunit/phpunit-mock-objects": "^3.4",
+        "phpunit/php-code-coverage": "^4.0"
+    },
+    "authors": [
+        {
+            "name": "Steven Chennault",
+            "email": "schenn@gmail.com"
+        }
+    ]
+}
