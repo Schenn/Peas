@@ -1,6 +1,6 @@
 <?php
-use EntityGenerator\EmitterDatabaseHandler as EmitterDatabaseHandler;
-use EntityGenerator\EntityEmitter as EntityEmitter;
+use Peas\EntityGeneration\EmitterDatabaseHandler as EmitterDatabaseHandler;
+use Peas\EntityGeneration\EntityEmitter as EntityEmitter;
 
 class userTable {
     protected $config;

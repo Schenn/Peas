@@ -1,6 +1,6 @@
 <?php
-     require_once("autoload.php");
-     use EntityGenerator\EntityEmitter;
+     require_once(__DIR__."/../"."autoload.php");
+     use Peas\EntityGeneration\EntityEmitter;
 
      if(isset($_GET['action'])){
           print_r($_GET);

@@ -1,5 +1,5 @@
 <?php
-require_once("autoload.php");
+require_once(__DIR__."/../"."autoload.php");
 $config = [
         'dbname'=>'pdoi_test',
         'username'=>'pdoi_test',

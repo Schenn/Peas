@@ -1,6 +1,6 @@
 <?php
-     require_once("autoload.php");
-     use EntityGenerator\EntityEmitter as EntityEmitter;
+     require_once(__DIR__."/../"."autoload.php");
+     use Peas\EntityGeneration\EntityEmitter as EntityEmitter;
      $config = [
                'dbname'=>'pdoi_test',
                'username'=>'pdoi_test',
