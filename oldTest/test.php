@@ -1,4 +1,6 @@
 <?php
+use Peas\Tables\UserTable;
+
 require_once(__DIR__."/../"."autoload.php");
 $config = [
         'dbname'=>'pdoi_test',

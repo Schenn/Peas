@@ -1,8 +1,9 @@
 <?php
+namespace Peas\Tables;
 use Peas\EntityGeneration\EmitterDatabaseHandler as EmitterDatabaseHandler;
 use Peas\EntityGeneration\EntityEmitter as EntityEmitter;
 
-class userTable {
+class UserTable {
     protected $config;
     protected $debug;
     protected $conn;

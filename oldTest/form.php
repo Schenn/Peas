@@ -111,6 +111,10 @@
      $ships = new EntityEmitter($config, "ships");
 
 
+/**
+ * @var $person \Peas\EntityGeneration\Entity
+ * @var $ship \Peas\EntityGeneration\Entity
+ */
      $person = $persons->EmitEntity();
      $ship = $ships->EmitEntity();
 
