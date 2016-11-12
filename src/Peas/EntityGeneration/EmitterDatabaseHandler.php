@@ -39,6 +39,30 @@ class EmitterDatabaseHandler
   /** @var  bool $debug Whether or not we are running in debug mode */
   protected $debug;
 
+  protected function connectToDb(){
+    $counter=0;
+    $limit = 3;
+    // Attempt to connect to the database $limit times or until we have success, whichever happens first
+    while (true) {
+      try {
+        $this->pdo = new cleanPDO($this->config);
+        $this->pdo->query("SET wait_timeout=1200");
+        // End the while loop, we have connection
+        break;
+      } catch (Exception $e) {
+        $this->pdo = null;
+        $counter++;
+        if ($this->debug) {
+          echo "Attempt:" . $counter;
+        }
+        if ($counter == $limit) {
+          // Throw the reason we've failed to connect to the database
+          throw $e;
+        }
+      }
+    }
+  }
+
   /**
    * Create a new EmitterDatabaseHandler
    *
@@ -57,29 +81,9 @@ class EmitterDatabaseHandler
    */
   function __construct($config, $debug = false)
   {
-    $limit = 3;
-    $counter = 0;
-    // Attempt to connect to the database $limit times or until we have success, whichever happens first
-    while (true) {
-      try {
-        $this->pdo = new cleanPDO($config);
-        $this->config = $config;
-        $this->pdo->query("SET wait_timeout=1200");
-        $this->debug = $debug;
-        // End the while loop, we have connection
-        break;
-      } catch (Exception $e) {
-        $this->pdo = null;
-        $counter++;
-        if ($debug) {
-          echo "Attempt:" . $counter;
-        }
-        if ($counter == $limit) {
-          // Throw the reason we've failed to connect to the database
-          throw $e;
-        }
-      }
-    }
+    $this->config = $config;
+    $this->debug = $debug;
+    $this->connectToDb();
   }
 
   /**
@@ -100,6 +104,45 @@ class EmitterDatabaseHandler
   }
 
   /**
+   * Where DataSets Preparation Methods:
+   *
+   * @param string $column
+   * @param mixed $value
+   * @param array $where
+   * @param array $whereValues
+   */
+
+  protected function prepSimpleWhere($column, $value, &$where, &$whereValues){
+    $placeholder = ":where" . str_replace(".", "", $column);
+    $whereValues[$placeholder] = $value;
+    $where[$column] = $value;
+  }
+
+  protected function prepComparisonWhere($column, $method, $compareValue, &$where, &$whereValues){
+    $placeholder = ":where" . str_replace(".", "", $column);
+    $cleanMethod = str_replace(" ", "", $method);
+    if ($cleanMethod === "like" || $cleanMethod === "notlike") {
+      // Escape additional % and _ values as these are not escaped by bind_value
+      if (is_string($compareValue)) {
+        $compareValue = "%" . addcslashes($compareValue, "%_") . "%";
+      } else {
+        $compareValue = "%" . $compareValue . "%";
+      }
+    }
+    $whereValues[$placeholder] = $compareValue;
+    $where[$column] = [$method => $compareValue];
+  }
+
+  protected function prepTableWhere($column, $compareValue, $method, &$where){
+    $compareCount = count($compareValue);
+    for ($i = 0; $i < $compareCount; $i++) {
+      $placeholder = ":where" . str_replace(".", "", $column) . $i;
+      $whereValues[$placeholder] = $compareValue[$i];
+    }
+    $where[$column] = [$method => $compareValue];
+  }
+
+  /**
    * Prepares the where arguments.
    *
    * Creates the placeholder names to give the Where query and stores the value in a dictionary that holds that relationship
@@ -115,34 +158,33 @@ class EmitterDatabaseHandler
   {
     foreach ($args as $column => $value) {
       if (!is_array($value)) {
-        $placeholder = ":where" . str_replace(".", "", $column);
-        $whereValues[$placeholder] = $value;
-        $where[$column] = $value;
+        $this->prepSimpleWhere($column, $value, $where, $whereValues);
       } else {
         foreach ($value as $method => $compareValue) {
           if (!is_array($compareValue)) {
-            $placeholder = ":where" . str_replace(".", "", $column);
-            $cleanMethod = str_replace(" ", "", $method);
-            if ($cleanMethod === "like" || $cleanMethod === "notlike") {
-              // Escape additional % and _ values as these are not escaped by bind_value
-              if (is_string($compareValue)) {
-                $compareValue = "%" . addcslashes($compareValue, "%_") . "%";
-              } else {
-                $compareValue = "%" . $compareValue . "%";
-              }
-            }
-            $whereValues[$placeholder] = $compareValue;
-            $where[$column] = [$method => $compareValue];
+            $this->prepComparisonWhere($column, $method, $compareValue, $where, $whereValues);
           } else {
-            $compareCount = count($compareValue);
-            for ($i = 0; $i < $compareCount; $i++) {
-              $placeholder = ":where" . str_replace(".", "", $column) . $i;
-              $whereValues[$placeholder] = $compareValue[$i];
-            }
-            $where[$column] = [$method => $compareValue];
+            $this->prepTableWhere($column, $compareValue, $method, $where);
           }
         }
       }
+    }
+  }
+
+  /**
+   * Move the table data from under the instructions to the table collection.
+   *
+   * @param $key
+   * @param $args
+   */
+
+  protected function prepJoinColumns($key, &$args){
+    foreach ($args[$key] as $table => $columnInfo) {
+      foreach ($columnInfo as $columnName => $columnRules) {
+        $fullName = $table . "." . $columnName;
+        $args[$key][$fullName] = $columnRules;
+      }
+      unset($args[$key][$table]);
     }
   }
 
@@ -176,26 +218,15 @@ class EmitterDatabaseHandler
     $args['columns'] = $cols;
 
     if (array_key_exists("where", $args)) {
-      foreach ($args['where'] as $table => $columnInfo) {
-        foreach ($columnInfo as $columnName => $columnRules) {
-          $fullName = $table . "." . $columnName;
-          $args['where'][$fullName] = $columnRules;
-        }
-        unset($args['where'][$table]);
-      }
+      $this->prepJoinColumns("where", $args);
     }
 
     if (array_key_exists("set", $args)) {
-      foreach ($args['set'] as $table => $columnInfo) {
-        foreach ($columnInfo as $columnName => $columnRules) {
-          $fullName = $table . "." . $columnName;
-          $args['set'][$fullName] = $columnRules;
-        }
-        unset($args['set'][$table]);
-      }
+      $this->prepJoinColumns("set", $args);
     }
 
     $join = $args['join'];
+    // Cannot 'on' and 'using' at the same time.
     if (array_key_exists("on", $args)) {
       $joinCondition["on"] = $args['on'];
     } else if (array_key_exists("using", $args)) {
@@ -327,17 +358,67 @@ class EmitterDatabaseHandler
     }
     //if result
     if (count($chunk) > 0) {
-      //if only 1 result
-      if (count($chunk) === 1) {
-        //return that 1 result instead of the array containing one result
-        return ($chunk[0]);
-      } else {
-        //return the whole result array if result size > 1
-        return ($chunk);
-      }
+      return (count($chunk) === 1)? $chunk[0] : $chunk;
     } else {
       //no results
       return (NULL);
+    }
+  }
+
+  /**
+   * @param array $args
+   * @param PDOStatement $stmt
+   * @return array
+   */
+  private function insertManyDataSets($args, &$stmt){
+    $id = [];
+    $columns = $args['columns'];
+    $colCount = count($columns);
+    $cols = [];
+    for ($i = 0; $i < $colCount; $i++) {
+      //bind insert placeholders to variable parameters
+      $stmt->bindParam(":$columns[$i]", $$columns[$i]);
+      array_push($cols, $$columns[$i]);
+    }
+    $valCount = count($args['values']);
+    for ($i = 0; $i < $valCount; $i++) {
+      //for each grouping of values in a multi-entity insert
+      foreach ($args['values'][$i] as $column => $value) {
+        //set variable placeholders to current row values
+        $$column = $value;
+        //if debugging
+        if ($this->debug) print_r($$column . ":" . $$column);
+      }
+      //execute statement with bound parameters for each row in array of value arrays
+      $stmt->execute();
+      array_push($id, $this->pdo->lastInsertId());
+
+      //destroy temporary placeholder without disturbing index count
+      $varCount = count($cols);
+      for ($z = 0; $z < $varCount; $z++) {
+        $$cols[$z] = null;
+      }
+    }
+    return $id;
+  }
+
+  /**
+   * @param array $args
+   * @param PDOStatement $stmt
+   * @throws Exception
+   */
+  private function insertOneDataSet($args, &$stmt){
+    $values = [];
+    foreach ($args['values'] as $column => $value) {
+      if (isset($value)) {
+        $prepCol = ":$column";
+        $values[$prepCol] = $value;
+      }
+    }
+    $this->debug("Values: ", $values);
+    //executes with parameter array, if fails throws exception
+    if (!($stmt->execute($values))) {
+      throw new Exception("Insert Failed");
     }
   }
 
@@ -377,48 +458,10 @@ class EmitterDatabaseHandler
 
       // if Values are array of data-sets. Process multiple inserts in one table using bindParam
       if (isset($args['values'][0])) {
-        $id = [];
-        $columns = $args['columns'];
-        $colCount = count($columns);
-        $cols = [];
-        for ($i = 0; $i < $colCount; $i++) {
-          //bind insert placeholders to variable parameters
-          $stmt->bindParam(":$columns[$i]", $$columns[$i]);
-          array_push($cols, $$columns[$i]);
-        }
-        $valCount = count($args['values']);
-        for ($i = 0; $i < $valCount; $i++) {
-          //for each grouping of values in a multi-entity insert
-          foreach ($args['values'][$i] as $column => $value) {
-            //set variable placeholders to current row values
-            $$column = $value;
-            //if debugging
-            if ($this->debug) print_r($$column . ":" . $$column);
-          }
-          //execute statement with bound parameters for each row in array of value arrays
-          $stmt->execute();
-          array_push($id, $this->pdo->lastInsertId());
-
-          //destroy temporary placeholder without disturbing index count
-          $varCount = count($cols);
-          for ($z = 0; $z < $varCount; $z++) {
-            $$cols[$z] = null;
-          }
-        }
+        $id= $this->insertManyDataSets($args, $stmt);
       } //one data-set to insert
       else {
-        $values = [];
-        foreach ($args['values'] as $column => $value) {
-          if (isset($value)) {
-            $prepCol = ":$column";
-            $values[$prepCol] = $value;
-          }
-        }
-        $this->debug("Values: ", $values);
-        //executes with parameter array, if fails throws exception
-        if (!($stmt->execute($values))) {
-          throw new Exception("Insert Failed");
-        }
+        $this->insertOneDataSet($args, $stmt);
         $id = $this->pdo->lastInsertId();
       }
       //returns result of committing changes to db
