@@ -3,7 +3,7 @@ namespace Peas\Database;
 use PDO;
 /**
  * @author Steven Chennault schenn@gmail.com
- * @link: https://github.com/Schenn/EmitterDatabaseHandler Repository
+ * @link: https://github.com/Schenn/Peas Repository
  */
 
 /**
