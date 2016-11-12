@@ -218,7 +218,6 @@
                     unset($a['on']);
                 }
            }
-        print_r($a);
           $res = parent::SELECT($a, $entity);
           if($isEntity && $res !== null){
               if(is_array($res)){
