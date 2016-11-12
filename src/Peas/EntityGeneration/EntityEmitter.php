@@ -189,7 +189,7 @@
       * @uses PDOI::SELECT
       *
       * @param array $options see PDO::SELECT for more information on options
-      * @param null|object $entity The object to assign the data from the query to. Passed by reference so the
+      * @param null|Entity $entity The object to assign the data from the query to. Passed by reference so the
       *     object will be mutated without having to do something with the return value
       *
       * @return array|entity|bool|null
@@ -218,6 +218,7 @@
                     unset($a['on']);
                 }
            }
+        print_r($a);
           $res = parent::SELECT($a, $entity);
           if($isEntity && $res !== null){
               if(is_array($res)){
