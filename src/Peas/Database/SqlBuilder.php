@@ -6,7 +6,6 @@ use Peas\Helpers\AggregateHelper;
 use Peas\Helpers\ColumnHelper;
 use Peas\Helpers\JoinHelper;
 use Peas\Helpers\SelectHelper;
-use Peas\Helpers\SqlHelper as SqlHelper;
 
 /**
  * SqlBuilder generates sql from an argument dictionary
@@ -261,8 +260,6 @@ class SqlBuilder
         $this->sql .= $helper->Update($join, $condition);
     } else if(!empty($join)) {
         $this->sql.= $helper->Select($join, $condition);
-    } else {
-      throw new SqlBuildError("Missing Join Arguments", 1);
     }
 
     return ($this);
