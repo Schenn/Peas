@@ -37,6 +37,14 @@ class UserTable {
         }
         $this->userConn = new EntityEmitter($this->config, "users", $this->debug);
     }
+
+  private function setRelationship(){
+    $this->userConn->setRelationship([
+      'users.hash_id'=>'hashwords.hash_id',
+      'hashwords.salt_id'=>'salts.salt_id',
+      'salts.round_id'=>'rounds.round_id']);
+  }
+
     
     public function createUser($user, $pass){
         $userExists = ['where'=>[
@@ -44,10 +52,7 @@ class UserTable {
         ], 'limit'=>1];
 
         if(!$this->userConn->select($userExists)) {
-           $this->userConn->setRelationship([
-               'users.hash_id'=>'hashwords.hash_id',
-               'hashwords.salt_id'=>'salts.salt_id',
-               'salts.round_id'=>'rounds.round_id']);
+           $this->setRelationship();
 
            $newUser = $this->userConn->EmitEntity();
            $hash = $this->saltAndPepper($pass);
@@ -67,11 +72,7 @@ class UserTable {
     }
     
     public function deleteUser($username){
-        $this->userConn->setRelationship([
-               'users.hash_id'=>'hashwords.hash_id',
-               'hashwords.salt_id'=>'salts.salt_id',
-               'salts.round_id'=>'rounds.round_id']);
-
+        $this->setRelationship();
         $userExists = ['where'=>['users'=>['username'=>$username]
         ], 'limit'=>1];
 
@@ -85,10 +86,7 @@ class UserTable {
     }
     
     public function login($username, $pass){
-        $this->userConn->setRelationship([
-               'users.hash_id'=>'hashwords.hash_id',
-               'hashwords.salt_id'=>'salts.salt_id',
-               'salts.round_id'=>'rounds.round_id']);
+        $this->setRelationship();
         $userExists = ['where'=>['users'=>['username'=>$username]
            ], 'limit'=>1];
         if($user = $this->userConn->select($userExists)) {

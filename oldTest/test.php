@@ -8,7 +8,7 @@ $config = [
         'password'=>'QzMdPwx3p4UpL4Rq',
         ];
 
-$install = new userTable($config, true);
+$install = new UserTable($config, true);
 
 
 $install->init();
