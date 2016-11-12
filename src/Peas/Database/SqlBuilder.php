@@ -360,10 +360,52 @@ class SqlBuilder
       $aggHelper = new AggregateHelper();
       $this->sql .= $aggHelper->aggregate($method, $columns);
 
-      $this->sql .= SqlHelper::methodSpin($comparison) . $compareValue . " ";
+      $this->sql .= $this->methodSpin($comparison) . $compareValue . " ";
     }
 
     return ($this);
+  }
+
+  /**
+   * Transforms the developer friendly comparison method argument into an sql friendly comparison string
+   *
+   * @param string $method the intended sql comparison method in developer friendly syntax
+   * @return string the sql friendly comparison operator
+   *
+   * @see sqlSpinner::WHERE
+   */
+  public static function methodSpin($method){
+    switch(strtolower(str_replace(" ", "",$method))){
+      case "!=":
+      case "not":
+        return(" != ");
+        break;
+      case "<":
+      case "less":
+        return(" < ");
+        break;
+      case "<=":
+      case "lessequal":
+        return(" <= ");
+        break;
+      case ">":
+      case "greater":
+        return(" > ");
+        break;
+      case ">=":
+      case "greaterequal":
+        return(" >= ");
+        break;
+      case "like":
+        return(" LIKE ");
+        break;
+      case "notlike":
+        return(" NOT LIKE ");
+        break;
+      default:
+        return(" = ");
+        break;
+    }
   }
 
   /**
