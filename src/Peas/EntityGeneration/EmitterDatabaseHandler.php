@@ -26,7 +26,7 @@ use PDOStatement;
  *
  * EmitterDatabaseHandler is only known to be compatible with MySql.
  *
- * @uses Utils\SqlBuilder
+ * @uses Peas\Database\SqlBuilder
  *
  * @package EmitterDatabaseHandler
  */
@@ -281,13 +281,13 @@ class EmitterDatabaseHandler
    *
    * @return array|object|null|bool The result or false on failure
    *
-   * @uses Utils\SqlBuilder::SELECT
-   * @uses Utils\SqlBuilder::JOIN
-   * @uses Utils\SqlBuilder::WHERE
-   * @uses Utils\SqlBuilder::GROUPBY
-   * @uses Utils\SqlBuilder::HAVING
-   * @uses Utils\SqlBuilder::ORDERBY
-   * @uses Utils\SqlBuilder::LIMIT
+   * @uses Peas\Database\SqlBuilder::SELECT
+   * @uses Peas\Database\SqlBuilder::JOIN
+   * @uses Peas\Database\SqlBuilder::WHERE
+   * @uses Peas\Database\SqlBuilder::GROUPBY
+   * @uses Peas\Database\SqlBuilder::HAVING
+   * @uses Peas\Database\SqlBuilder::ORDERBY
+   * @uses Peas\Database\SqlBuilder::LIMIT
    * @api
    * @todo fetch_obj instead of fetch_assoc for when an object isn't provided. Then we'll always return an object or array of objects. Only the object will be a very limited anonymous object.
    * @todo should we return null on failure or false?
@@ -501,12 +501,12 @@ class EmitterDatabaseHandler
    *           'limit'=> #
    *                  Sets the LIMIT value in the Update statement
    *
-   * @uses Utils\SqlBuilder::UPDATE
-   * @uses Utils\SqlBuilder::JOIN
-   * @uses Utils\SqlBuilder::SET
-   * @uses Utils\SqlBuilder::WHERE
-   * @uses Utils\SqlBuilder::ORDERBY
-   * @uses Utils\SqlBuilder::LIMIT
+   * @uses Peas\Database\SqlBuilder::UPDATE
+   * @uses Peas\Database\SqlBuilder::JOIN
+   * @uses Peas\Database\SqlBuilder::SET
+   * @uses Peas\Database\SqlBuilder::WHERE
+   * @uses Peas\Database\SqlBuilder::ORDERBY
+   * @uses Peas\Database\SqlBuilder::LIMIT
    * @return bool success
    * @throws Exception if no 'set' or 'where' arguments provided
    * @api
@@ -577,11 +577,11 @@ class EmitterDatabaseHandler
    *             'limit'=> #
    *                  Sets the LIMIT value in the Select statement
    *
-   * @uses Utils\SqlBuilder::DELETE
-   * @uses Utils\SqlBuilder::JOIN
-   * @uses Utils\SqlBuilder::WHERE
-   * @uses Utils\SqlBuilder::ORDERBY
-   * @uses Utils\SqlBuilder::LIMIT
+   * @uses Peas\Database\SqlBuilder::DELETE
+   * @uses Peas\Database\SqlBuilder::JOIN
+   * @uses Peas\Database\SqlBuilder::WHERE
+   * @uses Peas\Database\SqlBuilder::ORDERBY
+   * @uses Peas\Database\SqlBuilder::LIMIT
    *
    * @return bool success
    * @throws Exception
@@ -629,7 +629,7 @@ class EmitterDatabaseHandler
    * @param string $table The table name
    * @param array $props The dictionary of fields=>[mysql column properties]
    *
-   * @uses Utils\SqlBuilder::CREATE
+   * @uses Peas\Database\SqlBuilder::CREATE
    * @return bool success
    * @throws string If the table already exists
    * @api

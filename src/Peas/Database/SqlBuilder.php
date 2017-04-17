@@ -8,10 +8,12 @@ use Peas\Helpers\JoinHelper;
 use Peas\Helpers\SelectHelper;
 
 /**
- * SqlBuilder generates sql from an argument dictionary
+ * SqlBuilder generates sql queries from a collection of method calls.
+
+ * You can use the different methods to construct complex sql queries by passing a
+ *  few dictionary arguments to each participle generation method.
  *
- * It's methods can be chained together until getSQL is called.
- *
+ * It's methods can be chained together until getSQL is called, at which point the constructed sql query is returned.
  * @see SqlBuilder::getSQL
  * @todo Improve error handling
  * @todo Remove unused variables, clean up and format
@@ -28,27 +30,20 @@ class SqlBuilder
   protected $sql;
 
   /**
-   * Begins constructing the sql for a select query
+   * Add a Select participle to the sql
    *
    * SELECT columns FROM table
+   *  table (REQUIRED PARAMETER) can be a single string name or a collection of string names
+   *  columns (OPTIONAL) can be a column or a tuple of [aggregateMethod =>[ (sum, max, count) => [ column names or values ] ]
+   *  union (Very Optional) only value is true. Used to join with an earlier select statement on the query.
+   *  distinct (Very Optional) the type of distinct method to use (distinct or distinctrow). If omitted, not used.
+   *  result (Very Optional) big or small adds 'sql_big_result' or 'sql_small_result' to the query.
+   *      Requires distinct or groupby params.
+   *  priority (Very Optional) only value is true. Adds HIGH_PRIORITY to the query.
+   *  buffer (Very Optional) only value is true. Adds SQL_BUFFER_RESULT to the query.
+   *  cache (Very Optional) true or false. Adds SQL_CACHE or SQL_NO_CACHE to the query. Neither if omitted.
    *
-   * @param array $args list of arguments
-   *    REQUIRED
-   *        'table'=>      'tableName' | ['tableName', 'tableName']
-   *    OPTIONAL
-   *        'columns'=>    ['columnName', (aggregateMethod=>['method'=>'values'])]
-   *            If columns omitted, SELECT * is used instead
-   *    VERY OPTIONAL
-   *        'union'=>     true (UNION) Can be used in a subsequent call to select
-   *             (e.g. spinner->SELECT($args)->SELECT($argsWithUnion)->getSQL)
-   *             (ignored if priority is set -- per mysql docs: HIGH_PRIORITY cannot be used with SELECT statements that are part of a UNION. )
-   *        'distinct'=>   'distinct' | 'distinctrow'
-   *        'result'=>     'big' | 'small' (sql_big_result | sql_small_result)
-   *             Requires either args['distinct'] or args['groupby'] to have value
-   *        'priority'=>   true (HIGH_PRIORITY)
-   *        'buffer'=>     true (SQL_BUFFER_RESULT)
-   *        'cache'=>      true | false (SQL_CACHE | SQL_NO_CACHE)
-   *
+   * @param array $args see the arguments in the description above.
    * @throws SqlBuildError if no table information is given
    * @return SqlBuilder this
    *
@@ -61,12 +56,12 @@ class SqlBuilder
     $this->method = 'select';
     $helper = new SelectHelper();
     // union is used to join multiple select statements into a single return value
-    $this->sql = $helper->setSelectType($args);
+    $this->sql = "SELECT";
 
     try {
-      $this->sql.= $helper->setDistinct($args);
+      $this->sql .= $helper->setDistinct($args);
       $this->sql .= $helper->setSelectOptionals($args);
-      $this->sql .=$helper->setSelectColumnsAndTables($args);
+      $this->sql .= $helper->setSelectColumnsAndTables($args);
 
     } catch (SqlBuildError $e) {
       echo $e->getMessage();
@@ -76,19 +71,13 @@ class SqlBuilder
   }
 
 
-  /*
-   * Begins constructing the sql as an INSERT query
+  /**
+   * Adds an Insert Participle to the SQL query.
    *
    * INSERT INTO table (columnName, columnName,...) VALUES (:columnName, :columnName, ...)
    *
-   * @param array args
-   *             REQUIRED
-   *                  'table'=>      'tableName'  if missing, SqlBuilder throws SqlBuildError
-   *                  'columns'=>    ['columnName', 'columnName']  if missing, SqlBuilder throws SqlBuildError
-   *
-   * @throws SqlBuildError if no table or columns provided
-   *
-   * @return SqlBuilder this
+   * @param $args array ['table'=>'name of the table', 'columns'=>['column', 'column']
+   * @return $this
    */
   function INSERT($args)
   {
@@ -108,21 +97,11 @@ class SqlBuilder
     return $this;
   }
 
-  /*
-   * Begins constructing an UPDATE mysql query
+  /**
+   * Adds an UPDATE participle to the query.
    *
-   * UPDATE table
-   * sql statement uses placeholders for pdo.  Be sure to match your value array appropriately.
-   *
-   * @param array args
-   *             REQUIRED
-   *                  'table'=>      'tableName'  if missing, SqlBuilder throws SqlBuildError
-   *                  'set'=>    ['columnName'=>'value']  if missing, SqlBuilder throws SqlBuildError
-   *
-   * @throws SqlBuildError if no table or set argument provided
-   * @return SqlBuilder this
-   *
-   * @api
+   * @param $args array ['table'=>'name', 'set'=>['column'=>'value']]
+   * @return SqlBuilder
    */
   function UPDATE($args)
   {
@@ -146,8 +125,7 @@ class SqlBuilder
   /**
    * Adds the SET segment to an UPDATE query
    *
-   * Appends the SET segment to the UPDATE query. Creates placeholders for pdo to bind a value to
-   * UPDATE table SET column = :setColumn, column = :setColumn, ...
+   * SET columnName = :columnName, columnName = :columnName
    *
    * @param array $args
    *         REQUIRED
@@ -165,17 +143,13 @@ class SqlBuilder
     return ($this);
   }
 
-  /*
-   * Begins constructing the sql as a DELETE query
+  /**
+   * Adds a Delete participle to the query.
    *
-   * DELETE FROM table
+   * DELETE FROM TABLE
    *
-   * @param array args
-   *             REQUIRED
-   *                  'table'=>      'tableName'  if missing, SqlBuilder throws SqlBuildError
-   * @throws SqlBuildError if no table provided
-   * @return SqlBuilder this
-   * @api
+   * @param $args ['table'=>'name']
+   * @return SqlBuilder
    */
   function DELETE($args)
   {

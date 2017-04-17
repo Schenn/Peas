@@ -21,7 +21,7 @@ class cleanPDO extends PDO {
     /**
      * Create a new cleanPDO
      *
-     * @param array $config  The dictionary of configuration options
+     * @param array $config The dictionary of configuration options
      *  'dbname'=>'pdoi_tester',
      *  'host'=>'127.0.0.1',
      *  'username'=>'pdoi_tester',
@@ -29,7 +29,7 @@ class cleanPDO extends PDO {
      *  'driver_options'=>[PDO::ATTR_PERSISTENT => true]
      *
      */
-    function __construct($config){
+    public function __construct($config){
         if(!isset($config["dbname"]) || !isset($config['username']) || !isset($config['password'])) {
             throw new \PDOException("Invalid config arguments");
         }
@@ -53,7 +53,7 @@ class cleanPDO extends PDO {
      * If the pdo is already working, fail, otherwise begin a transaction
      * @return bool
      */
-    function beginTransaction() {
+    public function beginTransaction() {
         if($this->hasActiveTransaction){
             return(false);
         }
@@ -66,11 +66,11 @@ class cleanPDO extends PDO {
     /**
      * Commit the work
      *
-     * Commit the work the pdo has done and mark as not working
+     * Commit the work the pdo has done and unmark the transaction flag
      *
      * @return bool
      */
-    function commit() {
+    public function commit() {
         $this->hasActiveTransaction = false;
         return(parent::commit());
     }
@@ -82,18 +82,19 @@ class cleanPDO extends PDO {
      *
      * @return bool
      */
-    function rollback() {
+    public function rollback() {
         $this->hasActiveTransaction = false;
         return(parent::rollBack());
     }
 
     /**
      * Return the last insert id
-     * @return string|int
+     * @param string $name [optional]
+     * @return int
      */
-    function lastInsertId($seq = null){
+    public function lastInsertId($name = null){
         if($this->hasActiveTransaction) {
-            return(parent::lastInsertId($seq));
+            return(parent::lastInsertId($name));
         } else {
             return 0;
         }

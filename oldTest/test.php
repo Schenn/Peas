@@ -4,8 +4,8 @@ use Peas\Tables\UserTable;
 require_once(__DIR__."/../"."autoload.php");
 $config = [
         'dbname'=>'pdoi_test',
-        'username'=>'pdoi_test',
-        'password'=>'QzMdPwx3p4UpL4Rq',
+        'username'=>'schenn',
+        'password'=>'monkey',
         ];
 
 $install = new UserTable($config, true);
